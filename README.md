@@ -58,7 +58,7 @@ Teclas, qualidade e pasta de saída mudam nas Configurações (clique duplo no �
 
 Ao terminar, uma janela explica como usar. O Mexerica abre sozinho quando o computador liga (dá para desligar no menu da bandeja). Para remover: **Configurações → Aplicativos → Aplicativos instalados → Mexerica → Desinstalar**. Isso tira também o menu do botão direito e as configurações.
 
-Requisitos: Windows 10 (versão 2004 ou mais nova) ou Windows 11, 64 bits. Para documentos, planilhas e apresentações, instale o [LibreOffice](https://pt-br.libreoffice.org) (gratuito). Para gravar HEIC, o Windows precisa das extensões HEIF e HEVC da Microsoft Store.
+Requisitos: Windows 10 (versão 2004 ou mais nova) ou Windows 11, 64 bits. Não é preciso instalar mais nada à mão: se faltar o [LibreOffice](https://pt-br.libreoffice.org) (usado para documentos, planilhas e apresentações), o instalador avisa, pede autorização e instala. Se você recusar, o Mexerica oferece de novo quando for converter um documento.
 
 ## Compilar
 

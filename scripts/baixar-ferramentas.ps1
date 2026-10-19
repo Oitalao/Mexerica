@@ -62,7 +62,19 @@ try {
     }
     & $sete e "$tmp\gs.exe" "-o$tools" 'bin\gswin64c.exe' 'bin\gsdll64.dll' -y | Out-Null
 
-    foreach ($f in 'ffmpeg.exe', 'ffprobe.exe', 'qpdf\qpdf.exe', 'exiftool.exe', 'gswin64c.exe', 'gsdll64.dll') {
+    # O Ghostscript precisa do runtime do Visual C++, que nem todo Windows tem. A Microsoft permite
+    # distribuir esses arquivos junto com o programa: vão ao lado dele e ninguém precisa instalar nada.
+    Write-Host 'Runtime do Visual C++...'
+    $vc = "$tmp\vc_redist.x64.exe"
+    Baixar 'https://aka.ms/vs/17/release/vc_redist.x64.exe' $vc
+    & $sete e $vc "-o$tmp\vc" -y | Out-Null           # o vc_redist é um pacote WiX: o 7-Zip abre os .cab de dentro
+    Get-ChildItem "$tmp\vc" -Filter '*.cab' -ErrorAction SilentlyContinue | ForEach-Object { & $sete e $_.FullName "-o$tmp\vc" -y | Out-Null }
+    foreach ($n in 'vcruntime140.dll', 'vcruntime140_1.dll', 'msvcp140.dll') {
+        $achado = Get-ChildItem "$tmp\vc" -Recurse | Where-Object { $_.Name -like "$n*" } | Select-Object -First 1
+        if ($achado) { Copy-Item $achado.FullName (Join-Path $tools $n) -Force }
+        else { Copy-Item (Join-Path $env:WINDIR "System32\$n") (Join-Path $tools $n) -Force }   # plano B: a cópia desta máquina
+    }
+    foreach ($f in 'ffmpeg.exe', 'ffprobe.exe', 'qpdf\qpdf.exe', 'exiftool.exe', 'gswin64c.exe', 'gsdll64.dll', 'vcruntime140.dll', 'msvcp140.dll') {
         if (-not (Test-Path (Join-Path $tools $f))) { throw "Faltou $f" }
     }
     Write-Host "Pronto: ferramentas em $tools" -ForegroundColor Green

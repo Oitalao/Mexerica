@@ -112,9 +112,8 @@ static class Catalog
         if (Common(files) is not Kind k || !targets.TryGetValue(k, out var exts)) return list;
         if (!Office.Ok && k is Kind.Doc or Kind.Slides or Kind.Sheet or Kind.Csv)
         {
-            // Sem LibreOffice não dá para converter documentos do Office: oferece o download em vez de uma roda vazia.
-            list.Add(new Op { Label = "LibreOffice", Sub = "instalar para converter", Ui = _ =>
-                System.Diagnostics.Process.Start(new System.Diagnostics.ProcessStartInfo("https://pt-br.libreoffice.org/baixe-ja/libreoffice-novo/") { UseShellExecute = true }) });
+            // Sem LibreOffice não dá para converter documentos do Office: oferece instalar na hora em vez de uma roda vazia.
+            list.Add(new Op { Label = "LibreOffice", Sub = "instalar para converter", Ui = _ => LibreOfficeSetup.Offer() });
             return list;
         }
         var srcExts = files.Select(Norm).Distinct().ToList();

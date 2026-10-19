@@ -57,36 +57,39 @@ static class Images
         img.BackgroundColor = bg; img.Alpha(AlphaAction.Remove); img.Alpha(AlphaAction.Off);
     }
 
-    /// HEIC pelo codificador do próprio Windows (extensões HEIF e HEVC).
+    /// HEIC sem depender de nada instalado no Windows: o ffmpeg embutido codifica em HEVC (x265)
+    /// e o Heif.Wrap monta o arquivo .heic em volta.
     static void SaveHeic(MagickImage img, string dst, uint q)
     {
-        using var copy = (MagickImage)img.Clone();
-        copy.Format = MagickFormat.Png;
-        var png = copy.ToByteArray();
+        var tmp = Paths.Temp();
         try
         {
-            using var ms = new MemoryStream(png);
-            var dec = Windows.Graphics.Imaging.BitmapDecoder.CreateAsync(ms.AsRandomAccessStream()).AsTask().GetAwaiter().GetResult();
-            using var sb = dec.GetSoftwareBitmapAsync(Windows.Graphics.Imaging.BitmapPixelFormat.Bgra8, Windows.Graphics.Imaging.BitmapAlphaMode.Premultiplied).AsTask().GetAwaiter().GetResult();
-            using var outMs = new Windows.Storage.Streams.InMemoryRandomAccessStream();
-            var props = new Windows.Graphics.Imaging.BitmapPropertySet
+            using var copy = (MagickImage)img.Clone();
+            Flatten(copy, MagickColors.White);
+            // 4:2:0 exige largura e altura pares
+            if (copy.Width % 2 == 1 || copy.Height % 2 == 1) { copy.Crop(copy.Width & ~1u, copy.Height & ~1u); copy.ResetPage(); }
+            var png = Path.Combine(tmp, "in.png");
+            copy.Format = MagickFormat.Png;
+            copy.Settings.SetDefine(MagickFormat.Png, "compression-level", "1");
+            copy.Write(png);
+            var mp4 = Path.Combine(tmp, "out.mp4");
+            int crf = (int)Math.Round(14 + (100 - Math.Clamp(q, 1, 100)) * 0.5); // 90 → 19, 80 → 24, 70 → 29
+            Proc.Run(Ff.Exe ?? throw new Exception("ffmpeg não encontrado"), new[]
             {
-                ["ImageQuality"] = new Windows.Graphics.Imaging.BitmapTypedValue(q / 100f, Windows.Foundation.PropertyType.Single),
-            };
-            var enc = Windows.Graphics.Imaging.BitmapEncoder.CreateAsync(Windows.Graphics.Imaging.BitmapEncoder.HeifEncoderId, outMs, props).AsTask().GetAwaiter().GetResult();
-            enc.SetSoftwareBitmap(sb);
-            enc.FlushAsync().AsTask().GetAwaiter().GetResult();
-            outMs.Seek(0);
-            using var s = outMs.AsStreamForRead();
-            using var f = File.Create(dst);
-            s.CopyTo(f);
+                "-hide_banner", "-nostdin", "-y", "-i", png, "-frames:v", "1", "-an",
+                "-vf", "scale=out_color_matrix=bt601:out_range=tv,format=yuv420p",
+                "-c:v", "libx265", "-preset", "fast", "-crf", crf.ToString(), "-tag:v", "hvc1",
+                "-x265-params", "log-level=error:keyint=1:info=0", mp4,
+            }).GetAwaiter().GetResult();
+            Heif.Wrap(mp4, dst, (int)copy.Width, (int)copy.Height);
         }
         catch (Exception ex) when (ex is not OperationCanceledException)
         {
             Paths.TryDelete(dst);
             Log.Write("heic: " + ex);
-            throw new Exception("O Windows não conseguiu gravar HEIC (faltam as extensões HEIF e HEVC da Microsoft Store?)");
+            throw new Exception("Não consegui gravar HEIC: " + ex.Message);
         }
+        finally { Paths.TryDelete(tmp); }
     }
 
     public static string Convert(string src, string ext)

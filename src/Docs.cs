@@ -19,8 +19,10 @@ namespace Mexerica;
 
 static class Office
 {
-    public static readonly string? Exe = Find();
+    public static string? Exe { get; private set; } = Find();
     public static bool Ok => Exe != null;
+    /// Procura de novo (depois que o LibreOffice é instalado pelo próprio Mexerica).
+    public static void Refresh() => Exe = Find();
     // Dois LibreOffice ao mesmo tempo, cada um com seu perfil (o mesmo perfil não aceita duas cópias abertas).
     static readonly SemaphoreSlim gate = new(2, 2);
     static readonly System.Collections.Concurrent.ConcurrentBag<string> profiles = new(new[] { "lo-perfil", "lo-perfil-2" });
