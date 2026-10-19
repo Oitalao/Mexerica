@@ -1,0 +1,13 @@
+# compilação
+src/bin/
+src/obj/
+dist/
+*.user
+.vs/
+
+# ferramentas externas (baixadas por scripts/baixar-ferramentas.ps1)
+tools/
+
+# extensão do menu (gerada por scripts/compilar-menu.ps1) e o compilador baixado
+src/menu/MexericaMenu.dll
+build-tools/

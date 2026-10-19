@@ -1,0 +1,42 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <OutputType>WinExe</OutputType>
+    <TargetFramework>net8.0-windows10.0.19041.0</TargetFramework>
+    <SupportedOSPlatformVersion>10.0.19041.0</SupportedOSPlatformVersion>
+    <UseWPF>true</UseWPF>
+    <UseWindowsForms>true</UseWindowsForms>
+    <ImplicitUsings>disable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+    <LangVersion>latest</LangVersion>
+    <AssemblyName>Mexerica</AssemblyName>
+    <RootNamespace>Mexerica</RootNamespace>
+    <ApplicationManifest>app.manifest</ApplicationManifest>
+    <ApplicationIcon>mexerica.ico</ApplicationIcon>
+    <Platforms>x64</Platforms>
+    <RuntimeIdentifier>win-x64</RuntimeIdentifier>
+    <SatelliteResourceLanguages>pt-BR</SatelliteResourceLanguages>
+    <Version>1.0.0</Version>
+    <Product>Mexerica</Product>
+    <Company>Ítalo Sêne</Company>
+    <Description>Mexerica</Description>
+    <NoWarn>WFAC010</NoWarn>
+    <!-- Compilado de antemão: abre mais rápido (importa no menu do botão direito, que abre um processo por arquivo) -->
+    <PublishReadyToRun>true</PublishReadyToRun>
+    <TieredPGO>true</TieredPGO>
+  </PropertyGroup>
+  <ItemGroup>
+    <PackageReference Include="Magick.NET-Q8-x64" Version="15.0.0" />
+    <PackageReference Include="Markdig" Version="1.4.1" />
+    <PackageReference Include="PdfPig" Version="0.1.16" />
+    <PackageReference Include="ZXing.Net" Version="0.16.11" />
+    <PackageReference Include="ReverseMarkdown" Version="6.2.1" />
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="mexerica.ico" CopyToOutputDirectory="PreserveNewest" CopyToPublishDirectory="PreserveNewest" />
+    <!-- Extensão do menu do botão direito (C++, compilada por scripts/compilar-menu.ps1) -->
+    <None Include="menu/MexericaMenu.dll" Condition="Exists('menu/MexericaMenu.dll')" Link="MexericaMenu.dll" CopyToOutputDirectory="PreserveNewest" CopyToPublishDirectory="PreserveNewest" />
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="..\tools\**\*" LinkBase="tools" CopyToOutputDirectory="PreserveNewest" CopyToPublishDirectory="PreserveNewest" />
+  </ItemGroup>
+</Project>

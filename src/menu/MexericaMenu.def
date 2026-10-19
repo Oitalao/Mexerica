@@ -1,0 +1,4 @@
+LIBRARY MexericaMenu
+EXPORTS
+    DllGetClassObject PRIVATE
+    DllCanUnloadNow PRIVATE
