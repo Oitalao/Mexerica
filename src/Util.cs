@@ -200,4 +200,18 @@ static class Proc
         if (!p.WaitForExit(timeoutSec * 1000)) { try { p.Kill(true); } catch { } throw new Exception("Demorou demais"); }
         return o.Result;
     }
+
+    /// Roda e devolve só o código de saída, sem falhar quando ele não é zero (consultas do tipo "isto tem senha?").
+    public static int Code(string exe, IEnumerable<string> args, int timeoutSec = 60)
+    {
+        var psi = new ProcessStartInfo(exe)
+        { UseShellExecute = false, CreateNoWindow = true, RedirectStandardOutput = true, RedirectStandardError = true };
+        foreach (var a in args) psi.ArgumentList.Add(a);
+        using var p = Process.Start(psi) ?? throw new Exception($"Não consegui abrir {Path.GetFileName(exe)}");
+        var o = p.StandardOutput.ReadToEndAsync();
+        var e = p.StandardError.ReadToEndAsync();
+        if (!p.WaitForExit(timeoutSec * 1000)) { try { p.Kill(true); } catch { } return -1; }
+        _ = o.Result; _ = e.Result;
+        return p.ExitCode;
+    }
 }

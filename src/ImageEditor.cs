@@ -258,14 +258,7 @@ sealed class ImageEditor : Window
         switch (tool)
         {
             case Tool.Crop:
-                corner = -1;
-                if (!crop.IsEmpty)
-                {
-                    var tol = Px(14);
-                    var pts = new[] { crop.TopLeft, crop.TopRight, crop.BottomRight, crop.BottomLeft };
-                    for (int i = 0; i < 4; i++) if ((pts[i] - p).Length < tol) corner = i;
-                    if (corner < 0 && crop.Contains(p)) corner = 4; // mover
-                }
+                corner = CropHit(p);
                 cropAtStart = crop;
                 if (corner < 0) { crop = new Rect(p, new Size(0, 0)); }
                 break;
@@ -302,10 +295,33 @@ sealed class ImageEditor : Window
         }
     }
 
+    /// Onde o clique caiu no recorte: 0-3 canto (ajustar), 4 dentro (mover), -1 fora (recorte novo).
+    /// A zona de canto nunca passa de 1/3 do lado menor, então o centro é sempre área de mover (como no Canva).
+    int CropHit(Point p)
+    {
+        if (crop.IsEmpty) return -1;
+        var tol = Math.Min(Px(14), Math.Min(crop.Width, crop.Height) / 3);
+        var pts = new[] { crop.TopLeft, crop.TopRight, crop.BottomRight, crop.BottomLeft };
+        for (int i = 0; i < 4; i++) if ((pts[i] - p).Length < tol) return i;
+        return crop.Contains(p) ? 4 : -1;
+    }
+
     void Move(object s, MouseEventArgs e)
     {
-        if (!dragging) return;
         var p = Clamp(e.GetPosition(stage));
+        if (!dragging)
+        {
+            // Sem arrastar: o cursor mostra o que dá para fazer ali (mover dentro, ajustar nos cantos).
+            if (tool == Tool.Crop)
+                stage.Cursor = CropHit(p) switch
+                {
+                    4 => Cursors.SizeAll,
+                    0 or 2 => Cursors.SizeNWSE,
+                    1 or 3 => Cursors.SizeNESW,
+                    _ => Cursors.Cross,
+                };
+            return;
+        }
         switch (tool)
         {
             case Tool.Crop:

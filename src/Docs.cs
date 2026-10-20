@@ -106,6 +106,9 @@ static class Gs
         Proc.Run(Exe ?? throw new Exception("Ghostscript não encontrado"), new[] { "-q", "-dNOPAUSE", "-dBATCH", "-dSAFER" }.Concat(args), 1800);
 }
 
+/// Erro de senha errada num PDF: quem pediu a senha pode perguntar de novo.
+sealed class WrongPasswordException : Exception { }
+
 static class Qpdf
 {
     public static readonly string? Exe = Paths.FindTool(Path.Combine("qpdf", "qpdf.exe")) ?? Paths.FindTool("qpdf.exe");
@@ -116,6 +119,22 @@ static class Qpdf
         try { await Proc.Run(Exe ?? throw new Exception("qpdf não encontrado"), new[] { "--warning-exit-0" }.Concat(args), 900); }
         catch (Exception ex) when (ex.Message.Contains("password", StringComparison.OrdinalIgnoreCase))
         { throw new Exception("Esse PDF tem senha"); }
+    }
+
+    /// true quando o PDF precisa de uma senha para abrir (--requires-password sai 0; 2 = não precisa).
+    public static bool NeedsPassword(string pdf)
+    {
+        try { return Exe != null && Proc.Code(Exe, new[] { "--requires-password", pdf }) == 0; }
+        catch { return false; }
+    }
+
+    /// Grava uma cópia sem senha em dst. Senha errada vira WrongPasswordException.
+    public static async Task Decrypt(string pdf, string password, string dst)
+    {
+        try { await Proc.Run(Exe ?? throw new Exception("qpdf não encontrado"), new[] { $"--password={password}", "--decrypt", pdf, dst }, 900); }
+        catch (Exception ex) when (ex.Message.Contains("invalid password", StringComparison.OrdinalIgnoreCase)
+            || ex.Message.Contains("password", StringComparison.OrdinalIgnoreCase))
+        { throw new WrongPasswordException(); }
     }
 }
 

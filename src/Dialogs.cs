@@ -9,6 +9,15 @@ static class Dialogs
 {
     static readonly (string, string[]) Nivel = ("modo", new[] { "nivel" });
 
+    /// Pede a senha de um PDF protegido. Devolve null se o usuário cancelar.
+    public static string? PdfPassword(string[] fs, bool retry = false)
+    {
+        var f = new Form("Senha do PDF", fs, retry ? "Senha incorreta. Tente de novo." : "Esse PDF tem senha. Digite a senha para abrir e converter.");
+        f.Text("senha", "Senha", "", validate: v => string.IsNullOrEmpty(v) ? "Digite a senha." : null, width: 220);
+        var p = f.Run();
+        return p?.S("senha");
+    }
+
     public static P? Compress(string[] fs, string what)
     {
         long size = fs.Sum(f => new FileInfo(f).Length);

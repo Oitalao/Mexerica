@@ -263,6 +263,11 @@ static class App
             catch (Exception ex) { Log.Write(ex.ToString()); Toast.Show("Não deu certo", ex.Message, error: true); return; }
             if (p == null) { Trim(); return; }
         }
+        // PDFs com senha: pede a senha e descriptografa para um temp antes de converter.
+        string? pwTmp = null;
+        try { (files, pwTmp) = await UnlockPdfs(files); }
+        catch (OperationCanceledException) { Trim(); return; }
+        catch (Exception ex) { Log.Write(ex.ToString()); Toast.Show("Não deu certo", Friendly(ex), error: true); return; }
         string what = files.Length == 1 ? Path.GetFileName(files[0].TrimEnd('\\')) : $"{files.Length} arquivos";
         var job = new Job();
         Job.Current = job;
@@ -293,6 +298,7 @@ static class App
             if (Interlocked.Decrement(ref running) == 0) Paths.ReleaseNames();
             Job.Current = null;
             if (p.TryGetValue("_tmp", out var tmp)) Paths.TryDelete(tmp);
+            if (pwTmp != null) Paths.TryDelete(pwTmp);
             _ = Application.Current.Dispatcher.BeginInvoke(Trim, DispatcherPriority.ApplicationIdle);
         }
 
@@ -308,6 +314,37 @@ static class App
             Toast.Show($"{outputs.Count} prontos, {errors.Count} com erro", errors[0], outputs[0], error: true);
         else
             Toast.Show("Não deu certo", errors[0], error: true);
+    }
+
+    /// Se houver PDF com senha entre os arquivos, pede a senha (uma vez) e devolve a lista com cópias
+    /// sem senha num temp; os outros arquivos seguem como estão. Cancelar o prompt cancela a operação.
+    static async Task<(string[] files, string? tmp)> UnlockPdfs(string[] files)
+    {
+        if (!Qpdf.Ok) return (files, null);
+        var enc = await Task.Run(() => files
+            .Where(f => Path.GetExtension(f).Equals(".pdf", StringComparison.OrdinalIgnoreCase) && Qpdf.NeedsPassword(f))
+            .ToArray());
+        if (enc.Length == 0) return (files, null);
+        string? tmp = null;
+        bool retry = false;
+        while (true)
+        {
+            var pw = Dialogs.PdfPassword(enc, retry);
+            if (pw == null) { if (tmp != null) Paths.TryDelete(tmp); throw new OperationCanceledException(); }
+            tmp ??= Paths.Temp();
+            try
+            {
+                var map = new Dictionary<string, string>();
+                foreach (var f in enc)
+                {
+                    var dst = Path.Combine(tmp, Path.GetFileName(f));
+                    await Qpdf.Decrypt(f, pw, dst);
+                    map[f] = dst;
+                }
+                return (files.Select(f => map.TryGetValue(f, out var d) ? d : f).ToArray(), tmp);
+            }
+            catch (WrongPasswordException) { retry = true; }
+        }
     }
 
     /// Roda op.One em cada arquivo, vários ao mesmo tempo (como o File Converter), cada um na sua vaga da barra.
@@ -386,7 +423,8 @@ static class App
             return "Esse arquivo não tem a faixa necessária (sem áudio ou sem vídeo?)";
         if (ex is UglyToad.PdfPig.Core.PdfDocumentFormatException || m.Contains("not a PDF", StringComparison.OrdinalIgnoreCase))
             return "Esse PDF está danificado";
-        if (m.Contains("password", StringComparison.OrdinalIgnoreCase) || m.Contains("encrypted", StringComparison.OrdinalIgnoreCase))
+        if (m.Contains("password", StringComparison.OrdinalIgnoreCase) || m.Contains("encrypted", StringComparison.OrdinalIgnoreCase)
+            || m.Contains("senha", StringComparison.OrdinalIgnoreCase) || m.Contains("criptografad", StringComparison.OrdinalIgnoreCase))
             return "Esse arquivo tem senha";
         return m;
     }
