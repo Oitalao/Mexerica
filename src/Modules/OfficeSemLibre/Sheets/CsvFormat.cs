@@ -1,6 +1,6 @@
-// Adaptado do Filee (MIT, Â© 2026 Myeonggu Kim e colaboradores), de src/Filee.Engines/Office/Sheets/CsvFormat.cs
+﻿// Adaptado do Filee (MIT, © 2026 Myeonggu Kim e colaboradores), de src/Filee.Engines/Office/Sheets/CsvFormat.cs
 using System.IO;
-// CSV / TSV â†” Worksheet. Reading follows RFC 4180 (quotes, doubled quotes, line breaks inside quotes), detects the
+// CSV / TSV ↔ Worksheet. Reading follows RFC 4180 (quotes, doubled quotes, line breaks inside quotes), detects the
 // CSV delimiter (comma, semicolon or tab; TSV is always tab) and the encoding (UTF-8 / UTF-16 with BOM, else CP949
 // like Korean Excel). Writing produces what Excel opens correctly everywhere: UTF-8 with BOM, CRLF line ends,
 // quotes only when needed.
@@ -49,9 +49,50 @@ internal static class CsvFormat
         return book;
     }
 
-    /// <summary>Writes the used range of a sheet as CSV, or as TSV with <see cref="Tab"/> (UTF-8 with BOM, CRLF).</summary>
-    public static void Write(Worksheet sheet, string path, char delimiter = ',')
+    // Mexerica: planilha → CSV sai como o próprio Excel grava "CSV" no Windows desta pessoa: separador de lista e
+    // vírgula decimal da configuração regional (no Brasil, ";" e "1,5"), senão o Excel em português põe tudo na
+    // coluna A ou lê "1.5" como data. Números saem com o valor puro (sem milhar nem moeda), datas como aparecem.
+    // TSV é sempre tabulação. UTF-8 com BOM nos dois, para o Excel não mostrar "PreÃ§o".
+    /// <summary>The list separator Excel uses for CSV on this computer (";" where the decimal mark is ",").</summary>
+    public static char RegionalSeparator
     {
+        get
+        {
+            var list = CultureInfo.CurrentCulture.TextInfo.ListSeparator.Trim();
+            var dec = CultureInfo.CurrentCulture.NumberFormat.NumberDecimalSeparator;
+            if (list.Length == 1 && list != dec) return list[0];
+            return dec == "," ? ';' : ',';
+        }
+    }
+
+    /// <summary>A cell as CSV text: numbers with the regional decimal mark, dates and text as shown.</summary>
+    static string CsvText(SheetCell? cell, string dec)
+    {
+        if (cell == null) return "";
+        if (cell.Value is not { } value || cell.IsBoolean) return cell.Text;
+        var fmt = cell.NumberFormat;
+        if (!NumberFormatter.IsGeneral(fmt))
+        {
+            var parsed = new ExcelNumberFormat.NumberFormat(fmt!);
+            if (!parsed.IsValid || parsed.IsDateTimeFormat) return cell.Text;
+            if (fmt!.Replace(@"\%", "").Contains('%')) return Num(value * 100, dec) + "%";
+        }
+        return Num(value, dec);
+    }
+
+    static string Num(double value, string dec)
+    {
+        var text = Math.Abs(value) >= 1e15 || value != 0 && Math.Abs(value) < 1e-9
+            ? value.ToString("R", CultureInfo.InvariantCulture)
+            : Math.Round(value, 10).ToString("0.##########", CultureInfo.InvariantCulture);
+        return dec == "." ? text : text.Replace(".", dec);
+    }
+
+    /// <summary>Writes the used range of a sheet as CSV (regional separator) or TSV (UTF-8 with BOM, CRLF).</summary>
+    public static void Write(Worksheet sheet, string path, char delimiter)
+    {
+        var dec = CultureInfo.CurrentCulture.NumberFormat.NumberDecimalSeparator;
+        if (dec.Length != 1 || dec[0] == delimiter) dec = ".";
         var sb = new StringBuilder();
         if (sheet.UsedRange() is { } range)
         {
@@ -63,7 +104,7 @@ internal static class CsvFormat
                 for (var c = 0; c <= range.Right; c++)
                 {
                     if (!sheet.HiddenColumns.Contains(c))
-                        fields.Add(Quote(sheet.Get(r, c)?.Text ?? "", delimiter));
+                        fields.Add(Quote(CsvText(sheet.Get(r, c), dec), delimiter));
                 }
                 // Excel omits trailing empty fields only for fully empty rows; keep the column count stable.
                 sb.Append(string.Join(delimiter, fields)).Append("\r\n");

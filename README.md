@@ -1,3 +1,5 @@
+**Português (Brasil)** · [English](README.en.md) · [Español](README.es.md) · [Français](README.fr.md) · [Deutsch](README.de.md) · [Italiano](README.it.md) · [日本語](README.ja.md) · [한국어](README.ko.md) · [简体中文](README.zh-CN.md) · [Русский](README.ru.md) · [Polski](README.pl.md) · [हिन्दी](README.hi.md) · [العربية](README.ar.md)
+
 <p align="center"><img src="assets/icone/mexerica-1024.png" width="128" alt="Mexerica"></p>
 
 <h1 align="center">Mexerica</h1>

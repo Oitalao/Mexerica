@@ -53,7 +53,8 @@ static class Office
         "odp" => "odp",
         "xlsx" => "xlsx:Calc MS Excel 2007 XML",
         "ods" => "ods",
-        "csv" => "csv:Text - txt - csv (StarCalc):44,34,76,1,,0,false,true,true,false",
+        // Só para o que o gravador próprio não lê (ex.: .numbers): separador regional, como o Excel grava.
+        "csv" => $"csv:Text - txt - csv (StarCalc):{(int)Filee.Engines.Office.Sheets.CsvFormat.RegionalSeparator},34,76,1,,0,false,true,true,false",
         "tsv" => "csv:Text - txt - csv (StarCalc):9,34,76,1,,0,false,true,true,false",
         _ => ext,
     };
@@ -76,12 +77,21 @@ static class Office
             var made = Directory.GetFiles(tmp).FirstOrDefault(f => !f.EndsWith(".tmp")) ?? throw new Exception("O LibreOffice não conseguiu converter esse arquivo");
             if (new FileInfo(made).Length == 0) throw new Exception("O LibreOffice gerou um arquivo vazio");
             File.Move(made, dst);
+            if (ext is "csv" or "tsv") AddBom(dst);
             // HTML exportado pode levar imagens junto
             foreach (var extra in Directory.GetFiles(tmp))
                 File.Move(extra, Path.Combine(Path.GetDirectoryName(dst)!, Path.GetFileName(extra)), false);
             return dst;
         }
         finally { Paths.TryDelete(tmp); profiles.Add(mine); gate.Release(); }
+    }
+
+    /// O LibreOffice grava CSV em UTF-8 sem BOM, e o Excel então mostra "PreÃ§o": põe o BOM.
+    static void AddBom(string path)
+    {
+        var bytes = File.ReadAllBytes(path);
+        if (bytes.Length >= 3 && bytes[0] == 0xEF && bytes[1] == 0xBB && bytes[2] == 0xBF) return;
+        File.WriteAllBytes(path, new byte[] { 0xEF, 0xBB, 0xBF }.Concat(bytes).ToArray());
     }
 
     /// Converte para um arquivo novo ao lado do original (ou na pasta escolhida).
@@ -307,7 +317,9 @@ static class Pdf
         try
         {
             var csv = Path.Combine(tmp, Path.GetFileNameWithoutExtension(src) + ".csv");
-            File.WriteAllLines(csv, rows.Select(r => string.Join(",", r.Select(c => "\"" + c.Replace("\"", "\"\"") + "\""))), new UTF8Encoding(false));
+            // CSV direto: separador regional e BOM, como planilha → CSV; o intermediário para o LibreOffice fica com vírgula.
+            var sep = ext == "csv" ? Filee.Engines.Office.Sheets.CsvFormat.RegionalSeparator : ',';
+            File.WriteAllLines(csv, rows.Select(r => string.Join(sep, r.Select(c => "\"" + c.Replace("\"", "\"\"") + "\""))), new UTF8Encoding(ext == "csv"));
             if (ext == "csv") { var dst = Paths.Out(src, "csv"); File.Copy(csv, dst); return dst; }
             return await Office.Convert(csv, ext, Paths.Out(src, ext), "CSV:44,34,76");
         }

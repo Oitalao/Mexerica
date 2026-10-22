@@ -23,7 +23,8 @@ sealed class OfficeSemLibreModule : Module
     public override string Name => "Office sem LibreOffice";
     public override IEnumerable<string> Inputs => RenderInputs.Concat(OoxmlConverter.Variants.Keys).Append("pdf").Distinct();
     public override bool Available => File.Exists(Path.Combine(AppContext.BaseDirectory, "tools", "rhwp", "rhwp.exe"));
-    public override bool Overrides(string inExt, string outExt) => !Office.Ok;
+    // Planilha → CSV/TSV fica sempre com o gravador próprio: o do LibreOffice grava sem BOM e com o número como aparece.
+    public override bool Overrides(string inExt, string outExt) => !Office.Ok || Sheets.Contains(inExt) && outExt is "csv" or "tsv";
 
     public override IEnumerable<Target> TargetsFor(string inExt)
     {
@@ -94,7 +95,7 @@ sealed class OfficeSemLibreModule : Module
                     Job.Check();
                     var name = string.Concat(sheet.Name.Select(c => Path.GetInvalidFileNameChars().Contains(c) ? '_' : c)).Trim();
                     var staged = Path.Combine(stagedDir, $"{index + 1:00} {name}.{outExt}");
-                    CsvFormat.Write(sheet, staged, outExt == "tsv" ? CsvFormat.Tab : ',');
+                    CsvFormat.Write(sheet, staged, outExt == "tsv" ? CsvFormat.Tab : CsvFormat.RegionalSeparator);
                 }
                 Job.Check();
                 if (dstOne != null) File.Move(Directory.GetFiles(stagedDir).Single(), dstOne);
