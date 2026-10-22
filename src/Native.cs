@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Runtime.InteropServices;
 
 namespace Mexerica;
@@ -83,5 +83,16 @@ static class Native
         var a = new INPUT { type = 0, mi = new MOUSEINPUT { dx = 1, dy = 0, dwFlags = 0x0001 } };
         var b = new INPUT { type = 0, mi = new MOUSEINPUT { dx = -1, dy = 0, dwFlags = 0x0001 } };
         SendInput(2, new[] { a, b }, Marshal.SizeOf<INPUT>());
+    }
+
+    /// Tema claro dos aplicativos ligado no Windows.
+    public static bool AppsUseLightTheme()
+    {
+        try
+        {
+            using var k = Microsoft.Win32.Registry.CurrentUser.OpenSubKey(@"Software\Microsoft\Windows\CurrentVersion\Themes\Personalize");
+            return k?.GetValue("AppsUseLightTheme") is int v && v == 1;
+        }
+        catch { return false; }
     }
 }

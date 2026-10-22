@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.Drawing;
 using System.IO;
@@ -8,6 +8,8 @@ using System.Threading;
 using System.Threading.Tasks;
 using System.Windows;
 using System.Windows.Threading;
+using System.Windows.Media;
+using System.Windows.Media.Imaging;
 using Microsoft.Win32;
 using WF = System.Windows.Forms;
 
@@ -20,13 +22,21 @@ static class App
     static InputHooks hooks = null!;
     static WF.NotifyIcon tray = null!;
     static WF.ToolStripMenuItem pauseItem = null!;
+    static WF.ToolStripMenuItem updateItem = null!;
+    static string? offeredVersion;
+
+    /// Há versão nova: aparece no topo do menu do ícone.
+    public static void OfferUpdate(string version) { offeredVersion = version; updateItem.Text = Tr.T($"Atualizar para a versão {version}"); updateItem.Visible = true; }
     const string RunKey = @"Software\Microsoft\Windows\CurrentVersion\Run";
 
     [STAThread]
     static void Main(string[] args)
     {
         Encoding.RegisterProvider(CodePagesEncodingProvider.Instance);
+        if (Environment.GetEnvironmentVariable("MEXERICA_TESTE_UI") is string language && language.Length > 0)
+        { RenderUi(language); return; }
         if (args.Length >= 4 && args[0] == "--executar") { Environment.ExitCode = SelfTest(args); return; }
+        if (args.Length >= 1 && Cli.Verbs.Contains(args[0].ToLowerInvariant())) { Environment.ExitCode = Cli.Run(args); return; }
         if (args.Length >= 1 && args[0] == "--remover-menu") { ShellMenu.Remove(); return; }
         if (args.Length >= 1 && args[0] == "--sair") { QuitOther(); return; }
         // Do menu do botão direito: --menu-lista <modo> <opção> <arquivo com a lista> (todos os selecionados de uma vez)
@@ -47,6 +57,65 @@ static class App
         bool firstRun = args.Contains("--boas-vindas") || !File.Exists(Path.Combine(Paths.Data, "config.json"));
         app.Startup += (_, _) => Start(fromMenu || args.Contains("--silencioso"), firstRun && !fromMenu);
         app.Run();
+    }
+
+    static void RenderUi(string language)
+    {
+        Config.Now.Language = language;
+        if (!Tr.T("Mexerica: configurações").Contains("Mexerica", StringComparison.Ordinal) ||
+            Tr.T("PDF") != "PDF" || (Tr.Code != "pt-BR" && Tr.T("3 itens") == "3 itens"))
+            throw new InvalidOperationException("Catálogo de idioma ou marcadores inválidos.");
+        var app = new Application { ShutdownMode = ShutdownMode.OnExplicitShutdown };
+        var probe = new System.Windows.Controls.TextBlock { Text = "Salvar" };
+        probe.RaiseEvent(new RoutedEventArgs(FrameworkElement.LoadedEvent, probe));
+        probe.Text = "Cancelar";
+        if (probe.Text != Tr.T("Cancelar")) throw new InvalidOperationException("Tradução dinâmica inválida.");
+        var folder = Path.Combine(AppContext.BaseDirectory, "capturas");
+        Directory.CreateDirectory(folder);
+        var settings = new SettingsWindow();
+        Render(settings, Path.Combine(folder, $"configuracoes-{language}.png"));
+        var sample = Path.Combine(folder, "amostra.jpg");
+        var wheelPreview = new WheelWindow(Catalog.For, (_, _) => { });
+        wheelPreview.Preview(sample);
+        Render(wheelPreview, Path.Combine(folder, $"roda-{language}.png"));
+        Render(new CustomizeWindow(Config.Now), Path.Combine(folder, $"personalizar-{language}.png"));
+        Render(new PresetWindow(null), Path.Combine(folder, $"predefinicao-{language}.png"));
+        Render(new WatchWindow(new() { new WatchFolder { Folder = folder, Target = "jpg", Subfolders = true } }), Path.Combine(folder, $"pastas-{language}.png"));
+        Render(new HistoryWindow(), Path.Combine(folder, $"recentes-{language}.png"));
+        Render(new WhatsNewWindow("1.1.0", "- Novidade de exemplo\n- Outra novidade"), Path.Combine(folder, $"novidades-{language}.png"));
+        Render(new HelpWindow(), Path.Combine(folder, $"como-usar-{language}.png"));
+        var test = Path.Combine(folder, "pasta-teste-" + language);
+        if (Directory.Exists(test)) Directory.Delete(test, true);
+        Directory.CreateDirectory(test);
+        TestFolder.Create(test);
+        app.Shutdown();
+    }
+
+    static void Render(Window window, string file)
+    {
+        var visual = (FrameworkElement)window.Content;
+        var width = window.Width;
+        if (double.IsNaN(width)) width = 560;
+        visual.Measure(new System.Windows.Size(width, 2000));
+        var height = double.IsNaN(window.Height) ? visual.DesiredSize.Height : window.Height;
+        visual.Arrange(new Rect(0, 0, width, height));
+        visual.UpdateLayout();
+        Tr.TranslateTree(visual);
+        visual.UpdateLayout();
+        var bitmap = new RenderTargetBitmap((int)Math.Ceiling(width), (int)Math.Ceiling(height), 96, 96, PixelFormats.Pbgra32);
+        if (window is WheelWindow) bitmap.Render(visual);
+        else
+        {
+            var canvas = new DrawingVisual();
+            using (var drawing = canvas.RenderOpen())
+            {
+                drawing.DrawRectangle(window.Background, null, new Rect(0, 0, width, height));
+                drawing.DrawRectangle(new VisualBrush(visual), null, new Rect(0, 0, width, height));
+            }
+            bitmap.Render(canvas);
+        }
+        var png = new PngBitmapEncoder(); png.Frames.Add(BitmapFrame.Create(bitmap));
+        using var stream = File.Create(file); png.Save(stream);
     }
 
     /// Abrir o Mexerica de novo (pelo menu Iniciar) mostra as configurações da instância que já está rodando.
@@ -81,7 +150,7 @@ static class App
         new System.Windows.Interop.WindowInteropHelper(wheel).EnsureHandle();
 
         var ui = Application.Current.Dispatcher;
-        hooks = new InputHooks { WheelOpen = () => wheel.Active, OnKey = OnKey, OnHotkey = OnHotkey };
+        hooks = new InputHooks { WheelOpen = () => wheel.Active, OnKey = OnKey, OnHotkey = OnHotkey, OnScroll = OnScroll };
         hooks.Escape += () => ui.BeginInvoke(wheel.Disarm);
         hooks.MouseUp += () => ui.BeginInvoke(() =>
         {
@@ -111,6 +180,9 @@ static class App
         ShellMenu.Listen((m, label, file) => ui.BeginInvoke(() => MenuAdd(m, label, file)));
         ShellMenu.Apply();
         Hw.Warm();
+        System.Threading.Tasks.Task.Run(Robust.CleanOldTemps);
+        Watchers.Apply();
+        Updater.Start();
         lock (menuQueue) menuReady = true;
         ui.BeginInvoke(MenuFlushLater);
         Application.Current.Dispatcher.BeginInvoke(Trim, DispatcherPriority.ApplicationIdle);
@@ -151,7 +223,7 @@ static class App
         {
             case 0x25 or 0x26: d.BeginInvoke(() => wheel.Step(-1)); return true; // ← ↑
             case 0x27 or 0x28: d.BeginInvoke(() => wheel.Step(1)); return true;  // → ↓
-            case 0x09: d.BeginInvoke(() => wheel.Cycle()); return true;           // Tab também troca
+            case 0x09: d.BeginInvoke(() => { if (wheel.Faces > 1) wheel.Flip(1); else wheel.Cycle(); }); return true; // Tab vira a roda (ou troca, se ela tem um lado só)
             case 0x0D:
                 d.BeginInvoke(() =>
                 {
@@ -162,6 +234,14 @@ static class App
                 return true;
         }
         return wheel.IsKeyboard; // pela roda do teclado, as demais teclas não vazam para o Explorador
+    }
+
+    // Roda do mouse com a roda aberta: vira para o outro lado quando há mais de um.
+    static bool OnScroll(int delta)
+    {
+        if (Config.Now.Paused || wheel.Faces < 2) return false;
+        Application.Current.Dispatcher.BeginInvoke(() => wheel.Flip(delta > 0 ? -1 : 1));
+        return true;
     }
 
     // Atalho da roda pelo teclado: só vale com o Explorador (ou a área de trabalho) em primeiro plano.
@@ -250,6 +330,7 @@ static class App
 
     static async void Run(Op op, string[] files)
     {
+        files = Robust.Resolve(files);
         if (op.Ui != null)
         {
             try { op.Ui(files); }
@@ -302,6 +383,7 @@ static class App
             _ = Application.Current.Dispatcher.BeginInvoke(Trim, DispatcherPriority.ApplicationIdle);
         }
 
+        if (op.Show == null) History.Add(op.Label, files, outputs);
         if (canceled) { Toast.Show("Cancelado", outputs.Count > 0 ? $"{outputs.Count} já estavam prontos" : what, outputs.FirstOrDefault()); return; }
         if (op.Show != null && errors.Count == 0) { Toast.Hide(); op.Show(string.Join("\n", outputs)); return; }
         if (errors.Count == 0)
@@ -349,6 +431,8 @@ static class App
 
     /// Roda op.One em cada arquivo, vários ao mesmo tempo (como o File Converter), cada um na sua vaga da barra.
     /// Devolve true se foi cancelado. Os resultados saem na ordem dos arquivos.
+    public static Task<bool> EachPublic(Op op, string[] files, P p, Job job, List<string> outputs, List<string> errors) => Each(op, files, p, job, outputs, errors);
+
     static async Task<bool> Each(Op op, string[] files, P p, Job job, List<string> outputs, List<string> errors, Action<int, string>? onDone = null)
     {
         int n = files.Length, done = 0;
@@ -362,7 +446,7 @@ static class App
             try
             {
                 await gate.WaitAsync(job.Cts.Token);
-                try { results[i] = await op.One!(f, p); }
+                try { Robust.CheckNotEmpty(f); results[i] = await op.One!(f, p); }
                 finally { gate.Release(); }
             }
             catch (OperationCanceledException) { canceled = true; }
@@ -426,8 +510,17 @@ static class App
         if (m.Contains("password", StringComparison.OrdinalIgnoreCase) || m.Contains("encrypted", StringComparison.OrdinalIgnoreCase)
             || m.Contains("senha", StringComparison.OrdinalIgnoreCase) || m.Contains("criptografad", StringComparison.OrdinalIgnoreCase))
             return "Esse arquivo tem senha";
+        // Conversores adaptados do Filee e bibliotecas de fora falam inglês técnico. O usuário recebe português; o log guarda o original.
+        if (ex.TargetSite?.DeclaringType?.Namespace?.StartsWith("Filee", StringComparison.Ordinal) == true || LooksEnglish(m))
+            return "Não consegui converter esse arquivo: ele está danificado ou usa um recurso que o Mexerica ainda não entende";
         return m;
     }
+
+    static readonly System.Text.RegularExpressions.Regex english = new(
+        @"\b(the|is|are|was|not|can't|cannot|invalid|unknown|failed|damaged|unsupported|missing|error|unexpected|file|stream|value|index)\b",
+        System.Text.RegularExpressions.RegexOptions.IgnoreCase | System.Text.RegularExpressions.RegexOptions.CultureInvariant);
+    static bool LooksEnglish(string m) =>
+        m.Length > 0 && !m.Any(c => "ãõçáéíóúâêôàÃÕÇÁÉÍÓÚÂÊÔ".Contains(c)) && english.Matches(m).Count >= 2;
 
     // Modo de teste sem tela: --executar <Convert|Tools> <rótulo|*> <relatório.txt> [--p chave=valor ...] arquivos...
     static int SelfTest(string[] a)
@@ -460,7 +553,7 @@ static class App
                 if (errs.Count > 0) throw new Exception(string.Join(" | ", errs));
                 lines.Add($"OK   {op.Label} ({(DateTime.Now - t0).TotalSeconds:0.0}s): {string.Join(" | ", res)}");
             }
-            catch (Exception ex) { fails++; lines.Add($"ERRO {op.Label}: {Friendly(ex)}"); }
+            catch (Exception ex) { fails++; var f = Friendly(ex); var raw = f == ex.Message ? "" : " | " + ex.Message; lines.Add($"ERRO {op.Label}: {f}{raw}"); }
             finally { Job.Current = null; Paths.ReleaseNames(); }
         }
         File.WriteAllLines(a[3], lines, new UTF8Encoding(false));
@@ -471,40 +564,57 @@ static class App
     {
         var existing = Application.Current.Windows.OfType<SettingsWindow>().FirstOrDefault();
         if (existing != null) { existing.Activate(); return; }
-        if (new SettingsWindow().ShowDialog() == true) { pauseItem.Checked = Config.Now.Paused; }
+        var language = Tr.Code;
+        if (new SettingsWindow().ShowDialog() == true)
+        {
+            if (language != Tr.Code)
+            {
+                tray.Dispose(); BuildTray();
+                Tr.Window(wheel); Toast.LanguageChanged();
+            }
+            pauseItem.Checked = Config.Now.Paused;
+        }
     }
 
     static void BuildTray()
     {
-        var menu = new WF.ContextMenuStrip();
-        pauseItem = new WF.ToolStripMenuItem("Pausar") { CheckOnClick = true, Checked = Config.Now.Paused };
+        var menu = new WF.ContextMenuStrip { RightToLeft = Tr.Rtl ? WF.RightToLeft.Yes : WF.RightToLeft.No };
+        pauseItem = new WF.ToolStripMenuItem(Tr.T("Pausar")) { CheckOnClick = true, Checked = Config.Now.Paused };
         pauseItem.CheckedChanged += (_, _) =>
         {
             var c = Config.Now.Clone(); c.Paused = pauseItem.Checked; c.Save();
-            tray.Text = c.Paused ? "Mexerica (pausado)" : "Mexerica";
+            tray.Text = c.Paused ? Tr.T("Mexerica (pausado)") : "Mexerica";
             if (c.Paused) wheel.Disarm();
         };
-        var auto = new WF.ToolStripMenuItem("Iniciar com o Windows") { Checked = AutoStart, CheckOnClick = true };
+        var auto = new WF.ToolStripMenuItem(Tr.T("Iniciar com o Windows")) { Checked = AutoStart, CheckOnClick = true };
         auto.CheckedChanged += (_, _) => AutoStart = auto.Checked;
-        var settings = new WF.ToolStripMenuItem("Configurações…");
+        var settings = new WF.ToolStripMenuItem(Tr.T("Configurações…"));
         settings.Click += (_, _) => OpenSettings();
-        var help = new WF.ToolStripMenuItem("Como usar");
-        help.Click += (_, _) =>
-        {
-            var c = Config.Now;
-            var hk = Config.Hotkeys.FirstOrDefault(h => h.id == c.Hotkey).name;
-            Toast.Show("Como usar",
-                $"Arraste arquivos e, sem soltar, aperte {Config.KeyName(c.OpenKey)}. Solte em cima da opção. {Config.KeyName(c.OpenKey)} de novo troca a roda; {Config.KeyName(c.ConvertKey)}, {Config.KeyName(c.ToolsKey)} e {Config.KeyName(c.ActionsKey)} vão direto a Converter, Ferramentas e Ações. Esc cancela." +
-                (string.IsNullOrEmpty(c.Hotkey) ? "" : $" Pelo teclado: selecione no Explorador e aperte {hk}."));
-        };
-        var log = new WF.ToolStripMenuItem("Abrir registro de erros");
+        var help = new WF.ToolStripMenuItem(Tr.T("Como usar"));
+        help.Click += (_, _) => HelpWindow.ShowOne();
+        var testFolder = new WF.ToolStripMenuItem(Tr.T("Criar pasta de teste"));
+        testFolder.Click += (_, _) => TestFolder.CreateAndOpen();
+        updateItem = new WF.ToolStripMenuItem(Tr.T("Atualizar o Mexerica")) { Visible = false, Font = new System.Drawing.Font(WF.Control.DefaultFont, System.Drawing.FontStyle.Bold) };
+        updateItem.Click += (_, _) => _ = Updater.InstallOffered();
+        if (offeredVersion != null) OfferUpdate(offeredVersion);
+        var recent = new WF.ToolStripMenuItem(Tr.T("Conversões recentes…"));
+        recent.Click += (_, _) => HistoryWindow.ShowOne();
+        var log = new WF.ToolStripMenuItem(Tr.T("Abrir registro de erros"));
         log.Click += (_, _) => { var f = Path.Combine(Paths.Data, "log.txt"); if (File.Exists(f)) System.Diagnostics.Process.Start("notepad.exe", f); else Toast.Show("Nenhum erro registrado", "O registro está vazio."); };
-        var quit = new WF.ToolStripMenuItem("Sair");
+        var quit = new WF.ToolStripMenuItem(Tr.T("Sair"));
         quit.Click += (_, _) => Quit();
-        menu.Items.AddRange(new WF.ToolStripItem[] { help, settings, pauseItem, auto, new WF.ToolStripSeparator(), log, quit });
-        tray = new WF.NotifyIcon { Icon = MakeIcon(), Text = Config.Now.Paused ? "Mexerica (pausado)" : "Mexerica", Visible = true, ContextMenuStrip = menu };
-        tray.MouseClick += (_, e) => { if (e.Button == WF.MouseButtons.Left) help.PerformClick(); };
-        tray.MouseDoubleClick += (_, e) => { if (e.Button == WF.MouseButtons.Left) OpenSettings(); };
+        menu.Items.AddRange(new WF.ToolStripItem[] { updateItem, help, testFolder, recent, settings, pauseItem, auto, new WF.ToolStripSeparator(), log, quit });
+        tray = new WF.NotifyIcon { Icon = MakeIcon(), Text = Config.Now.Paused ? Tr.T("Mexerica (pausado)") : "Mexerica", Visible = true, ContextMenuStrip = menu };
+        // Clique simples abre o mesmo menu do botão direito (sem mensagem no canto da tela).
+        // Espera o tempo do clique duplo: clique duplo abre as Configurações e não deve piscar o menu antes.
+        var single = new WF.Timer { Interval = WF.SystemInformation.DoubleClickTime };
+        single.Tick += (_, _) =>
+        {
+            single.Stop();
+            typeof(WF.NotifyIcon).GetMethod("ShowContextMenu", System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.NonPublic)?.Invoke(tray, null);
+        };
+        tray.MouseClick += (_, e) => { if (e.Button == WF.MouseButtons.Left) { single.Stop(); single.Start(); } };
+        tray.MouseDoubleClick += (_, e) => { if (e.Button == WF.MouseButtons.Left) { single.Stop(); OpenSettings(); } };
         if (!AutoStartChosen) AutoStart = true;
     }
 

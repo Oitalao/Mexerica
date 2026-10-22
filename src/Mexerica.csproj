@@ -15,7 +15,7 @@
     <Platforms>x64</Platforms>
     <RuntimeIdentifier>win-x64</RuntimeIdentifier>
     <SatelliteResourceLanguages>pt-BR</SatelliteResourceLanguages>
-    <Version>1.0.2</Version>
+    <Version>1.1.0</Version>
     <IncludeSourceRevisionInInformationalVersion>false</IncludeSourceRevisionInInformationalVersion>
     <Product>Mexerica</Product>
     <Company>Ítalo Sêne</Company>
@@ -31,13 +31,33 @@
     <PackageReference Include="PdfPig" Version="0.1.16" />
     <PackageReference Include="ZXing.Net" Version="0.16.11" />
     <PackageReference Include="ReverseMarkdown" Version="6.2.1" />
+    <PackageReference Include="YamlDotNet" Version="18.1.0" />
+    <PackageReference Include="Tomlyn" Version="2.10.1" />
+    <PackageReference Include="AngleSharp" Version="1.8.5" />
+    <PackageReference Include="MimeKit" Version="4.18.2" />
+    <PackageReference Include="MsgReader" Version="6.2.0" />
+    <PackageReference Include="PDFsharp" Version="6.2.4" />
+    <PackageReference Include="SharpCompress" Version="0.50.7" />
+    <PackageReference Include="ExcelDataReader" Version="3.9.0" />
+    <PackageReference Include="ExcelNumberFormat" Version="1.1.0" />
+    <PackageReference Include="PDFtoImage" Version="5.2.1" />
+    <PackageReference Include="SkiaSharp" Version="3.119.4" />
+    <PackageReference Include="SharpGLTF.Core" Version="1.0.7" />
+    <PackageReference Include="ACadSharp" Version="3.8.0" />
+    <PackageReference Include="Svg.Skia" Version="5.1.1" />
   </ItemGroup>
   <ItemGroup>
     <None Include="mexerica.ico" CopyToOutputDirectory="PreserveNewest" CopyToPublishDirectory="PreserveNewest" />
+    <None Include="mexerica.cmd" Link="cli\mexerica.cmd" CopyToOutputDirectory="PreserveNewest" CopyToPublishDirectory="PreserveNewest" />
     <!-- Extensão do menu do botão direito (C++, compilada por scripts/compilar-menu.ps1) -->
     <None Include="menu/MexericaMenu.dll" Condition="Exists('menu/MexericaMenu.dll')" Link="MexericaMenu.dll" CopyToOutputDirectory="PreserveNewest" CopyToPublishDirectory="PreserveNewest" />
   </ItemGroup>
   <ItemGroup>
+    <None Include="Idiomas\*.json" CopyToOutputDirectory="PreserveNewest" CopyToPublishDirectory="PreserveNewest" />
     <None Include="..\tools\**\*" LinkBase="tools" CopyToOutputDirectory="PreserveNewest" CopyToPublishDirectory="PreserveNewest" />
   </ItemGroup>
+  <!-- Os símbolos de depuração das bibliotecas nativas (SkiaSharp, HarfBuzz) pesam ~100 MB e não servem ao usuário -->
+  <Target Name="TirarPdbNativos" AfterTargets="Publish">
+    <Delete Files="$(PublishDir)libSkiaSharp.pdb;$(PublishDir)libHarfBuzzSharp.pdb" />
+  </Target>
 </Project>

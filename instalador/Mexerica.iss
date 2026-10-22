@@ -38,6 +38,7 @@ LZMAUseSeparateProcess=yes
 CloseApplications=no
 RestartApplications=no
 ShowLanguageDialog=no
+ChangesEnvironment=yes
 
 [Languages]
 Name: "pt"; MessagesFile: "compiler:Languages\BrazilianPortuguese.isl"
@@ -49,6 +50,7 @@ pt.FinishedLabel=O [name] foi instalado.%n%nEle fica perto do relógio e já apa
 [Tasks]
 Name: "iniciar"; Description: "Abrir o Mexerica quando o computador ligar (recomendado)"
 Name: "atalho"; Description: "Criar um atalho na área de trabalho"; Flags: unchecked
+Name: "comando"; Description: "Usar o comando ""mexerica"" no Prompt de Comando e no PowerShell"; Flags: unchecked
 
 [InstallDelete]
 ; Restos de versões anteriores (a pasta é sempre a mesma e só do Mexerica).
@@ -64,9 +66,12 @@ Name: "{autodesktop}\{#Nome}"; Filename: "{app}\{#Exe}"; Tasks: atalho
 [Registry]
 Root: HKCU; Subkey: "Software\Microsoft\Windows\CurrentVersion\Run"; ValueType: string; ValueName: "Mexerica"; ValueData: """{app}\{#Exe}"" --silencioso"; Tasks: iniciar; Flags: uninsdeletevalue
 Root: HKCU; Subkey: "Software\Mexerica"; ValueType: dword; ValueName: "AutoInicioEscolhido"; ValueData: 1; Flags: uninsdeletekey
+Root: HKCU; Subkey: "Environment"; ValueType: expandsz; ValueName: "Path"; ValueData: "{olddata};{app}\cli"; Tasks: comando; Check: PrecisaPath(ExpandConstant('{app}\cli'))
 
 [Run]
 Filename: "{app}\{#Exe}"; Parameters: "--boas-vindas"; Description: "Abrir o Mexerica agora"; Flags: postinstall nowait skipifsilent
+; Atualização automática (instalação silenciosa): o Mexerica volta sozinho para perto do relógio.
+Filename: "{app}\{#Exe}"; Parameters: "--silencioso"; Flags: nowait skipifnotsilent
 
 [UninstallRun]
 Filename: "{app}\{#Exe}"; Parameters: "--remover-menu"; Flags: runhidden waituntilterminated; RunOnceId: "RemoverMenu"
@@ -76,6 +81,32 @@ Type: filesandordirs; Name: "{localappdata}\Mexerica"
 Type: filesandordirs; Name: "{app}"
 
 [Code]
+// A pasta do Mexerica ainda não está no PATH do usuário?
+function PrecisaPath(Dir: String): Boolean;
+var
+  Atual: String;
+begin
+  if not RegQueryStringValue(HKCU, 'Environment', 'Path', Atual) then
+    Result := True
+  else
+    Result := Pos(';' + Uppercase(Dir) + ';', ';' + Uppercase(Atual) + ';') = 0;
+end;
+
+// Tira a pasta do Mexerica do PATH do usuário (ao desinstalar).
+procedure TirarDoPath(Dir: String);
+var
+  Atual, Novo: String;
+  P: Integer;
+begin
+  if not RegQueryStringValue(HKCU, 'Environment', 'Path', Atual) then exit;
+  Novo := ';' + Atual + ';';
+  P := Pos(';' + Uppercase(Dir) + ';', Uppercase(Novo));
+  if P = 0 then exit;
+  Delete(Novo, P, Length(Dir) + 1);
+  Novo := Copy(Novo, 2, Length(Novo) - 2);
+  RegWriteExpandStringValue(HKCU, 'Environment', 'Path', Novo);
+end;
+
 // ---------- Programas complementares: o assistente avisa o que falta, pede autorização e instala ----------
 const
   IndiceLO = 'https://download.documentfoundation.org/libreoffice/stable/';
@@ -111,12 +142,12 @@ begin
   if not (FaltaLO or FaltaMidia) then Exit;
   PaginaExtras := CreateInputOptionPage(wpSelectTasks,
     'Programas complementares',
-    'O Mexerica precisa de mais algumas coisas que este computador ainda não tem',
+    'O Mexerica funciona sem eles, mas fica melhor com eles',
     'Marque o que deve ser baixado e instalado junto com o Mexerica. Tudo é gratuito e vem do site oficial. ' +
     'O Windows vai pedir sua permissão para instalar. Se você desmarcar, o Mexerica oferece de novo quando precisar.',
     False, False);
   if FaltaLO then
-    IdxLO := PaginaExtras.Add('LibreOffice (gratuito, cerca de 360 MB): para converter documentos do Word, Excel e PowerPoint');
+    IdxLO := PaginaExtras.Add('LibreOffice (opcional, gratuito, cerca de 360 MB): converte Word, Excel e PowerPoint com mais fidelidade. Sem ele, o Mexerica converte por conta própria');
   if FaltaMidia then
     IdxMidia := PaginaExtras.Add('Pacote de Mídia do Windows: para ver a prévia de vídeos e músicas (esta edição do Windows vem sem ele)');
   if IdxLO >= 0 then PaginaExtras.Values[IdxLO] := True;
@@ -222,6 +253,8 @@ procedure CurStepChanged(CurStep: TSetupStep);
 begin
   if CurStep = ssPostInstall then
   begin
+    // Até a 1.1.0 o PATH apontava para a pasta do programa, e o PowerShell abria o Mexerica.exe sem esperar.
+    TirarDoPath(ExpandConstant('{app}'));
     if Marcado(IdxLO) then InstalarLibreOffice();
     if Marcado(IdxMidia) then InstalarPacoteMidia();
   end;
@@ -261,6 +294,11 @@ procedure CurUninstallStepChanged(CurUninstallStep: TUninstallStep);
 var
   Pasta: String;
 begin
+  if CurUninstallStep = usUninstall then
+  begin
+    TirarDoPath(ExpandConstant('{app}\cli'));
+    TirarDoPath(ExpandConstant('{app}'));
+  end;
   if CurUninstallStep = usPostUninstall then
   begin
     Pasta := ExpandConstant('{localappdata}\Mexerica');

@@ -93,7 +93,7 @@ sealed class MetaWindow : Window
             var p = new P();
             foreach (var (k, (box, orig)) in boxes) if (box.Text != orig) p["m." + k] = box.Text;
             if (noGps.IsChecked == true && (kind is Kind.Image or Kind.Video)) p["semgps"] = "1";
-            if (p.Count == 0) { MessageBox.Show(this, "Nada foi alterado.", "Mexerica"); return; }
+            if (p.Count == 0) { Tr.Box(this, "Nada foi alterado.", "Mexerica"); return; }
             result = p; DialogResult = true;
         };
         close.Click += (_, _) => DialogResult = false;

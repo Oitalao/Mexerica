@@ -57,6 +57,9 @@ static class Paths
         var o = Config.Now.OutputDir;
         if (o.Length > 0 && Directory.Exists(o) && Writable(o)) return o;
         var d = Path.GetDirectoryName(src.TrimEnd('\\'))!;
+        // Arquivo que veio de pasta temporária (imagem arrastada do navegador, anexo aberto do e-mail):
+        // o resultado vai para Downloads, onde a pessoa acha e de onde o Windows não apaga sozinho.
+        if (InTemp(d)) { var t = Downloads(); Directory.CreateDirectory(t); return t; }
         if (Writable(d)) return d;
         // Pasta só de leitura (CD, compartilhamento, Arquivos de Programas): vai para Downloads.
         var dl = Downloads();
@@ -68,6 +71,25 @@ static class Paths
     static extern int SHGetKnownFolderPath([System.Runtime.InteropServices.MarshalAs(System.Runtime.InteropServices.UnmanagedType.LPStruct)] Guid id, uint flags, IntPtr token, out string path);
 
     /// Pasta Downloads de verdade (pode ter sido mudada de lugar pela pessoa).
+    static bool InTemp(string dir)
+    {
+        try
+        {
+            var full = Path.GetFullPath(dir).TrimEnd('\\') + "\\";
+            foreach (var t in new[] { Path.GetTempPath(), Environment.GetEnvironmentVariable("TEMP"), Environment.GetEnvironmentVariable("TMP"),
+                         Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "Temp") })
+            {
+                if (string.IsNullOrEmpty(t)) continue;
+                var root = Path.GetFullPath(t).TrimEnd('\\') + "\\";
+                // As pastas de trabalho do próprio Mexerica (mexerica-…) ficam de fora: são passos intermediários.
+                if (full.StartsWith(root, StringComparison.OrdinalIgnoreCase))
+                    return !full[root.Length..].StartsWith("mexerica", StringComparison.OrdinalIgnoreCase);
+            }
+        }
+        catch { }
+        return false;
+    }
+
     public static string Downloads()
     {
         try { if (SHGetKnownFolderPath(new Guid("374DE290-123F-4565-9164-39C4925E467B"), 0, IntPtr.Zero, out var p) == 0 && Directory.Exists(p)) return p; } catch { }

@@ -74,7 +74,41 @@ try {
         if ($achado) { Copy-Item $achado.FullName (Join-Path $tools $n) -Force }
         else { Copy-Item (Join-Path $env:WINDIR "System32\$n") (Join-Path $tools $n) -Force }   # plano B: a cópia desta máquina
     }
-    foreach ($f in 'ffmpeg.exe', 'ffprobe.exe', 'qpdf\qpdf.exe', 'exiftool.exe', 'gswin64c.exe', 'gsdll64.dll', 'vcruntime140.dll', 'msvcp140.dll') {
+    # 7-Zip 26.05 (ISO, CAB, RAR, ARJ, LZH, RPM, DEB e outros compactados): só o 7z.exe e a 7z.dll, sem instalar
+    Write-Host '7-Zip...'
+    Baixar 'https://github.com/ip7z/7zip/releases/download/26.05/7z2605-x64.exe' "$tmp\7z-app.exe"
+    New-Item -ItemType Directory "$tools\7zip" -Force | Out-Null
+    & $sete e "$tmp\7z-app.exe" "-o$tools\7zip" '7z.exe' '7z.dll' 'License.txt' 'readme.txt' -y | Out-Null
+    Set-Content "$tools\7zip\Source.txt" '7-Zip 26.05, Igor Pavlov. Codigo-fonte: https://github.com/ip7z/7zip/releases/download/26.05/7z2605-src.tar.xz' -Encoding UTF8
+
+    # Lzip 1.22 (.lz). É GPL: o código-fonte vai junto do executável
+    Write-Host 'Lzip...'
+    Baixar 'https://download.savannah.nongnu.org/releases/lzip/lzip-1.22-w64.zip' "$tmp\lzip.zip"
+    Expand-Archive "$tmp\lzip.zip" "$tmp\lzip" -Force
+    New-Item -ItemType Directory "$tools\lzip" -Force | Out-Null
+    Copy-Item (Get-ChildItem "$tmp\lzip" -Recurse -Filter lzip.exe | Select-Object -First 1).FullName "$tools\lzip" -Force
+    Baixar 'https://download.savannah.nongnu.org/releases/lzip/lzip-1.22.tar.gz' "$tools\lzip\lzip-1.22-source.tar.gz"
+    tar -xzf "$tools\lzip\lzip-1.22-source.tar.gz" -C $tmp 'lzip-1.22/COPYING'
+    Copy-Item "$tmp\lzip-1.22\COPYING" "$tools\lzip\License.txt" -Force
+    Set-Content "$tools\lzip\Source.txt" 'Lzip 1.22 (GPL v2 ou posterior), Antonio Diaz Diaz. Codigo-fonte completo em lzip-1.22-source.tar.gz.' -Encoding UTF8
+
+    # rhwp 0.8.7 (HWP e HWPX sem LibreOffice), versão fixa conferida pelo SHA-256
+    Write-Host 'rhwp...'
+    Baixar 'https://github.com/edwardkim/rhwp/releases/download/v0.8.7/rhwp-v0.8.7-windows-x86_64.zip' "$tmp\rhwp.zip"
+    if ((Get-FileHash "$tmp\rhwp.zip" -Algorithm SHA256).Hash -ne 'F7AC326E98F595AE8FECD8DA7A614EE9A37DB77BDF938782A8E07C9DA473EC6F') { throw 'rhwp: o arquivo baixado não confere' }
+    Expand-Archive "$tmp\rhwp.zip" "$tmp\rhwp" -Force
+    New-Item -ItemType Directory "$tools\rhwp" -Force | Out-Null
+    Get-ChildItem "$tmp\rhwp" -Recurse -File | Where-Object { $_.Name -in 'rhwp.exe', 'LICENSE', 'README.md', 'README_EN.md' } | Copy-Item -Destination "$tools\rhwp" -Force
+    foreach ($n in 'vcruntime140.dll', 'vcruntime140_1.dll', 'msvcp140.dll') { Copy-Item (Join-Path $tools $n) "$tools\rhwp" -Force }
+
+    # Documento-modelo do HWPX (pypandoc-hwpx, MIT), o mesmo que o Filee usa
+    Write-Host 'Modelo HWPX...'
+    New-Item -ItemType Directory "$tools\hwpx" -Force | Out-Null
+    Baixar 'https://raw.githubusercontent.com/KnifeLemon/Filee/main/src/Filee.Engines/Hwp/Hwpx/blank.hwpx' "$tools\hwpx\blank.hwpx"
+    if ((Get-FileHash "$tools\hwpx\blank.hwpx" -Algorithm SHA256).Hash -ne '97279058DDA295C0A08985203624AC27900DDB649B6E28FC9E27CE0D061D4035') { throw 'blank.hwpx: o arquivo baixado não confere' }
+    Baixar 'https://raw.githubusercontent.com/msjang/pypandoc-hwpx/main/LICENSE' "$tools\hwpx\LICENSE"
+
+    foreach ($f in 'ffmpeg.exe', 'ffprobe.exe', 'qpdf\qpdf.exe', 'exiftool.exe', 'gswin64c.exe', 'gsdll64.dll', 'vcruntime140.dll', 'msvcp140.dll', '7zip\7z.exe', '7zip\7z.dll', 'lzip\lzip.exe', 'rhwp\rhwp.exe', 'hwpx\blank.hwpx') {
         if (-not (Test-Path (Join-Path $tools $f))) { throw "Faltou $f" }
     }
     Write-Host "Pronto: ferramentas em $tools" -ForegroundColor Green

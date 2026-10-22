@@ -55,6 +55,30 @@ $d='longo.pdf'
 Rodar @($d) Tools Comprimir @('modo=nivel','nivel=forte'); Rodar @($d) Tools Organizar @('ordem=3,1,2r90,10r180'); Rodar @($d) Tools Dividir @('modo=cada','cada=4')
 Rodar @($d) Tools Dividir @('modo=intervalos','intervalos=1-2, 5, 7-99'); Rodar @($d) Tools Tarjar @('tarjas=1:0.1,0.1,0.8,0.2;3:0,0,0.5,0.5'); Rodar @($d) Tools Metadados @('m.Title=Relatório')
 Rodar @($d,'texto.pdf') Tools Juntar; Rodar @('amostra.7z') Tools Extrair; Rodar @('pacote.zip') Tools Extrair; Rodar @('foto2.jpg','texto.txt') Tools ZIP
+# ---------- Formatos novos (módulos): amostras geradas aqui mesmo, sem arquivo de terceiros ----------
+$u8 = [Text.UTF8Encoding]::new($false)
+[IO.File]::WriteAllText("$t\dados.json", '[{"nome":"Ana","idade":30,"cidade":"São Paulo"},{"nome":"Bia","idade":25,"cidade":"Curitiba"}]', $u8)
+[IO.File]::WriteAllText("$t\contatos.csv", "nome,telefone,email`r`nAna Souza,+55 11 99999-0000,ana@exemplo.com`r`nJoão Lima,+55 41 98888-0000,joao@exemplo.com`r`n", $u8)
+[IO.File]::WriteAllText("$t\cubo.obj", "v 0 0 0`nv 1 0 0`nv 1 1 0`nv 0 1 0`nv 0 0 1`nv 1 0 1`nv 1 1 1`nv 0 1 1`nf 1 2 3 4`nf 5 8 7 6`nf 1 5 6 2`nf 2 6 7 3`nf 3 7 8 4`nf 4 8 5 1`n", $u8)
+[IO.File]::WriteAllText("$t\mapa.geojson", '{"type":"FeatureCollection","features":[{"type":"Feature","properties":{"nome":"Praça"},"geometry":{"type":"Point","coordinates":[-49.99,-23.69]}},{"type":"Feature","properties":{"nome":"Rua"},"geometry":{"type":"LineString","coordinates":[[-49.99,-23.69],[-49.98,-23.68],[-49.97,-23.69]]}}]}', $u8)
+[IO.File]::WriteAllText("$t\trilha.gpx", '<?xml version="1.0" encoding="UTF-8"?><gpx version="1.1" creator="teste" xmlns="http://www.topografix.com/GPX/1/1"><trk><name>Trilha</name><trkseg><trkpt lat="-23.69" lon="-49.99"/><trkpt lat="-23.68" lon="-49.98"/><trkpt lat="-23.67" lon="-49.97"/></trkseg></trk></gpx>', $u8)
+$anexo = [Convert]::ToBase64String([IO.File]::ReadAllBytes("$t\foto2.jpg"), 'InsertLineBreaks')
+[IO.File]::WriteAllText("$t\mensagem.eml", "From: Ana <ana@exemplo.com>`r`nTo: Bia <bia@exemplo.com>`r`nSubject: =?UTF-8?B?$([Convert]::ToBase64String($u8.GetBytes('Relatório de ação')))?=`r`nDate: Tue, 20 Oct 2026 10:00:00 -0300`r`nMIME-Version: 1.0`r`nContent-Type: multipart/mixed; boundary=`"XYZ`"`r`n`r`n--XYZ`r`nContent-Type: text/plain; charset=utf-8`r`nContent-Transfer-Encoding: 8bit`r`n`r`nOlá, segue a foto. Coração e maçã.`r`n--XYZ`r`nContent-Type: image/jpeg; name=`"foto.jpg`"`r`nContent-Disposition: attachment; filename=`"foto.jpg`"`r`nContent-Transfer-Encoding: base64`r`n`r`n$anexo`r`n--XYZ--`r`n", $u8)
+Copy-Item "$env:WINDIR\Fonts\arial.ttf" "$t\fonte.ttf" -ErrorAction SilentlyContinue
+& "$raiz\tools\lzip\lzip.exe" -k -f texto.txt
+makecab.exe /V0 texto.txt texto.cab | Out-Null
+foreach($f in 'dados.json','contatos.csv','cubo.obj','mapa.geojson','trilha.gpx','mensagem.eml','fonte.ttf','texto.txt.lz','texto.cab','legenda.srt'){ if(Test-Path "$t\$f"){ Rodar @($f) Convert '*' } else { $falhas += "faltou a amostra $f" } }
+# Segunda volta: o que os módulos geraram também tem de abrir
+foreach($e in 'yaml','toml','xml','jsonl','vcf','ass','smi','lrc','ttml','sub','woff','woff2','otf','eot','glb','gltf','stl','ply','3mf','kml','kmz','dxf','dwg','psd','jxl','jp2','tga','dds','qoi','pcx','icns','wv','tta','ac3','w64','fb2','htmlz','txtz','tar.xz','tar.bz2'){
+  $g = Get-ChildItem $t -Filter "*.$e" -File | Select-Object -First 1
+  if($g){ Rodar @($g.Name) Convert '*' } else { $falhas += "nenhum .$e foi gerado para testar a volta" }
+}
+Rodar @('legenda.srt') Tools 'Ajustar tempo' @('segundos=-1.5'); Rodar @('fonte.ttf') Tools Amostra; Rodar @('pacote.zip') Tools Testar
+Rodar @('curto.mp4') Tools Quadros @('formato=jpg'); Rodar @('foto2.jpg') Tools Cinza
+# Office sem LibreOffice (conversores próprios)
+$env:MEXERICA_SEM_LIBREOFFICE = '1'
+foreach($f in 'texto.docx','planilha.xlsx','longo.pptx'){ if(Test-Path "$t\$f"){ Rodar @($f) Convert '*' } }
+Remove-Item Env:MEXERICA_SEM_LIBREOFFICE
 "RESUMO: $ok ok, $($falhas.Count) falhas"; $falhas
 
 Set-Location $raiz

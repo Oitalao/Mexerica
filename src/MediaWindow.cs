@@ -43,7 +43,7 @@ sealed class MediaWindow : Window
         video = Ff.HasVideo(src);
         duration = Ff.Duration(src);
         var head = mode switch { MediaMode.Trim => "Cortar trecho", MediaMode.Split => "Dividir em partes", MediaMode.Bleep => "Bipe por cima", _ => "Quadro do vídeo" };
-        Title = "Mexerica: " + head.ToLowerInvariant();
+        Title = "Mexerica: " + Tr.T(head.ToLowerInvariant());
         Width = 760; SizeToContent = SizeToContent.Height; ResizeMode = ResizeMode.CanMinimize;
         WindowStartupLocation = WindowStartupLocation.CenterScreen;
         Ui.Dark(this);
@@ -261,7 +261,7 @@ sealed class MediaWindow : Window
     void Finish()
     {
         var err = finish();
-        if (err != null) { MessageBox.Show(this, err, "Mexerica", MessageBoxButton.OK, MessageBoxImage.Warning); return; }
+        if (err != null) { Tr.Box(this, err, "Mexerica", MessageBoxButton.OK, MessageBoxImage.Warning); return; }
         result = values; DialogResult = true;
     }
 }

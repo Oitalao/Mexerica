@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.Globalization;
 using System.IO;
@@ -20,9 +20,12 @@ namespace Mexerica;
 static class Office
 {
     public static string? Exe { get; private set; } = Find();
-    public static bool Ok => Exe != null;
+    public static bool Ok => Exe != null && !Hidden;
     /// Procura de novo (depois que o LibreOffice é instalado pelo próprio Mexerica).
     public static void Refresh() => Exe = Find();
+
+    // Teste: MEXERICA_SEM_LIBREOFFICE=1 faz o Mexerica agir como se o LibreOffice não estivesse instalado.
+    static bool Hidden => Environment.GetEnvironmentVariable("MEXERICA_SEM_LIBREOFFICE") == "1";
     // Dois LibreOffice ao mesmo tempo, cada um com seu perfil (o mesmo perfil não aceita duas cópias abertas).
     static readonly SemaphoreSlim gate = new(2, 2);
     static readonly System.Collections.Concurrent.ConcurrentBag<string> profiles = new(new[] { "lo-perfil", "lo-perfil-2" });
@@ -666,7 +669,7 @@ static class Subtitles
     {
         var cues = new List<Cue>();
         Cue? cur = null;
-        foreach (var raw in File.ReadAllLines(src))
+        foreach (var raw in Filee.Engines.Subtitles.SubtitleEncoding.Decode(File.ReadAllBytes(src)).Split(new[] { "\r\n", "\n", "\r" }, StringSplitOptions.None))
         {
             var line = raw.TrimEnd();
             if (Timing.IsMatch(line)) { cur = new Cue(line.Trim(), new()); cues.Add(cur); }

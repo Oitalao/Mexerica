@@ -27,6 +27,18 @@ sealed class Config
     public bool Paused { get; set; }
     public bool UseGpu { get; set; } = true;           // vídeo pela placa (NVIDIA, Intel, AMD) quando houver
     public bool ShellMenu { get; set; } = true;        // submenu "Mexerica" no botão direito do Explorador
+    public string WheelTheme { get; set; } = "escuro";  // escuro, claro, sistema
+    public string Language { get; set; } = "pt-BR";   // padrão para todos: português do Brasil
+    public int WheelOpacity { get; set; } = 93;         // % de opacidade das fatias
+    public List<WatchFolder> WatchFolders { get; set; } = new();
+    public bool AutoUpdate { get; set; } = true;
+    public Dictionary<string, List<string>> WheelOrder { get; set; } = new();
+    public Dictionary<string, List<string>> WheelHidden { get; set; } = new();
+    public List<Preset> Presets { get; set; } = new();
+    public string SkippedVersion { get; set; } = "";
+    public string LastSeenVersion { get; set; } = "";
+    public string UpdateNotes { get; set; } = "";
+    public string UpdateNotesVersion { get; set; } = "";
 
     public int Crf => VideoQuality switch { "media" => 23, "leve" => 27, _ => 20 };
     public string Mp3Q => AudioQuality switch { "media" => "4", "leve" => "6", _ => "2" };
@@ -57,6 +69,9 @@ sealed class Config
 
     public Config Clone() => JsonSerializer.Deserialize<Config>(JsonSerializer.Serialize(this))!;
 
+    /// Só nesta execução, sem gravar (linha de comando: -o, --qualidade).
+    public static void Override(Config c) => Now = c;
+
     public static readonly (uint vk, string name)[] OpenKeys =
     {
         (0x20, "Espaço"), (0x09, "Tab"), (0xC0, "Aspas (')"), (0x14, "Caps Lock"), (0x51, "Q"), (0x45, "E"),
@@ -69,7 +84,7 @@ sealed class Config
     };
 
     public static string KeyName(uint vk) =>
-        OpenKeys.Concat(Modifiers).FirstOrDefault(k => k.vk == vk).name ?? $"tecla {vk}";
+        Tr.T(OpenKeys.Concat(Modifiers).FirstOrDefault(k => k.vk == vk).name ?? $"tecla {vk}");
 }
 
 /// Janela de configurações (aberta pelo ícone da bandeja).
@@ -79,12 +94,16 @@ sealed class SettingsWindow : Window
 
     public SettingsWindow()
     {
-        Title = "Mexerica: configurações";
-        Width = 520; SizeToContent = SizeToContent.Height; ResizeMode = ResizeMode.NoResize;
+        c.Language = Tr.Languages.FirstOrDefault(l => l.Code.Equals(c.Language, StringComparison.OrdinalIgnoreCase)).Code ?? "pt-BR";
+        Title = Tr.T("Mexerica: configurações");
+        Width = 540; SizeToContent = SizeToContent.Height; ResizeMode = ResizeMode.CanMinimize;
+        MaxHeight = Math.Max(420, SystemParameters.WorkArea.Height * 0.9); // telas baixas: rola em vez de sair da tela
         WindowStartupLocation = WindowStartupLocation.CenterScreen;
         Ui.Dark(this);
 
-        var st = new StackPanel { Margin = new Thickness(22, 18, 22, 18) };
+        var st = new StackPanel { Margin = new Thickness(22, 4, 22, 12) };
+        st.Children.Add(Ui.H("Idioma"));
+        st.Children.Add(Ui.Row("Idioma da interface", Ui.Combo(Tr.Languages.Select(l => (l.Code, l.Name)), c.Language, v => c.Language = v)));
         st.Children.Add(Ui.H("Teclas"));
         st.Children.Add(Ui.Row("Abrir a roda durante o arrasto", Ui.Combo(Config.OpenKeys.Select(k => (k.vk.ToString(), k.name)), c.OpenKey.ToString(), v => c.OpenKey = uint.Parse(v))));
         st.Children.Add(Ui.Row("Ir para Converter", Ui.Combo(Config.Modifiers.Select(k => (k.vk.ToString(), k.name)), c.ConvertKey.ToString(), v => c.ConvertKey = uint.Parse(v))));
@@ -101,12 +120,12 @@ sealed class SettingsWindow : Window
 
         st.Children.Add(Ui.H("Resultado"));
         var outLabel = new TextBlock { Foreground = Ui.Dim, VerticalAlignment = VerticalAlignment.Center, TextTrimming = TextTrimming.CharacterEllipsis, MaxWidth = 250 };
-        void ShowOut() => outLabel.Text = c.OutputDir.Length == 0 ? "Ao lado do original" : c.OutputDir;
+        void ShowOut() => outLabel.Text = c.OutputDir.Length == 0 ? Tr.T("Ao lado do original") : c.OutputDir;
         ShowOut();
         var pick = Ui.Button("Escolher…", false);
         pick.Click += (_, _) =>
         {
-            var d = new Microsoft.Win32.OpenFolderDialog { Title = "Pasta para os arquivos novos" };
+            var d = new Microsoft.Win32.OpenFolderDialog { Title = Tr.T("Pasta para os arquivos novos") };
             if (d.ShowDialog(this) == true) { c.OutputDir = d.FolderName; ShowOut(); }
         };
         var reset = Ui.Button("Ao lado", false);
@@ -115,26 +134,47 @@ sealed class SettingsWindow : Window
         outRow.Children.Add(outLabel); outRow.Children.Add(pick); outRow.Children.Add(reset);
         st.Children.Add(Ui.Row("Onde salvar", outRow));
         st.Children.Add(Ui.Check("Ao terminar, mostrar o arquivo novo na pasta", c.RevealWhenDone, v => c.RevealWhenDone = v));
+        var watchLabel = new TextBlock { Foreground = Ui.Dim, VerticalAlignment = VerticalAlignment.Center, Margin = new Thickness(0, 0, 8, 0) };
+        void ShowWatch() => watchLabel.Text = c.WatchFolders.Count == 0 ? Tr.T("Nenhuma") : Tr.T($"{c.WatchFolders.Count(w => w.Enabled)} ligada(s)");
+        ShowWatch();
+        var watchBtn = Ui.Button("Escolher…", false);
+        watchBtn.Click += (_, _) => { var r = WatchWindow.Ask(this, c.WatchFolders); if (r != null) { c.WatchFolders = r; ShowWatch(); } };
+        var watchRow = new StackPanel { Orientation = Orientation.Horizontal };
+        watchRow.Children.Add(watchLabel); watchRow.Children.Add(watchBtn);
+        st.Children.Add(Ui.Row("Pastas monitoradas", watchRow));
+
+        st.Children.Add(Ui.H("Aparência da roda"));
+        var custom = Ui.Button("Personalizar…", false);
+        custom.Click += (_, _) => CustomizeWindow.Ask(this, c);
+        st.Children.Add(Ui.Row("Fatias, ordem e predefinições", custom));
+        st.Children.Add(Ui.Row("Tema", Ui.Combo(new[] { ("escuro", "Escuro"), ("claro", "Claro"), ("sistema", "Igual ao Windows") }, c.WheelTheme, v => c.WheelTheme = v)));
+        st.Children.Add(Ui.Row("Opacidade", Ui.Combo(new[] { ("100", "Sólida"), ("93", "Quase sólida"), ("80", "Um pouco transparente"), ("65", "Transparente") }, c.WheelOpacity.ToString(), v => c.WheelOpacity = int.Parse(v))));
 
         st.Children.Add(Ui.H("Desempenho e Windows"));
         st.Children.Add(Ui.Check("Usar a placa de vídeo para converter vídeos (bem mais rápido)", c.UseGpu, v => c.UseGpu = v));
         st.Children.Add(Ui.Check("Mostrar o Mexerica no menu do botão direito dos arquivos", c.ShellMenu, v => c.ShellMenu = v));
+
+        st.Children.Add(Ui.H("Atualizações"));
+        st.Children.Add(Ui.Check("Procurar versões novas sozinho (o aviso aparece perto do relógio)", c.AutoUpdate, v => c.AutoUpdate = v));
+        var now = Ui.Button("Procurar agora", false);
+        now.Click += (_, _) => _ = Updater.Check(manual: true);
+        var verRow = new StackPanel { Orientation = Orientation.Horizontal };
+        verRow.Children.Add(new TextBlock { Text = Tr.T($"Versão {Updater.CurrentText}"), Foreground = Ui.Dim, VerticalAlignment = VerticalAlignment.Center, Margin = new Thickness(0, 0, 10, 0) });
+        verRow.Children.Add(now);
+        st.Children.Add(Ui.Row("Esta cópia", verRow));
 
         var ok = Ui.Button("Salvar", true);
         var cancel = Ui.Button("Cancelar", false);
         ok.Click += (_, _) =>
         {
             if (new[] { c.ConvertKey, c.ToolsKey, c.ActionsKey }.Distinct().Count() < 3)
-            { MessageBox.Show(this, "Converter, Ferramentas e Ações precisam de teclas diferentes.", "Mexerica", MessageBoxButton.OK, MessageBoxImage.Warning); return; }
-            bool menuChanged = c.ShellMenu != Config.Now.ShellMenu;
+            { Tr.Box(this, "Converter, Ferramentas e Ações precisam de teclas diferentes.", "Mexerica", MessageBoxButton.OK, MessageBoxImage.Warning); return; }
             c.Save(); DialogResult = true;
-            if (menuChanged) ShellMenu.Apply();
+            ShellMenu.Apply();
+            Watchers.Apply();
         };
         cancel.Click += (_, _) => DialogResult = false;
-        var bar = new StackPanel { Orientation = Orientation.Horizontal, HorizontalAlignment = HorizontalAlignment.Right, Margin = new Thickness(0, 18, 0, 0) };
-        bar.Children.Add(cancel); bar.Children.Add(ok);
-        st.Children.Add(bar);
-        Content = st;
+        Content = Ui.Scrolling(st, cancel, ok);
     }
 }
 
@@ -151,7 +191,7 @@ static class Ui
 
     public static void Dark(Window w)
     {
-        w.Background = Bg; w.Foreground = Fg; w.FontFamily = new FontFamily("Segoe UI"); w.FontSize = 13;
+        w.Background = Bg; w.Foreground = Fg; Tr.Window(w); w.FontSize = 13;
         w.SourceInitialized += (_, _) => Native.DarkTitle(new System.Windows.Interop.WindowInteropHelper(w).Handle);
         w.Resources.Add(typeof(ComboBox), ComboStyle());
     }
@@ -165,14 +205,27 @@ static class Ui
         return s;
     }
 
-    public static TextBlock H(string t) => new() { Text = t, FontSize = 15, FontWeight = FontWeights.SemiBold, Foreground = Orange, Margin = new Thickness(0, 14, 0, 6) };
+    /// Conteúdo com rolagem e os botões sempre visíveis embaixo.
+    public static FrameworkElement Scrolling(FrameworkElement body, params Button[] buttons)
+    {
+        var dock = new DockPanel { LastChildFill = true };
+        var bar = new StackPanel { Orientation = Orientation.Horizontal, HorizontalAlignment = HorizontalAlignment.Right, Margin = new Thickness(22, 10, 22, 14) };
+        foreach (var b in buttons) bar.Children.Add(b);
+        var foot = new Border { BorderBrush = Line, BorderThickness = new Thickness(0, 1, 0, 0), Child = bar };
+        DockPanel.SetDock(foot, Dock.Bottom);
+        dock.Children.Add(foot);
+        dock.Children.Add(new ScrollViewer { Content = body, VerticalScrollBarVisibility = ScrollBarVisibility.Auto, Padding = new Thickness(0, 10, 0, 0) });
+        return dock;
+    }
+
+    public static TextBlock H(string t) => new() { Text = Tr.T(t), FontSize = 15, FontWeight = FontWeights.SemiBold, Foreground = Orange, Margin = new Thickness(0, 14, 0, 6) };
 
     public static FrameworkElement Row(string label, UIElement control)
     {
         var g = new Grid { Margin = new Thickness(0, 4, 0, 4) };
         g.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
         g.ColumnDefinitions.Add(new ColumnDefinition { Width = GridLength.Auto });
-        var t = new TextBlock { Text = label, VerticalAlignment = VerticalAlignment.Center, TextWrapping = TextWrapping.Wrap, Margin = new Thickness(0, 0, 12, 0) };
+        var t = new TextBlock { Text = Tr.T(label), VerticalAlignment = VerticalAlignment.Center, TextWrapping = TextWrapping.Wrap, Margin = new Thickness(0, 0, 12, 0) };
         g.Children.Add(t);
         Grid.SetColumn(control, 1);
         g.Children.Add(control);
@@ -183,7 +236,7 @@ static class Ui
     public static FrameworkElement Stack(string label, FrameworkElement control)
     {
         var st = new StackPanel { Margin = new Thickness(0, 4, 0, 4) };
-        st.Children.Add(new TextBlock { Text = label, Margin = new Thickness(0, 0, 0, 4) });
+        st.Children.Add(new TextBlock { Text = Tr.T(label), Margin = new Thickness(0, 0, 0, 4) });
         control.HorizontalAlignment = HorizontalAlignment.Stretch;
         st.Children.Add(control);
         return st;
@@ -236,7 +289,7 @@ static class Ui
     public static ComboBox Combo(IEnumerable<(string value, string label)> items, string current, Action<string> set)
     {
         var cb = new ComboBox();
-        foreach (var (v, l) in items) cb.Items.Add(new ComboBoxItem { Content = l, Tag = v });
+        foreach (var (v, l) in items) cb.Items.Add(new ComboBoxItem { Content = Tr.T(l), Tag = v });
         cb.SelectedItem = cb.Items.Cast<ComboBoxItem>().FirstOrDefault(i => (string)i.Tag == current) ?? cb.Items[0];
         cb.SelectionChanged += (_, _) => { if (cb.SelectedItem is ComboBoxItem i) set((string)i.Tag); };
         return cb;
@@ -246,7 +299,7 @@ static class Ui
     {
         var cb = new CheckBox
         {
-            Content = new TextBlock { Text = label, TextWrapping = TextWrapping.Wrap, Foreground = Fg },
+            Content = new TextBlock { Text = Tr.T(label), TextWrapping = TextWrapping.Wrap, Foreground = Fg },
             IsChecked = value, Margin = new Thickness(0, 6, 0, 4), Foreground = Fg,
         };
         cb.Checked += (_, _) => set(true); cb.Unchecked += (_, _) => set(false);
@@ -257,7 +310,7 @@ static class Ui
     {
         var b = new Button
         {
-            Content = text, Padding = new Thickness(16, 6, 16, 6), Margin = new Thickness(8, 0, 0, 0), MinWidth = 84,
+            Content = Tr.T(text), Padding = new Thickness(16, 6, 16, 6), Margin = new Thickness(8, 0, 0, 0), MinWidth = 84,
             Foreground = primary ? Brushes.Black : Fg, Background = primary ? Orange : Panel, BorderBrush = Line,
             Cursor = System.Windows.Input.Cursors.Hand,
         };

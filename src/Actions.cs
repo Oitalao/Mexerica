@@ -33,7 +33,7 @@ static class Actions
 
     static async void CopyOrMove(string[] fs, bool move)
     {
-        var dlg = new Microsoft.Win32.OpenFolderDialog { Title = move ? "Mover para…" : "Copiar para…" };
+        var dlg = new Microsoft.Win32.OpenFolderDialog { Title = Tr.T(move ? "Mover para…" : "Copiar para…") };
         if (dlg.ShowDialog() != true) return;
         var dest = dlg.FolderName;
         App.Toast.Show(move ? "Movendo…" : "Copiando…", fs.Length == 1 ? Path.GetFileName(fs[0].TrimEnd('\\')) : $"{fs.Length} itens", sticky: true);

@@ -83,7 +83,7 @@ sealed class ImageEditor : Window
     ImageEditor(string src, bool cropOnly)
     {
         this.cropOnly = cropOnly;
-        Title = "Mexerica: editar " + System.IO.Path.GetFileName(src);
+        Title = Tr.T($"Mexerica: editar {System.IO.Path.GetFileName(src)}");
         Width = 1180; Height = 800; MinWidth = 760; MinHeight = 520;
         WindowStartupLocation = WindowStartupLocation.CenterScreen;
         Ui.Dark(this);
@@ -428,6 +428,7 @@ sealed class ImageEditor : Window
         var r = f.Run();
         if (r == null) return;
         var tb = new TextBlock { Text = r.S("t"), Foreground = brush, FontSize = Math.Max(8, size), FontWeight = FontWeights.SemiBold, FontFamily = new FontFamily("Segoe UI") };
+        Tr.Raw(tb); // Texto desenhado pelo usuário deve permanecer literal.
         tb.Effect = new System.Windows.Media.Effects.DropShadowEffect { Color = color.R + color.G + color.B > 380 ? System.Windows.Media.Colors.Black : System.Windows.Media.Colors.White, BlurRadius = size / 6, ShadowDepth = 0, Opacity = 0.9 };
         Canvas.SetLeft(tb, p.X); Canvas.SetTop(tb, p.Y);
         Add(ink, tb);
@@ -469,7 +470,7 @@ sealed class ImageEditor : Window
             p["camada"] = file; p["_tmp"] = dir;
             changed = true;
         }
-        if (!changed) { MessageBox.Show(this, "Nada foi alterado ainda.", "Mexerica", MessageBoxButton.OK, MessageBoxImage.Information); return; }
+        if (!changed) { Tr.Box(this, "Nada foi alterado ainda.", "Mexerica", MessageBoxButton.OK, MessageBoxImage.Information); return; }
         result = p; DialogResult = true;
     }
 

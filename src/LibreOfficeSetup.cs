@@ -22,9 +22,9 @@ static class LibreOfficeSetup
     {
         if (Office.Ok) { App.Toast.Show("O LibreOffice já está instalado", "Pode converter seus documentos."); return; }
         if (busy) { App.Toast.Show("Já estou instalando o LibreOffice", "Aguarde terminar."); return; }
-        var r = MessageBox.Show(
-            "Para converter documentos do Word, Excel e PowerPoint, o Mexerica usa o LibreOffice, um programa gratuito e confiável.\n\n" +
-            "Quer que eu baixe e instale agora? São cerca de 360 MB. O Windows vai pedir sua permissão para instalar.",
+        var r = Tr.Box(
+            Tr.T("Para converter documentos do Word, Excel e PowerPoint, o Mexerica usa o LibreOffice, um programa gratuito e confiável.\n\n") +
+            Tr.T("Quer que eu baixe e instale agora? São cerca de 360 MB. O Windows vai pedir sua permissão para instalar."),
             "Mexerica: falta o LibreOffice", MessageBoxButton.YesNo, MessageBoxImage.Question, MessageBoxResult.Yes);
         if (r != MessageBoxResult.Yes) return;
         busy = true;

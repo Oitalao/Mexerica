@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
@@ -32,12 +32,13 @@ static class Catalog
     }
 
     /// Extensões conhecidas (com ponto), para o menu do botão direito.
-    public static IEnumerable<string> Extensions => kinds.Keys;
+    public static IEnumerable<string> Extensions => kinds.Keys.Concat(Modules.InputExtensions.Select(e => "." + e)).Distinct(StringComparer.OrdinalIgnoreCase);
 
     public static Kind KindOf(string p)
     {
         if (Directory.Exists(p)) return Kind.Folder;
-        return kinds.TryGetValue(Path.GetExtension(p), out var k) ? k : Kind.Other;
+        if (kinds.TryGetValue(Path.GetExtension(p), out var k)) return k;
+        return Modules.KindFor(Modules.Ext(p)) ?? Kind.Other;
     }
 
     static string Norm(string p)
@@ -90,7 +91,14 @@ static class Catalog
         _ => false,
     };
 
-    public static List<Op> For(Mode mode, string[] files) => mode switch
+    public static List<Op> For(Mode mode, string[] files)
+    {
+        files = Robust.Resolve(files);
+        var ops = ForResolved(mode, files);
+        return mode == Mode.Actions ? ops : WheelCustom.Apply(mode, files, ops);
+    }
+
+    static List<Op> ForResolved(Mode mode, string[] files) => mode switch
     {
         Mode.Convert => Conversions(files),
         Mode.Tools => Tools(files),
@@ -106,7 +114,28 @@ static class Catalog
         return null;
     }
 
+    /// Conversões embutidas mais as dos módulos (os módulos acrescentam destinos e, quando pedem, substituem os embutidos).
     static List<Op> Conversions(string[] files)
+    {
+        var list = BuiltInConversions(files);
+        var extra = Modules.TargetsFor(files);
+        if (extra.Count == 0) return list;
+        var inExts = files.Select(Modules.Ext).Distinct().ToList();
+        foreach (var (m, t) in extra)
+        {
+            var label = t.Label ?? t.Ext.ToUpperInvariant();
+            int at = list.FindIndex(o => string.Equals(o.Label, label, StringComparison.OrdinalIgnoreCase));
+            bool wins = inExts.All(e => m.Overrides(e, t.Ext));
+            var op = new Op { Label = label, Sub = t.Sub, One = (f, p) => m.Convert(f, t.Ext, p) };
+            if (at < 0) list.Add(op);
+            else if (wins) list[at] = op;
+        }
+        // Sem LibreOffice, o convite para instalá-lo só faz sentido se nenhum módulo resolver sozinho.
+        if (list.Count > 1) list.RemoveAll(o => o.Ui != null && o.Label == "LibreOffice");
+        return list;
+    }
+
+    static List<Op> BuiltInConversions(string[] files)
     {
         var list = new List<Op>();
         if (Common(files) is not Kind k || !targets.TryGetValue(k, out var exts)) return list;
@@ -121,6 +150,8 @@ static class Catalog
         {
             if (srcExts.Count == 1 && srcExts[0] == ext) continue;
             if (k is Kind.Audio or Kind.Video && !Ff.Ok) continue;
+            // Vídeo sem som não vira áudio (olha só os primeiros arquivos, para a roda abrir rápido).
+            if (k == Kind.Video && ext is "mp3" or "m4a" && files.Take(20).Any(f => { try { return !Ff.HasAudio(f); } catch { return false; } })) continue;
             if (NeedsOffice(k, ext) && !Office.Ok) continue;
             var e = ext;
             list.Add(new Op { Label = e == "tgz" ? "TAR.GZ" : e.ToUpperInvariant(), Sub = subs.GetValueOrDefault(e, ""), One = (f, _) => ConvertOne(f, e) });
@@ -239,6 +270,10 @@ static class Catalog
 
         list.Add(TA("ZIP", "compactar", (fs, _) => Task.Run(() => (string?)Archives.Zip(fs))));
         if (k is Kind.Folder or Kind.Other or null) list.Add(TA("TAR.GZ", "compactar", (fs, _) => Archives.TarGz(fs).AsNullable()));
+        foreach (var m in Modules.All)
+            if (m.Available)
+                foreach (var op in m.Tools(files))
+                    if (!list.Any(o => string.Equals(o.Label, op.Label, StringComparison.OrdinalIgnoreCase))) list.Add(op);
         return list;
     }
 

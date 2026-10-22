@@ -113,7 +113,7 @@ sealed class PdfPagesWindow : Window
                 if (i % 6 == 5 || i == doc.PageCount - 1) Redraw();
             }
         }
-        catch (Exception ex) { MessageBox.Show(this, "Não consegui abrir o PDF: " + ex.Message, "Mexerica"); DialogResult = false; }
+        catch (Exception ex) { Tr.Box(this, $"Não consegui abrir o PDF: {ex.Message}", "Mexerica"); DialogResult = false; }
     }
 
     IEnumerable<Item> Sel() => selected.Count > 0 ? items.Where(selected.Contains).ToList() : Enumerable.Empty<Item>();
@@ -196,9 +196,9 @@ sealed class PdfPagesWindow : Window
 
     void Finish()
     {
-        if (items.Count == 0) { MessageBox.Show(this, "Não sobrou nenhuma página.", "Mexerica"); return; }
+        if (items.Count == 0) { Tr.Box(this, "Não sobrou nenhuma página.", "Mexerica"); return; }
         bool same = items.Count == original.Count && items.Select((x, i) => x.Page == i + 1 && x.Rot == 0).All(b => b);
-        if (same) { MessageBox.Show(this, "Nada foi alterado ainda.", "Mexerica"); return; }
+        if (same) { Tr.Box(this, "Nada foi alterado ainda.", "Mexerica"); return; }
         result = new P { ["ordem"] = string.Join(",", items.Select(i => i.Rot != 0 ? $"{i.Page}r{i.Rot}" : i.Page.ToString())) };
         DialogResult = true;
     }
@@ -292,7 +292,7 @@ sealed class PdfRedactWindow : Window
         Loaded += async (_, _) =>
         {
             try { doc = await Pdf.Open(src); count = (int)doc.PageCount; await Show(1); }
-            catch (Exception ex) { MessageBox.Show(this, "Não consegui abrir o PDF: " + ex.Message, "Mexerica"); DialogResult = false; }
+            catch (Exception ex) { Tr.Box(this, $"Não consegui abrir o PDF: {ex.Message}", "Mexerica"); DialogResult = false; }
         };
     }
 
@@ -323,7 +323,7 @@ sealed class PdfRedactWindow : Window
     void Finish()
     {
         var all = marks.Where(kv => kv.Value.Count > 0).SelectMany(kv => kv.Value.Select(r => $"{kv.Key}:{F(r.X)},{F(r.Y)},{F(r.Width)},{F(r.Height)}")).ToList();
-        if (all.Count == 0) { MessageBox.Show(this, "Nenhuma tarja marcada.", "Mexerica"); return; }
+        if (all.Count == 0) { Tr.Box(this, "Nenhuma tarja marcada.", "Mexerica"); return; }
         result = new P { ["tarjas"] = string.Join(";", all) };
         DialogResult = true;
     }

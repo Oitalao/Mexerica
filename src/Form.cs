@@ -20,7 +20,7 @@ sealed class Form : Window
 
     public Form(string title, string[] files, string? note = null)
     {
-        Title = "Mexerica: " + title;
+        Title = "Mexerica: " + Tr.T(title);
         Width = 440; SizeToContent = SizeToContent.Height; ResizeMode = ResizeMode.NoResize;
         WindowStartupLocation = WindowStartupLocation.Manual; Topmost = true; ShowInTaskbar = true;
         Ui.Dark(this);
@@ -37,7 +37,7 @@ sealed class Form : Window
         var cancel = Ui.Button("Cancelar", false);
         ok.Click += (_, _) =>
         {
-            foreach (var c in checks) { var err = c(); if (err != null) { MessageBox.Show(this, err, "Mexerica", MessageBoxButton.OK, MessageBoxImage.Warning); return; } }
+            foreach (var c in checks) { var err = c(); if (err != null) { Tr.Box(this, err, "Mexerica", MessageBoxButton.OK, MessageBoxImage.Warning); return; } }
             DialogResult = true;
         };
         cancel.Click += (_, _) => DialogResult = false;

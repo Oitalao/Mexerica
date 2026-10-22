@@ -49,7 +49,7 @@ static class Ff
         await Proc.Run(Exe ?? throw new Exception("ffmpeg não encontrado"), new[] { "-hide_banner", "-nostdin", "-y" }.Concat(args));
 
     // ---------- Leitura do arquivo (uma chamada ao ffprobe por arquivo, guardada) ----------
-    public sealed record Stream(int Index, string Type, string Codec, bool Cover, int W, int H, int Rate);
+    public sealed record Stream(int Index, string Type, string Codec, bool Cover, int W, int H, int Rate, int Channels = 0, string Layout = "");
     public sealed record Info(double Duration, List<Stream> Streams)
     {
         public Stream? Video => Streams.FirstOrDefault(s => s.Type == "video" && !s.Cover);
@@ -67,7 +67,7 @@ static class Ff
         var info = new Info(0, new());
         try
         {
-            var t = Proc.RunOutput(Probe!, new[] { "-v", "error", "-show_entries", "format=duration:stream=index,codec_type,codec_name,width,height,sample_rate:stream_disposition=attached_pic", "-of", "json", src });
+            var t = Proc.RunOutput(Probe!, new[] { "-v", "error", "-show_entries", "format=duration:stream=index,codec_type,codec_name,width,height,sample_rate,channels,channel_layout:stream_disposition=attached_pic", "-of", "json", src });
             using var doc = System.Text.Json.JsonDocument.Parse(t);
             var root = doc.RootElement;
             double dur = 0;
@@ -80,7 +80,7 @@ static class Ff
                     string S(string k) => s.TryGetProperty(k, out var v) ? (v.ValueKind == System.Text.Json.JsonValueKind.String ? v.GetString() ?? "" : v.ToString()) : "";
                     int I(string k) => int.TryParse(S(k), out var v) ? v : 0;
                     bool cover = s.TryGetProperty("disposition", out var disp) && disp.TryGetProperty("attached_pic", out var ap) && ap.GetInt32() == 1;
-                    streams.Add(new Stream(I("index"), S("codec_type"), S("codec_name"), cover, I("width"), I("height"), I("sample_rate")));
+                    streams.Add(new Stream(I("index"), S("codec_type"), S("codec_name"), cover, I("width"), I("height"), I("sample_rate"), I("channels"), S("channel_layout")));
                 }
             info = new Info(dur, streams);
             if (probes.Count > 200) probes.Clear();
@@ -94,6 +94,19 @@ static class Ff
     // capas de música contam como vídeo "attached_pic"; não são vídeo de verdade
     public static bool HasAudio(string src) => Read(src).Audios.Count > 0;
     public static bool HasVideo(string src) => Read(src).Video != null;
+    /// Ajusta taxa e canais ao que cada codificador aceita: DSD chega a 352,8 kHz, DTS pode ser 3.1, TTA não declara a
+    /// disposição dos canais. Formatos com perda não precisam de mais de 48 kHz; WMA e MP3 só têm dois canais.
+    public static string[] AudioFit(string src, string ext)
+    {
+        var a = Read(src).Audios.FirstOrDefault();
+        if (a == null) return Array.Empty<string>();
+        var args = new List<string>();
+        if (ext is "mp3" or "m4a" or "aac" or "ogg" or "opus" or "wma" or "ac3" or "eac3" && a.Rate > 48000) args.AddRange(new[] { "-ar", "48000" });
+        if (ext is "wma" or "mp3" && a.Channels > 2) args.AddRange(new[] { "-ac", "2" });
+        else if (ext is "ogg" or "opus" or "m4a" or "aac" && a.Channels > 2) args.AddRange(new[] { "-af", "aformat=channel_layouts=mono|stereo|3.0|quad|5.0|5.1|6.1|7.1" });
+        else if (a.Channels > 0 && a.Layout == "") args.AddRange(new[] { "-ac", a.Channels.ToString() });
+        return args.ToArray();
+    }
     public static int SampleRate(string src) => Read(src).Audios.FirstOrDefault()?.Rate ?? 0;
     public static (int w, int h) Size(string src) => Read(src).Video is { } v ? (v.W, v.H) : (0, 0);
 
@@ -175,7 +188,7 @@ static class Ff
             catch (Exception ex) when (ex is not OperationCanceledException) { Paths.TryDelete(dst); Log.Write($"cópia de áudio falhou, recodificando: {ex.Message}"); }
         }
         var a = new List<string> { "-i", src, "-vn", "-map_metadata", "0" };
-        a.AddRange(AudioOpts(ext)); a.Add(dst);
+        a.AddRange(AudioOpts(ext)); a.AddRange(AudioFit(src, ext)); a.Add(dst);
         await Guard(dst, Run(a, info.Duration));
         return dst;
     }

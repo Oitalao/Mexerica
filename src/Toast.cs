@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Diagnostics;
 using System.IO;
 using System.Windows;
@@ -23,14 +23,15 @@ sealed class Toast : Window
 
     public Toast()
     {
+        Tr.Window(this);
         WindowStyle = WindowStyle.None; AllowsTransparency = true; Background = Brushes.Transparent;
         Topmost = true; ShowInTaskbar = false; ShowActivated = false; ResizeMode = ResizeMode.NoResize;
         Width = 360; SizeToContent = SizeToContent.Height;
         head = new TextBlock { Foreground = Brushes.White, FontSize = 14, FontWeight = FontWeights.SemiBold, TextTrimming = TextTrimming.CharacterEllipsis };
         body = new TextBlock { Foreground = new SolidColorBrush(Color.FromArgb(190, 255, 255, 255)), FontSize = 12, TextWrapping = TextWrapping.Wrap, MaxHeight = 64, TextTrimming = TextTrimming.CharacterEllipsis, Margin = new Thickness(0, 3, 0, 0) };
         bar = new ProgressBar { Height = 4, Minimum = 0, Maximum = 1, Margin = new Thickness(0, 9, 0, 0), Foreground = new SolidColorBrush(Color.FromRgb(0x3A, 0xA8, 0xFF)), Background = new SolidColorBrush(Color.FromArgb(50, 255, 255, 255)), BorderThickness = new Thickness(0), Visibility = Visibility.Collapsed };
-        cancel = new TextBlock { Text = "Cancelar", Foreground = new SolidColorBrush(Color.FromRgb(0x3A, 0xA8, 0xFF)), FontSize = 12, Margin = new Thickness(0, 6, 0, 0), HorizontalAlignment = HorizontalAlignment.Right, Cursor = Cursors.Hand, Visibility = Visibility.Collapsed };
-        cancel.MouseLeftButtonUp += (_, e) => { e.Handled = true; job?.Cts.Cancel(); head.Text = "Cancelando…"; };
+        cancel = new TextBlock { Text = Tr.T("Cancelar"), Foreground = new SolidColorBrush(Color.FromRgb(0x3A, 0xA8, 0xFF)), FontSize = 12, Margin = new Thickness(0, 6, 0, 0), HorizontalAlignment = HorizontalAlignment.Right, Cursor = Cursors.Hand, Visibility = Visibility.Collapsed };
+        cancel.MouseLeftButtonUp += (_, e) => { e.Handled = true; job?.Cts.Cancel(); head.Text = Tr.T("Cancelando…"); };
         var st = new StackPanel(); st.Children.Add(head); st.Children.Add(body); st.Children.Add(bar); st.Children.Add(cancel);
         card = new Border
         {
@@ -45,9 +46,21 @@ sealed class Toast : Window
         SizeChanged += (_, _) => Place();
     }
 
+    Action? onClick;
+
+    public void LanguageChanged() { Tr.Window(this); cancel.Text = Tr.T("Cancelar"); }
+
+    /// Aviso que faz algo ao ser clicado (ex.: instalar a atualização).
+    public void Show(string title, string text, Action click, int seconds = 12)
+    {
+        Show(title, text);
+        onClick = click;
+        timer.Stop(); timer.Interval = TimeSpan.FromSeconds(seconds); timer.Start();
+    }
+
     public void Show(string title, string text, string? path = null, bool sticky = false, bool error = false)
     {
-        head.Text = title; body.Text = text; target = path;
+        head.Text = Tr.T(title); body.Text = Tr.T(text); target = path; onClick = null;
         card.BorderBrush = new SolidColorBrush(error ? Color.FromRgb(0xF0, 0x4A, 0x4A) : sticky ? Color.FromRgb(0x3A, 0xA8, 0xFF) : Color.FromRgb(0xFF, 0x8A, 0x1F));
         if (!sticky) { job = null; bar.Visibility = cancel.Visibility = Visibility.Collapsed; }
         timer.Stop();
@@ -65,7 +78,7 @@ sealed class Toast : Window
         j.OnProgress = f => Dispatcher.BeginInvoke(() => { if (job != j) return; bar.IsIndeterminate = false; bar.Value = f; });
     }
 
-    public void Status(Job j, string title, string text) { if (job == j) { head.Text = title; body.Text = text; } }
+    public void Status(Job j, string title, string text) { if (job == j) { head.Text = Tr.T(title); body.Text = Tr.T(text); } }
 
     void Place()
     {
@@ -76,6 +89,7 @@ sealed class Toast : Window
 
     void OpenTarget()
     {
+        if (onClick != null) { var a = onClick; onClick = null; a(); return; }
         if (target == null) return;
         Reveal(target);
     }

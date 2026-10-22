@@ -19,6 +19,7 @@ sealed class FloatWindow : Window
 
     public FloatWindow(string[] files)
     {
+        Tr.Window(this);
         this.files = files;
         WindowStyle = WindowStyle.None; AllowsTransparency = true; Background = Brushes.Transparent;
         Topmost = true; ShowInTaskbar = false; ResizeMode = ResizeMode.NoResize; SizeToContent = SizeToContent.WidthAndHeight;
@@ -27,10 +28,11 @@ sealed class FloatWindow : Window
         var img = new Image { Width = 96, Height = 96, Stretch = Stretch.Uniform, Source = Thumb(files[0]) };
         var name = new TextBlock
         {
-            Text = files.Length == 1 ? Path.GetFileName(files[0].TrimEnd('\\')) : $"{files.Length} itens",
+            Text = files.Length == 1 ? Path.GetFileName(files[0].TrimEnd('\\')) : Tr.T($"{files.Length} itens"),
             Foreground = Brushes.White, FontSize = 12, TextTrimming = TextTrimming.CharacterEllipsis,
             MaxWidth = 130, HorizontalAlignment = HorizontalAlignment.Center, Margin = new Thickness(0, 6, 0, 0),
         };
+        Tr.Raw(name); // Nome de arquivo não é texto de interface.
         var close = new Button
         {
             Content = "✕", Width = 22, Height = 22, Padding = new Thickness(0), FontSize = 11,

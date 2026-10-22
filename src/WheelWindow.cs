@@ -1,5 +1,6 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
+using System.Linq;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Input;
@@ -27,9 +28,13 @@ sealed class WheelWindow : Window
 
     Mode mode;
     string[]? files;
-    List<Op> ops = new();
+    List<Op> ops = new();      // as fatias do lado que está à mostra
+    List<Op> allOps = new();   // tudo o que vale para estes arquivos
+    int face;                  // lado da roda (cada lado tem até PerFace fatias)
+    const int PerFace = 12;
     int sel = -1;
     bool keySel;      // escolha feita pelas setas: vale até o mouse andar de verdade
+    bool downloading; // arrasto do navegador: baixando o arquivo antes de mostrar as opções
     Point lastPick;
 
     public bool IsArmed { get; private set; }
@@ -38,6 +43,15 @@ sealed class WheelWindow : Window
     public bool HasFiles => files != null;
     /// Roda que já está valendo: recebeu arquivos do arrasto ou foi aberta pelo teclado.
     public bool Active => IsArmed && (files != null || IsKeyboard);
+    public void Preview(string file)
+    {
+        files = new[] { file };
+        allOps = provider(Mode.Convert, files);
+        mode = Mode.Convert;
+        visual.Opacity = 1;
+        hint.Text = Hint();
+        Layout();
+    }
     readonly System.Windows.Threading.DispatcherTimer noFiles = new() { Interval = TimeSpan.FromMilliseconds(1200) };
 
     static readonly Dictionary<Mode, Color> accent = new()
@@ -48,13 +62,29 @@ sealed class WheelWindow : Window
     };
     static readonly Dictionary<Mode, string> names = new() { [Mode.Convert] = "Converter", [Mode.Tools] = "Ferramentas", [Mode.Actions] = "Ações" };
 
-    static readonly Brush segFill = Frozen(new SolidColorBrush(Color.FromArgb(236, 30, 30, 35)));
-    static readonly Brush segStroke = Frozen(new SolidColorBrush(Color.FromArgb(70, 255, 255, 255)));
-    static readonly Brush dim = Frozen(new SolidColorBrush(Color.FromArgb(170, 255, 255, 255)));
+    // Cores da roda: escura ou clara, com a opacidade escolhida nas configurações.
+    Brush segFill = Brushes.Black, segStroke = Brushes.Gray, dim = Brushes.Gray, fg = Brushes.White;
+    readonly Ellipse centerDisc;
+    readonly Border hintBox;
+
+    void ApplyTheme()
+    {
+        var c = Config.Now;
+        bool light = c.WheelTheme == "claro" || (c.WheelTheme == "sistema" && Native.AppsUseLightTheme());
+        // Escala que se nota a olho: "Um pouco transparente" (80) deixa ver bem o que está atrás.
+        byte a = c.WheelOpacity switch { >= 100 => 255, >= 93 => 225, >= 80 => 165, _ => 110 };
+        segFill = Frozen(new SolidColorBrush(light ? Color.FromArgb(a, 246, 246, 249) : Color.FromArgb(a, 30, 30, 35)));
+        segStroke = Frozen(new SolidColorBrush(light ? Color.FromArgb(90, 0, 0, 0) : Color.FromArgb(70, 255, 255, 255)));
+        dim = Frozen(new SolidColorBrush(light ? Color.FromArgb(180, 20, 20, 25) : Color.FromArgb(170, 255, 255, 255)));
+        fg = light ? Frozen(new SolidColorBrush(Color.FromRgb(20, 20, 25))) : Brushes.White;
+        centerDisc.Fill = segFill; centerDisc.Stroke = segStroke;
+        hintBox.Background = segFill; hint.Foreground = fg; subtitle.Foreground = dim;
+    }
     static T Frozen<T>(T f) where T : Freezable { f.Freeze(); return f; }
 
     public WheelWindow(Func<Mode, string[], List<Op>> provider, Action<Op, string[]> runner)
     {
+        Tr.Window(this);
         this.provider = provider; this.runner = runner;
         WindowStyle = WindowStyle.None; AllowsTransparency = true; Background = Brushes.Transparent;
         Topmost = true; ShowInTaskbar = false; ShowActivated = false; ResizeMode = ResizeMode.NoResize;
@@ -67,31 +97,34 @@ sealed class WheelWindow : Window
         visual = new Grid { Opacity = 0, IsHitTestVisible = false, RenderTransform = zoom };
         ring = new Canvas { Width = D, Height = D };
         visual.Children.Add(ring);
-        visual.Children.Add(new Ellipse
+        centerDisc = new Ellipse
         {
-            Width = 2 * R1 - 8, Height = 2 * R1 - 8, Fill = segFill, Stroke = segStroke, StrokeThickness = 1,
+            Width = 2 * R1 - 8, Height = 2 * R1 - 8, StrokeThickness = 1,
             HorizontalAlignment = HorizontalAlignment.Center, VerticalAlignment = VerticalAlignment.Center,
-        });
+        };
+        visual.Children.Add(centerDisc);
         title = new TextBlock { FontSize = 14, FontWeight = FontWeights.SemiBold, HorizontalAlignment = HorizontalAlignment.Center };
         subtitle = new TextBlock
         {
-            FontSize = 10.5, Foreground = dim, TextAlignment = TextAlignment.Center, TextWrapping = TextWrapping.Wrap,
+            FontSize = 10.5, TextAlignment = TextAlignment.Center, TextWrapping = TextWrapping.Wrap,
             MaxWidth = 2 * R1 - 26, MaxHeight = 30, TextTrimming = TextTrimming.CharacterEllipsis, Margin = new Thickness(0, 2, 0, 0),
         };
+        Tr.Raw(subtitle); // Pode conter o nome literal do arquivo.
         var center = new StackPanel { HorizontalAlignment = HorizontalAlignment.Center, VerticalAlignment = VerticalAlignment.Center };
         center.Children.Add(title); center.Children.Add(subtitle);
         visual.Children.Add(center);
-        hint = new TextBlock { FontSize = 10.5, Foreground = Brushes.White, HorizontalAlignment = HorizontalAlignment.Center, VerticalAlignment = VerticalAlignment.Bottom };
-        visual.Children.Add(new Border
+        hint = new TextBlock { FontSize = 10.5, HorizontalAlignment = HorizontalAlignment.Center, VerticalAlignment = VerticalAlignment.Bottom };
+        visual.Children.Add(hintBox = new Border
         {
-            Child = hint, Background = segFill, CornerRadius = new CornerRadius(9), Padding = new Thickness(10, 3, 10, 4),
+            Child = hint, CornerRadius = new CornerRadius(9), Padding = new Thickness(10, 3, 10, 4),
             HorizontalAlignment = HorizontalAlignment.Center, VerticalAlignment = VerticalAlignment.Bottom, Margin = new Thickness(0, 0, 0, 2),
         });
         root.Children.Add(visual);
         Content = root;
+        ApplyTheme();
 
         // Se nenhum arquivo chegou (o arrasto não era de arquivo), recolhe a película.
-        noFiles.Tick += (_, _) => { noFiles.Stop(); if (IsArmed && !IsKeyboard && files == null) Disarm(); };
+        noFiles.Tick += (_, _) => { noFiles.Stop(); if (IsArmed && !IsKeyboard && files == null && !downloading) Disarm(); };
         DragEnter += OnEnter;
         DragOver += OnOver;
         // Sair de cima da roda não fecha (como no original): fecha ao soltar em outro lugar ou com Esc.
@@ -107,15 +140,15 @@ sealed class WheelWindow : Window
         var c = Config.Now;
         string K(uint vk) => Config.KeyName(vk);
         var open = K(c.OpenKey);
-        return IsKeyboard
+        return Tr.T(IsKeyboard
             ? $"Setas escolhem · Enter faz · {open} troca · Esc cancela"
-            : $"{open} troca · {K(c.ConvertKey)} Converter · {K(c.ToolsKey)} Ferramentas · {K(c.ActionsKey)} Ações · Esc cancela";
+            : $"{open} troca · {K(c.ConvertKey)} Converter · {K(c.ToolsKey)} Ferramentas · {K(c.ActionsKey)} Ações · Esc cancela");
     }
 
     /// Arma durante um arrasto, centrada no cursor; aparece quando o arrasto entrar com arquivos.
     public void Arm(Mode m)
     {
-        mode = m; files = null; sel = -1; IsArmed = true; IsKeyboard = false; keySel = false; lastPick = new Point(D / 2, D / 2);
+        mode = m; files = null; sel = -1; IsArmed = true; IsKeyboard = false; keySel = false; downloading = false; lastPick = new Point(D / 2, D / 2);
         hint.Text = Hint();
         visual.BeginAnimation(OpacityProperty, null);
         visual.Opacity = 0;
@@ -175,6 +208,18 @@ sealed class WheelWindow : Window
 
     public void Cycle() => SetMode((Mode)(((int)mode + 1) % 3));
 
+    /// Quantos lados a roda tem agora (mais de um quando as opções não cabem em um só).
+    public int Faces => Math.Max(1, (allOps.Count + PerFace - 1) / PerFace);
+
+    /// Vira a roda (Tab ou roda do mouse) quando há mais de um lado.
+    public void Flip(int d)
+    {
+        if (Faces < 2) return;
+        face = ((face + d) % Faces + Faces) % Faces;
+        Layout();
+        if (IsKeyboard && ops.Count > 0) { sel = 0; Paint(); }
+    }
+
     /// Setas: anda pela roda no sentido do relógio (direita/baixo) ou ao contrário.
     public void Step(int d)
     {
@@ -199,7 +244,12 @@ sealed class WheelWindow : Window
     {
         e.Handled = true;
         if (IsKeyboard) { e.Effects = DragDropEffects.None; return; }
-        if (!e.Data.GetDataPresent(DataFormats.FileDrop) || e.Data.GetData(DataFormats.FileDrop) is not string[] fs || fs.Length == 0)
+        string[]? fs = null;
+        if (e.Data.GetDataPresent(DataFormats.FileDrop) && e.Data.GetData(DataFormats.FileDrop) is string[] dropped && dropped.Length > 0) fs = dropped;
+        else if (files != null || downloading) { Pick(e); return; } // o arrasto do navegador já virou arquivo (ou está baixando)
+        else if (WebDrop.FromContents(e.Data) is string saved) fs = new[] { saved };
+        else if (WebDrop.Url(e.Data) is string url) { StartDownload(url); e.Effects = DragDropEffects.Copy; return; }
+        if (fs == null)
         {
             e.Effects = DragDropEffects.None;
             Dispatcher.BeginInvoke(Disarm);
@@ -212,9 +262,33 @@ sealed class WheelWindow : Window
         if (first) Appear();
     }
 
+    /// Link arrastado do navegador: baixa para Downloads e, quando chegar, mostra as opções do arquivo.
+    async void StartDownload(string url)
+    {
+        downloading = true;
+        allOps = new(); face = 0; Layout();
+        title.Text = Tr.T("Baixando…"); title.Foreground = new SolidColorBrush(accent[mode]);
+        subtitle.Text = Uri.TryCreate(url, UriKind.Absolute, out var u) ? u.Host : "";
+        Appear();
+        try
+        {
+            var path = await WebDrop.Download(url);
+            if (!IsArmed || !downloading) return;
+            files = new[] { path };
+            Rebuild();
+        }
+        catch (Exception ex)
+        {
+            Log.Write("download: " + ex);
+            if (IsArmed) { title.Text = Tr.T("Não baixou"); subtitle.Text = Tr.T(App.Friendly(ex)); }
+        }
+        finally { downloading = false; }
+    }
+
     void OnOver(object s, DragEventArgs e)
     {
         e.Handled = true;
+        if (downloading) { e.Effects = DragDropEffects.Copy; return; }
         if (files == null || IsKeyboard) { e.Effects = DragDropEffects.None; return; }
         Pick(e);
     }
@@ -258,13 +332,22 @@ sealed class WheelWindow : Window
 
     void Rebuild()
     {
-        ops = files == null ? new() : provider(mode, files);
+        ApplyTheme();
+        allOps = files == null ? new() : provider(mode, files);
+        face = 0;
+        Layout();
+    }
+
+    void Layout()
+    {
+        ops = allOps.Skip(face * PerFace).Take(PerFace).ToList();
         sel = -1; keySel = false;
         var c = accent[mode];
-        title.Text = names[mode];
+        title.Text = Tr.T(names[mode]);
         title.Foreground = new SolidColorBrush(c);
-        subtitle.Text = ops.Count == 0 ? "nada para estes arquivos"
-            : files!.Length == 1 ? System.IO.Path.GetFileName(files[0].TrimEnd('\\')) : $"{files.Length} itens";
+        subtitle.Text = ops.Count == 0 ? Tr.T("nada para estes arquivos")
+            : files!.Length == 1 ? System.IO.Path.GetFileName(files[0].TrimEnd('\\')) : Tr.T($"{files.Length} itens");
+        if (Faces > 1) subtitle.Text += Tr.T($" · lado {face + 1}/{Faces} (Tab vira)");
         ring.Children.Clear();
         segs.Clear();
         int n = ops.Count;
@@ -281,15 +364,16 @@ sealed class WheelWindow : Window
             segs.Add(path);
             var op = ops[i];
             var label = new StackPanel { Width = labelW, IsHitTestVisible = false };
-            double fs = op.Label.Length <= 5 ? 19 : op.Label.Length <= 8 ? 14.5 : 13;
-            if (n > 8) fs = Math.Min(fs, op.Label.Length <= 5 ? 16 : 13);
+            var shownLabel = Tr.T(op.Label);
+            double fs = shownLabel.Length <= 5 ? 19 : shownLabel.Length <= 8 ? 14.5 : 13;
+            if (n > 8) fs = Math.Min(fs, shownLabel.Length <= 5 ? 16 : 13);
             label.Children.Add(new TextBlock
             {
-                Text = op.Label, Foreground = Brushes.White, FontWeight = FontWeights.SemiBold, FontSize = fs,
+                Text = shownLabel, Foreground = fg, FontWeight = FontWeights.SemiBold, FontSize = fs,
                 TextAlignment = TextAlignment.Center, TextTrimming = TextTrimming.CharacterEllipsis,
             });
             if (op.Sub.Length > 0)
-                label.Children.Add(new TextBlock { Text = op.Sub, Foreground = dim, FontSize = n > 8 ? 9.5 : 10.5, TextAlignment = TextAlignment.Center, TextTrimming = TextTrimming.CharacterEllipsis });
+                label.Children.Add(new TextBlock { Text = Tr.T(op.Sub), Foreground = dim, FontSize = n > 8 ? 9.5 : 10.5, TextAlignment = TextAlignment.Center, TextTrimming = TextTrimming.CharacterEllipsis });
             double a = mid * Math.PI / 180;
             label.Measure(new Size(labelW, 60));
             Canvas.SetLeft(label, D / 2 + r * Math.Cos(a) - labelW / 2);
@@ -305,7 +389,7 @@ sealed class WheelWindow : Window
         for (int i = 0; i < segs.Count; i++)
         {
             segs[i].Fill = i == sel ? new SolidColorBrush(Color.FromArgb(245, c.R, c.G, c.B)) : segFill;
-            segs[i].Stroke = i == sel ? Brushes.White : segStroke;
+            segs[i].Stroke = i == sel ? fg : segStroke;
         }
     }
 

@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Runtime.InteropServices;
 using System.Windows;
 using System.Windows.Interop;
@@ -21,5 +21,19 @@ static class Shell
         if (SHGetFileInfo(path, 0, ref fi, (uint)Marshal.SizeOf(fi), 0x100 /*ICON*/ | 0x0 /*LARGE*/) == IntPtr.Zero || fi.hIcon == IntPtr.Zero) return null;
         try { return Imaging.CreateBitmapSourceFromHIcon(fi.hIcon, Int32Rect.Empty, BitmapSizeOptions.FromEmptyOptions()); }
         finally { DestroyIcon(fi.hIcon); }
+    }
+
+    /// Abre com o programa padrão do Windows.
+    public static void Open(string path)
+    {
+        try { System.Diagnostics.Process.Start(new System.Diagnostics.ProcessStartInfo(path) { UseShellExecute = true }); }
+        catch (Exception ex) { Log.Write("abrir: " + ex.Message); }
+    }
+
+    /// Mostra o "Abrir com" do Windows.
+    public static void OpenWith(string path)
+    {
+        try { System.Diagnostics.Process.Start("rundll32.exe", $"shell32.dll,OpenAs_RunDLL {path}"); }
+        catch (Exception ex) { Log.Write("abrir com: " + ex.Message); }
     }
 }

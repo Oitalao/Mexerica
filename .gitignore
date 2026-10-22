@@ -11,3 +11,6 @@ tools/
 # extensão do menu (gerada por scripts/compilar-menu.ps1) e o compilador baixado
 src/menu/MexericaMenu.dll
 build-tools/
+
+# caches do Python
+__pycache__/

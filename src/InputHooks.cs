@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.ComponentModel;
 using System.Runtime.InteropServices;
@@ -25,6 +25,8 @@ sealed class InputHooks : IDisposable
     /// Atalho da roda pelo teclado; devolve true para engolir.
     public Func<bool>? OnHotkey;
     public Func<bool>? WheelOpen;
+    /// Roda do mouse com a roda do Mexerica aberta (delta positivo = para cima). Devolve true para engolir.
+    public Func<int, bool>? OnScroll;
     public event Action? MouseUp;
     public event Action<Native.POINT>? MouseDown;
     public event Action? Escape;
@@ -81,6 +83,10 @@ sealed class InputHooks : IDisposable
                     }
                     break;
                 case 0x202: down = false; Dragging = false; MouseUp?.Invoke(); break;
+                case 0x20A:
+                    if ((WheelOpen?.Invoke() ?? false) && OnScroll != null && OnScroll((short)(s.mouseData >> 16)))
+                        return (IntPtr)1;
+                    break;
             }
         }
         return Native.CallNextHookEx(IntPtr.Zero, n, w, l);

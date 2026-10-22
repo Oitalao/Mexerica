@@ -50,7 +50,7 @@ static class ShellMenu
                 if (!Config.Now.ShellMenu) { if (app.GetValue(Signature) != null) Remove(); return; }
                 if (!File.Exists(DllSource)) { Log.Write("menu do botão direito: falta MexericaMenu.dll ao lado do programa"); return; }
                 var dll = InstallDll();
-                var sig = $"{Exe}|{dll}|{typeof(ShellMenu).Assembly.GetName().Version}|{Office.Ok}|{Ff.Ok}|{Gs.Ok}|{Qpdf.Ok}|{Meta.Ok}|7";
+                var sig = $"{Exe}|{dll}|{typeof(ShellMenu).Assembly.GetName().Version}|{Office.Ok}|{Ff.Ok}|{Gs.Ok}|{Qpdf.Ok}|{Meta.Ok}|{Tr.Code}|7";
                 if (app.GetValue(Signature) as string == sig && File.Exists(ListFile)) return;
                 RemoveStatic();
                 WriteList();
@@ -132,7 +132,7 @@ static class ShellMenu
         var sb = new StringBuilder();
         sb.Append("exe\t").Append(Exe).Append('\n');
         void Line(string key, string group, Mode mode, string label, string caption) =>
-            sb.Append(key).Append('\t').Append(group).Append('\t').Append(mode).Append('\t').Append(label).Append('\t').Append(caption.Replace('\t', ' ')).Append('\n');
+            sb.Append(key).Append('\t').Append(group).Append('\t').Append(mode).Append('\t').Append(label).Append('\t').Append(Tr.T(caption).Replace('\t', ' ')).Append('\n');
         var fake = Path.Combine(Path.GetTempPath(), "mexerica-menu-inexistente");
         foreach (var ext in Catalog.Extensions)
         {
@@ -142,7 +142,7 @@ static class ShellMenu
             var kind = Catalog.KindOf(one) switch { Kind.Svg => Kind.Image, Kind.Csv => Kind.Sheet, var k => k };
             sb.Append("kind\t").Append(e).Append('\t').Append(kind).Append('\n');
             foreach (var op in Catalog.For(Mode.Convert, new[] { one }))
-                Line(e, "C", Mode.Convert, op.Label, op.Label == "LibreOffice" && op.Ui != null ? text["LibreOffice"] : $"Para {op.Label}" + (op.Sub.Length > 0 ? $"  ({op.Sub})" : ""));
+                Line(e, "C", Mode.Convert, op.Label, op.Label == "LibreOffice" && op.Ui != null ? text["LibreOffice"] : Tr.T($"Para {op.Label}") + (op.Sub.Length > 0 ? $"  ({Tr.T(op.Sub)})" : ""));
             // Ferramentas de um arquivo e de vários juntas: a que não servir para a seleção avisa na hora.
             foreach (var op in Tools(new[] { one }, new[] { one, two })) Line(e, "F", Mode.Tools, op.Label, Text(op));
             Line(e, "R", Mode.Convert, Wheel, "Abrir a roda…");
@@ -167,7 +167,7 @@ static class ShellMenu
             .GroupBy(o => o.Label).Select(g => g.First())
             .OrderBy(o => o.Label is "ZIP" or "TAR.GZ" ? 1 : 0).ToList(); // compactar por último
 
-    static string Text(Op op) => text.TryGetValue(op.Label, out var t) ? t : op.Sub.Length > 0 ? $"{op.Label} ({op.Sub})" : op.Label;
+    static string Text(Op op) => text.TryGetValue(op.Label, out var t) ? t : op.Sub.Length > 0 ? $"{Tr.T(op.Label)} ({Tr.T(op.Sub)})" : Tr.T(op.Label);
 
     [DllImport("shell32.dll")] static extern void SHChangeNotify(int eventId, uint flags, IntPtr a, IntPtr b);
     static void Refresh() { try { SHChangeNotify(0x08000000 /*ASSOCCHANGED*/, 0, IntPtr.Zero, IntPtr.Zero); } catch { } }
