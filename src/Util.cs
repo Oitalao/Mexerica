@@ -36,6 +36,12 @@ static class Paths
     /// Esquece os nomes reservados (quando nenhum trabalho está rodando).
     public static void ReleaseNames() { lock (reserved) reserved.Clear(); }
 
+    static int users;
+    /// Um trabalho começou (janela, menu ou pasta monitorada).
+    public static void Enter() { lock (reserved) users++; }
+    /// Um trabalho acabou; o último a sair libera os nomes reservados.
+    public static void Leave() { lock (reserved) if (--users <= 0) { users = 0; reserved.Clear(); } }
+
     public static string OutDir(string src, string? suffix = null)
     {
         var dir = Dir(src);

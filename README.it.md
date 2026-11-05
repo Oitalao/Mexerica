@@ -74,7 +74,7 @@ Le Impostazioni si aprono con doppio clic sull'icona di Mexerica vicino all'orol
 
 | Funzione | A cosa serve | Dove si trova |
 |---|---|---|
-| **Cartelle monitorate** | Tutto quello che arriva in una cartella viene convertito da solo. Es.: ogni foto HEIC che arriva in Download diventa JPG | Impostazioni → Risultato → Cartelle monitorate → **Scegli…** → **Aggiungi cartella…**, scegli il formato e salva |
+| **Cartelle monitorate** | Tutto quello che arriva in una cartella viene convertito da solo. Es.: ogni foto HEIC che arriva in Download diventa JPG. Può anche comprimere ciò che supera una dimensione (es.: PDF oltre 4 MB) o convertire e comprimere; anche ciò che è già nella cartella viene incluso | Impostazioni → Cartelle → Cartelle monitorate → **Scegli…** → **Aggiungi cartella…**, scegli il formato e salva |
 | **Conversioni recenti** | Elenco di quello che è stato fatto, con ricerca, miniature e pulsanti per aprire, aprire con un altro programma o mostrare nella cartella | Tasto destro sull'icona → **Conversioni recenti…** |
 | **Personalizzare la ruota** | Nascondere quello che non usi e cambiare l'ordine degli spicchi | Impostazioni → Aspetto della ruota → **Personalizza…** |
 | **Preimpostazioni** | Uno spicchio tuo sulla ruota. Es.: "Sito" = JPG, qualità 80, fino a 1600 px, senza posizione; oppure "MP3 leggero" | Nella stessa finestra: **Nuova preimpostazione…** |

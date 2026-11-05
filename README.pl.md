@@ -74,7 +74,7 @@ Ustawienia otwiera się podwójnym kliknięciem ikony Mexerica obok zegara albo 
 
 | Funkcja | Do czego służy | Gdzie jest |
 |---|---|---|
-| **Obserwowane foldery** | Wszystko, co trafi do folderu, jest konwertowane samo. Np.: każde zdjęcie HEIC, które trafi do Pobranych, staje się JPG | Ustawienia → Wynik → Obserwowane foldery → **Wybierz…** → **Dodaj folder…**, wybierz format i zapisz |
+| **Obserwowane foldery** | Wszystko, co trafi do folderu, jest konwertowane samo. Np.: każde zdjęcie HEIC, które trafi do Pobranych, staje się JPG. Może też kompresować to, co przekracza rozmiar (np. PDF powyżej 4 MB), albo konwertować i kompresować; pliki już obecne w folderze też są uwzględniane | Ustawienia → Foldery → Obserwowane foldery → **Wybierz…** → **Dodaj folder…**, wybierz format i zapisz |
 | **Ostatnie konwersje** | Lista tego, co zostało zrobione, z wyszukiwaniem, miniaturami i przyciskami do otwarcia, otwarcia innym programem lub pokazania w folderze | Prawy przycisk na ikonie → **Ostatnie konwersje…** |
 | **Dostosuj koło** | Ukryć to, czego nie używasz, i zmienić kolejność wycinków | Ustawienia → Wygląd koła → **Dostosuj…** |
 | **Ustawienia wstępne** | Twój własny wycinek na kole. Np.: "Strona" = JPG, jakość 80, do 1600 px, bez lokalizacji; albo "Lekki MP3" | W tym samym oknie: **Nowe ustawienie wstępne…** |

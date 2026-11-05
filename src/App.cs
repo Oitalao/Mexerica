@@ -80,7 +80,12 @@ static class App
         Render(wheelPreview, Path.Combine(folder, $"roda-{language}.png"));
         Render(new CustomizeWindow(Config.Now), Path.Combine(folder, $"personalizar-{language}.png"));
         Render(new PresetWindow(null), Path.Combine(folder, $"predefinicao-{language}.png"));
-        Render(new WatchWindow(new() { new WatchFolder { Folder = folder, Target = "jpg", Subfolders = true } }), Path.Combine(folder, $"pastas-{language}.png"));
+        Render(new WatchWindow(new()
+        {
+            new WatchFolder { Folder = folder, Target = "jpg", Subfolders = true },
+            new WatchFolder { Folder = folder, Action = "comprimir" },
+            new WatchFolder { Folder = Path.Combine(folder, "nao-existe"), Action = "ambos", TargetMb = 2 },
+        }), Path.Combine(folder, $"pastas-{language}.png"));
         Render(new HistoryWindow(), Path.Combine(folder, $"recentes-{language}.png"));
         Render(new WhatsNewWindow("1.1.0", "- Novidade de exemplo\n- Outra novidade"), Path.Combine(folder, $"novidades-{language}.png"));
         Render(new HelpWindow(), Path.Combine(folder, $"como-usar-{language}.png"));
@@ -326,7 +331,6 @@ static class App
         }
     }
 
-    static int running;
 
     static async void Run(Op op, string[] files)
     {
@@ -352,7 +356,7 @@ static class App
         string what = files.Length == 1 ? Path.GetFileName(files[0].TrimEnd('\\')) : $"{files.Length} arquivos";
         var job = new Job();
         Job.Current = job;
-        Interlocked.Increment(ref running);
+        Paths.Enter();
         Toast.Track(job, $"{op.Label}…", what);
         var outputs = new List<string>();
         var errors = new List<string>();
@@ -376,7 +380,7 @@ static class App
         }
         finally
         {
-            if (Interlocked.Decrement(ref running) == 0) Paths.ReleaseNames();
+            Paths.Leave();
             Job.Current = null;
             if (p.TryGetValue("_tmp", out var tmp)) Paths.TryDelete(tmp);
             if (pwTmp != null) Paths.TryDelete(pwTmp);

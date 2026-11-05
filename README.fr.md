@@ -74,7 +74,7 @@ Les Paramètres s'ouvrent par un double clic sur l'icône de Mexerica près de l
 
 | Fonction | À quoi elle sert | Où la trouver |
 |---|---|---|
-| **Dossiers surveillés** | Tout ce qui arrive dans un dossier est converti tout seul. Ex. : chaque photo HEIC qui arrive dans Téléchargements devient un JPG | Paramètres → Résultat → Dossiers surveillés → **Choisissez…** → **Ajouter un dossier…**, choisissez le format et enregistrez |
+| **Dossiers surveillés** | Tout ce qui arrive dans un dossier est converti tout seul. Ex. : chaque photo HEIC qui arrive dans Téléchargements devient un JPG. Il peut aussi compresser ce qui dépasse une taille (ex. : PDF de plus de 4 Mo) ou convertir et compresser ; ce qui est déjà dans le dossier est inclus | Paramètres → Dossiers → Dossiers surveillés → **Choisissez…** → **Ajouter un dossier…**, choisissez le format et enregistrez |
 | **Conversions récentes** | Liste de ce qui a été fait, avec recherche, miniatures et boutons pour ouvrir, ouvrir avec un autre programme ou afficher dans le dossier | Clic droit sur l'icône → **Conversions récentes…** |
 | **Personnaliser la roue** | Masquer ce que vous n'utilisez pas et changer l'ordre des parts | Paramètres → Apparence de la roue → **Personnaliser…** |
 | **Préréglages** | Votre propre part sur la roue. Ex. : "Web" = JPG, qualité 80, jusqu'à 1600 px, sans localisation ; ou "MP3 léger" | Dans la même fenêtre : **Nouveau préréglage…** |

@@ -72,7 +72,7 @@ As Configurações abrem com clique duplo no ícone do Mexerica perto do relógi
 
 | Recurso | Para que serve | Onde fica |
 |---|---|---|
-| **Pastas monitoradas** | Tudo o que cair numa pasta é convertido sozinho. Ex.: toda foto HEIC que chega em Downloads vira JPG | Configurações → Resultado → Pastas monitoradas → **Escolher…** → **Adicionar pasta…**, escolha o formato e salve |
+| **Pastas monitoradas** | Tudo o que cair numa pasta é convertido sozinho. Ex.: toda foto HEIC que chega em Downloads vira JPG. Também pode comprimir o que passar de um tamanho (ex.: PDF acima de 4 MB) ou converter e comprimir; o que já está na pasta entra junto | Configurações → Pastas → Pastas monitoradas → **Escolher…** → **Adicionar pasta…**, escolha o formato e salve |
 | **Conversões recentes** | Lista do que foi feito, com busca, miniatura e botões para abrir, abrir com outro programa ou mostrar na pasta | Botão direito no ícone → **Conversões recentes…** |
 | **Personalizar a roda** | Esconder o que você não usa e mudar a ordem das fatias | Configurações → Aparência da roda → **Personalizar…** |
 | **Predefinições** | Uma fatia sua na roda. Ex.: "Site" = JPG, qualidade 80, até 1600 px, sem localização; ou "MP3 leve" | Na mesma janela: **Nova predefinição…** |

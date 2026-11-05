@@ -74,7 +74,7 @@ Settings opens with a double click on the Mexerica icon near the clock, or by op
 
 | Feature | What it is for | Where to find it |
 |---|---|---|
-| **Watched Folders** | Everything that lands in a folder is converted on its own. Example: every HEIC photo that arrives in Downloads becomes a JPG | Settings → Result → Watched Folders → **Choose…** → **Add folder…**, choose the format and save |
+| **Watched Folders** | Everything that lands in a folder is converted on its own. Example: every HEIC photo that arrives in Downloads becomes a JPG. It can also compress anything above a size (e.g. PDFs over 4 MB) or convert and compress; files already in the folder are included | Settings → Folders → Watched Folders → **Choose…** → **Add folder…**, choose the format and save |
 | **Recent conversions** | A list of what was done, with search, thumbnails and buttons to open, open with another program or show in the folder | Right click the icon → **Recent conversions…** |
 | **Customize the wheel** | Hide what you do not use and change the order of the slices | Settings → Wheel appearance → **Customize…** |
 | **Presets** | Your own slice on the wheel. Example: "Website" = JPG, quality 80, up to 1600 px, no location; or "Light MP3" | In the same window: **New preset…** |

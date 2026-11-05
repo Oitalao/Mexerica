@@ -31,6 +31,8 @@ sealed class Config
     public string Language { get; set; } = "pt-BR";   // padrão para todos: português do Brasil
     public int WheelOpacity { get; set; } = 93;         // % de opacidade das fatias
     public List<WatchFolder> WatchFolders { get; set; } = new();
+    /// Pastas monitoradas cujo conteúdo antigo já foi processado (chave = pasta e opções).
+    public List<string> WatchScanned { get; set; } = new();
     public bool AutoUpdate { get; set; } = true;
     public Dictionary<string, List<string>> WheelOrder { get; set; } = new();
     public Dictionary<string, List<string>> WheelHidden { get; set; } = new();
@@ -118,7 +120,7 @@ sealed class SettingsWindow : Window
         st.Children.Add(Ui.Row("Áudio", Ui.Combo(new[] { ("alta", "Alta"), ("media", "Média"), ("leve", "Arquivo menor") }, c.AudioQuality, v => c.AudioQuality = v)));
         st.Children.Add(Ui.Row("PDF para imagem", Ui.Combo(new[] { ("300", "300 DPI"), ("200", "200 DPI"), ("150", "150 DPI"), ("600", "600 DPI") }, c.PdfDpi.ToString(), v => c.PdfDpi = int.Parse(v))));
 
-        st.Children.Add(Ui.H("Resultado"));
+        st.Children.Add(Ui.H("Pastas"));
         var outLabel = new TextBlock { Foreground = Ui.Dim, VerticalAlignment = VerticalAlignment.Center, TextTrimming = TextTrimming.CharacterEllipsis, MaxWidth = 250 };
         void ShowOut() => outLabel.Text = c.OutputDir.Length == 0 ? Tr.T("Ao lado do original") : c.OutputDir;
         ShowOut();
@@ -135,10 +137,24 @@ sealed class SettingsWindow : Window
         st.Children.Add(Ui.Row("Onde salvar", outRow));
         st.Children.Add(Ui.Check("Ao terminar, mostrar o arquivo novo na pasta", c.RevealWhenDone, v => c.RevealWhenDone = v));
         var watchLabel = new TextBlock { Foreground = Ui.Dim, VerticalAlignment = VerticalAlignment.Center, Margin = new Thickness(0, 0, 8, 0) };
-        void ShowWatch() => watchLabel.Text = c.WatchFolders.Count == 0 ? Tr.T("Nenhuma") : Tr.T($"{c.WatchFolders.Count(w => w.Enabled)} ligada(s)");
+        void ShowWatch()
+        {
+            int on = c.WatchFolders.Count(w => w.Enabled && w.Exists), missing = c.WatchFolders.Count(w => w.Enabled && !w.Exists);
+            watchLabel.Text = on + missing == 0 ? Tr.T("Nenhuma") : Tr.T($"{on} ligada(s)") + (missing > 0 ? ", " + Tr.T($"{missing} não encontrada(s)") : "");
+        }
         ShowWatch();
         var watchBtn = Ui.Button("Escolher…", false);
-        watchBtn.Click += (_, _) => { var r = WatchWindow.Ask(this, c.WatchFolders); if (r != null) { c.WatchFolders = r; ShowWatch(); } };
+        // As pastas valem na hora, sem depender do Salvar desta janela.
+        watchBtn.Click += (_, _) =>
+        {
+            var r = WatchWindow.Ask(this, Config.Now.WatchFolders);
+            if (r == null) return;
+            Config.Now.WatchFolders = r.Select(x => x.Copy()).ToList();
+            Config.Now.Save();
+            Watchers.Apply();
+            c.WatchFolders = Config.Now.WatchFolders.Select(x => x.Copy()).ToList();
+            ShowWatch();
+        };
         var watchRow = new StackPanel { Orientation = Orientation.Horizontal };
         watchRow.Children.Add(watchLabel); watchRow.Children.Add(watchBtn);
         st.Children.Add(Ui.Row("Pastas monitoradas", watchRow));
@@ -169,6 +185,9 @@ sealed class SettingsWindow : Window
         {
             if (new[] { c.ConvertKey, c.ToolsKey, c.ActionsKey }.Distinct().Count() < 3)
             { Tr.Box(this, "Converter, Ferramentas e Ações precisam de teclas diferentes.", "Mexerica", MessageBoxButton.OK, MessageBoxImage.Warning); return; }
+            // Pastas monitoradas já foram gravadas (e podem ter mudado enquanto esta janela estava aberta).
+            c.WatchFolders = Config.Now.WatchFolders.Select(x => x.Copy()).ToList();
+            c.WatchScanned = Config.Now.WatchScanned.ToList();
             c.Save(); DialogResult = true;
             ShellMenu.Apply();
             Watchers.Apply();

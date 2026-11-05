@@ -74,7 +74,7 @@ La Configuración se abre con doble clic en el icono de Mexerica junto al reloj,
 
 | Función | Para qué sirve | Dónde está |
 |---|---|---|
-| **Carpetas vigiladas** | Todo lo que cae en una carpeta se convierte solo. Ej.: toda foto HEIC que llega a Descargas se convierte en JPG | Configuración → Resultado → Carpetas vigiladas → **Elige…** → **Agregar carpeta…**, elige el formato y guarda |
+| **Carpetas vigiladas** | Todo lo que cae en una carpeta se convierte solo. Ej.: toda foto HEIC que llega a Descargas se convierte en JPG. También puede comprimir lo que supere un tamaño (ej.: PDF de más de 4 MB) o convertir y comprimir; lo que ya está en la carpeta también entra | Configuración → Carpetas → Carpetas vigiladas → **Elige…** → **Agregar carpeta…**, elige el formato y guarda |
 | **Conversiones recientes** | Lista de lo que se hizo, con búsqueda, miniaturas y botones para abrir, abrir con otro programa o mostrar en la carpeta | Botón derecho en el icono → **Conversiones recientes…** |
 | **Personalizar la rueda** | Ocultar lo que no usas y cambiar el orden de las porciones | Configuración → Aspecto de la rueda → **Personalizar…** |
 | **Preajustes** | Una porción tuya en la rueda. Ej.: "Web" = JPG, calidad 80, hasta 1600 px, sin ubicación; o "MP3 ligero" | En la misma ventana: **Nuevo preajuste…** |

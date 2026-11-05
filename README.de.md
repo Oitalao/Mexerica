@@ -74,7 +74,7 @@ Die Einstellungen öffnen sich mit einem Doppelklick auf das Mexerica-Symbol neb
 
 | Funktion | Wofür | Wo |
 |---|---|---|
-| **Überwachte Ordner** | Alles, was in einem Ordner landet, wird von selbst umgewandelt. Beispiel: Jedes HEIC-Foto, das in Downloads ankommt, wird zu JPG | Einstellungen → Ergebnis → Überwachte Ordner → **Auswählen…** → **Ordner hinzufügen…**, Format wählen und speichern |
+| **Überwachte Ordner** | Alles, was in einem Ordner landet, wird von selbst umgewandelt. Beispiel: Jedes HEIC-Foto, das in Downloads ankommt, wird zu JPG. Kann auch alles über einer Größe komprimieren (z. B. PDFs über 4 MB) oder umwandeln und komprimieren; was schon im Ordner liegt, wird mitverarbeitet | Einstellungen → Ordner → Überwachte Ordner → **Auswählen…** → **Ordner hinzufügen…**, Format wählen und speichern |
 | **Aktuelle Konvertierungen** | Liste dessen, was gemacht wurde, mit Suche, Vorschaubildern und Knöpfen zum Öffnen, Öffnen mit einem anderen Programm oder Anzeigen im Ordner | Rechtsklick auf das Symbol → **Aktuelle Konvertierungen…** |
 | **Rad anpassen** | Ausblenden, was Sie nicht benutzen, und die Reihenfolge der Felder ändern | Einstellungen → Aussehen des Rades → **Anpassen…** |
 | **Voreinstellungen** | Ein eigenes Feld auf dem Rad. Beispiel: "Website" = JPG, Qualität 80, bis 1600 px, ohne Standort; oder "MP3 klein" | Im selben Fenster: **Neue Voreinstellung…** |
