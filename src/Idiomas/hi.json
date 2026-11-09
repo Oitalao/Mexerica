@@ -1475,5 +1475,9 @@
   "vigia {0}: pasta apagada, saiu da lista": "vigia {0}: pasta apagada, saiu da lista",
   "Essa pasta já está na lista.": "यह फ़ोल्डर पहले से सूची में है।",
   "Pasta não encontrada (unidade desconectada?). Volta a funcionar sozinha quando ela aparecer.": "फ़ोल्डर नहीं मिला (ड्राइव डिस्कनेक्ट है?)। दिखने पर यह अपने-आप फिर काम करने लगेगा।",
-  "{0} não encontrada(s)": "{0} नहीं मिला"
+  "{0} não encontrada(s)": "{0} नहीं मिला",
+  "com IA": "AI से",
+  "nao-existe": "nao-existe",
+  "Remover fundo": "पृष्ठभूमि हटाएँ",
+  "Remover o fundo (com IA)": "पृष्ठभूमि हटाएँ (AI से)"
 }

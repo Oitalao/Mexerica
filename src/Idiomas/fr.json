@@ -1475,5 +1475,9 @@
   "vigia {0}: pasta apagada, saiu da lista": "vigia {0}: pasta apagada, saiu da lista",
   "Essa pasta já está na lista.": "Ce dossier est déjà dans la liste.",
   "Pasta não encontrada (unidade desconectada?). Volta a funcionar sozinha quando ela aparecer.": "Dossier introuvable (lecteur déconnecté ?). Il refonctionnera tout seul quand il réapparaîtra.",
-  "{0} não encontrada(s)": "{0} introuvable(s)"
+  "{0} não encontrada(s)": "{0} introuvable(s)",
+  "com IA": "avec l'IA",
+  "nao-existe": "nao-existe",
+  "Remover fundo": "Supprimer le fond",
+  "Remover o fundo (com IA)": "Supprimer le fond (avec l'IA)"
 }

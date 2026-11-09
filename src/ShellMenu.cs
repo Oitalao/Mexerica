@@ -26,7 +26,7 @@ static class ShellMenu
     static readonly Dictionary<string, string> text = new()
     {
         ["Comprimir"] = "Comprimir", ["Tamanho"] = "Mudar o tamanho", ["Girar"] = "Girar ou espelhar", ["Editar"] = "Editar (recortar, ajustar, tarjar)",
-        ["Fundo"] = "Fundo e margem", ["Metadados"] = "Ver e editar metadados", ["Ler QR"] = "Ler código QR", ["PDF"] = "Fazer PDF",
+        ["Fundo"] = "Fundo e margem", ["Remover fundo"] = "Remover o fundo (com IA)", ["Metadados"] = "Ver e editar metadados", ["Ler QR"] = "Ler código QR", ["PDF"] = "Fazer PDF",
         ["Colagem"] = "Colagem", ["Cortar"] = "Cortar um trecho", ["Recortar"] = "Recortar (enquadrar)", ["Velocidade"] = "Mudar a velocidade",
         ["Dividir"] = "Dividir em partes", ["Quadro"] = "Salvar um quadro como foto", ["Áudio"] = "Extrair o áudio", ["Mudo"] = "Tirar o som",
         ["Juntar"] = "Juntar num arquivo só", ["Normalizar"] = "Normalizar o volume", ["Bipe"] = "Bipe por cima (censurar)", ["Canais"] = "Canais (mono, estéreo)",
@@ -50,7 +50,7 @@ static class ShellMenu
                 if (!Config.Now.ShellMenu) { if (app.GetValue(Signature) != null) Remove(); return; }
                 if (!File.Exists(DllSource)) { Log.Write("menu do botão direito: falta MexericaMenu.dll ao lado do programa"); return; }
                 var dll = InstallDll();
-                var sig = $"{Exe}|{dll}|{typeof(ShellMenu).Assembly.GetName().Version}|{Office.Ok}|{Ff.Ok}|{Gs.Ok}|{Qpdf.Ok}|{Meta.Ok}|{Tr.Code}|7";
+                var sig = $"{Exe}|{dll}|{typeof(ShellMenu).Assembly.GetName().Version}|{Office.Ok}|{Ff.Ok}|{Gs.Ok}|{Qpdf.Ok}|{Meta.Ok}|{Bg.Ok}|{Tr.Code}|7";
                 if (app.GetValue(Signature) as string == sig && File.Exists(ListFile)) return;
                 RemoveStatic();
                 WriteList();

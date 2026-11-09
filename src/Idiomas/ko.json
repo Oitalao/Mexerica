@@ -1475,5 +1475,9 @@
   "vigia {0}: pasta apagada, saiu da lista": "vigia {0}: pasta apagada, saiu da lista",
   "Essa pasta já está na lista.": "이 폴더는 이미 목록에 있습니다.",
   "Pasta não encontrada (unidade desconectada?). Volta a funcionar sozinha quando ela aparecer.": "폴더를 찾을 수 없습니다(드라이브 연결이 끊겼나요?). 다시 나타나면 자동으로 다시 작동합니다.",
-  "{0} não encontrada(s)": "{0}개 찾을 수 없음"
+  "{0} não encontrada(s)": "{0}개 찾을 수 없음",
+  "com IA": "AI로",
+  "nao-existe": "nao-existe",
+  "Remover fundo": "배경 제거",
+  "Remover o fundo (com IA)": "배경 제거(AI 사용)"
 }

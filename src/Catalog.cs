@@ -220,6 +220,7 @@ static class Catalog
             list.Add(T("Girar", "ou espelhar", Sync(Images.Rotate), fs => Dialogs.Rotate(fs, "imagem")));
             if (one) list.Add(T("Editar", "recortar, ajustar…", Sync(Images.Edit), fs => ImageEditor.Ask(fs[0], false)));
             list.Add(T("Fundo", "cor e margem", Sync(Images.Background), Dialogs.Background));
+            if (Bg.Ok) list.Add(T("Remover fundo", "com IA", Sync(Images.RemoveBackground)));
             if (Meta.Ok) list.Add(T("Metadados", "ver e editar", (f, p) => Meta.Apply(f, p).AsNullable(), fs => MetaWindow.Ask(fs)));
             list.Add(new Op { Label = "Ler QR", Sub = "códigos", All = (fs, _) => Task.Run(() => QrWindow.Read(fs)), Show = QrWindow.Show });
             list.Add(TA("PDF", many ? "juntar em um" : "imagem em PDF", (fs, _) => Task.Run(() => (string?)Images.ToPdf(fs))));

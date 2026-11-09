@@ -59,6 +59,7 @@ SOFTWARE.
 | Svg.Skia e componentes (Svg.Custom, Svg.Model, ShimSkiaSharp) | MIT | https://github.com/wieslawsoltes/Svg.Skia |
 | SharpGLTF | MIT | https://github.com/vpenades/SharpGLTF |
 | ACadSharp | MIT | https://github.com/DomCR/ACadSharp |
+| Microsoft.ML.OnnxRuntime | MIT | https://github.com/microsoft/onnxruntime |
 | .NET 8 (runtime embutido na versão pronta) | MIT | https://github.com/dotnet/runtime |
 
 ## Programas externos (pasta `tools`, chamados como processos separados)
@@ -75,6 +76,12 @@ Não ficam no repositório; `scripts/baixar-ferramentas.ps1` baixa das fontes of
 | Lzip 1.22 (Antonio Diaz Diaz) | GPL 2.0 ou posterior; o código-fonte vai junto, em `tools\lzip` | https://www.nongnu.org/lzip |
 | rhwp 0.8.7 | MIT | https://github.com/edwardkim/rhwp |
 | Documento-modelo `blank.hwpx` (pypandoc-hwpx) | MIT | https://github.com/msjang/pypandoc-hwpx |
+
+## Modelo de IA (pasta `tools\onnx`, não fica no repositório)
+
+| Modelo | Licença | Fonte |
+|---|---|---|
+| isnet-general-use.onnx (ferramenta "Remover fundo") | Apache 2.0 | projeto DIS (Xuebin Qin e outros), https://github.com/xuebinqin/DIS; arquivo .onnx convertido e hospedado pelo rembg (MIT), https://github.com/danielgatis/rembg |
 
 ## Usados se estiverem instalados no computador
 

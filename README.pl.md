@@ -60,6 +60,7 @@ Koło pokazuje tylko to, co ma sens dla danego pliku: wideo bez dźwięku nie pr
 - Kompresja obrazów, wideo, dźwięku i PDF: według poziomu, procentowo albo do dokładnego rozmiaru
 - Edytor zdjęć: kadrowanie, korekta kolorów, strzałki, prostokąty, pióro, tekst i zamazywanie (czarne, rozmycie lub piksele)
 - Tło i margines dla obrazów, kolaż z kilku zdjęć, obrazy do PDF, odcienie szarości, odczyt kodów QR
+- Usuwanie tła ze zdjęcia za pomocą AI (lokalny model isnet-general-use; nic nie opuszcza komputera)
 - Metadane: zobaczyć wszystko, edytować tytuł, autora i inne pola, usunąć lokalizację albo wszystko
 - Wideo: wyciąć fragment, przyciąć obraz, prędkość, podzielić, zapisać jedną klatkę lub wszystkie, wyodrębnić dźwięk i napisy, obrócić, zmienić rozdzielczość, usunąć dźwięk, połączyć
 - Dźwięk: wyciąć fragment, wyrównać głośność, zapiszczeć fragmenty, mono i stereo, prędkość, podzielić, połączyć
@@ -107,6 +108,7 @@ mexerica converter video.mov --para mp4 -o D:\Saida      # wybiera folder wynik�
 mexerica opcoes planilha.xlsx                             # pokazuje, co można zrobić z plikiem
 mexerica ferramenta Comprimir foto.jpg --p modo=pct --p pct=50
 mexerica vigiar D:\Fotos --para webp --subpastas          # konwertuje to, co przychodzi, aż do Ctrl+C
+mexerica doctor                                            # sprawdza ffmpeg, Ghostscript, menu prawego przycisku i inne zależności
 ```
 
 Kod wyjścia to 0, gdy wszystko się udało, 1, gdy jakiś plik się nie powiódł, i 2, gdy w parametrach jest błąd.

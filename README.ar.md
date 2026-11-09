@@ -62,6 +62,7 @@ Mexerica ينقل إلى Windows فكرة برنامج [Tangerine](https://tange
 - ضغط الصور والفيديو والصوت و PDF حسب المستوى، أو بالنسبة المئوية، أو إلى حجم محدد
 - محرر الصور: قص، وضبط الألوان، وأسهم، ومستطيلات، وقلم، ونص، وإخفاء (أسود أو ضبابي أو بكسلات)
 - خلفية وهامش للصور، وتجميع عدة صور في صورة واحدة، وصور إلى PDF، وتدرج رمادي، وقراءة رمز QR
+- إزالة خلفية الصورة بالذكاء الاصطناعي (نموذج محلي، isnet-general-use؛ لا شيء يغادر جهازك)
 - البيانات الوصفية: عرض كل شيء، وتعديل العنوان والمؤلف وحقول أخرى، وحذف الموقع أو كل شيء
 - الفيديو: قص مقطع، وقص الصورة، والسرعة، والتقسيم، وحفظ لقطة واحدة أو كل اللقطات، واستخراج الصوت والترجمات، والتدوير، وتغيير الدقة، وإزالة الصوت، والدمج
 - الصوت: قص مقطع، وتسوية مستوى الصوت، وصافرة فوق مقاطع، وأحادي وستيريو، والسرعة، والتقسيم، والدمج
@@ -111,6 +112,7 @@ mexerica converter video.mov --para mp4 -o D:\Saida      # chooses the output fo
 mexerica opcoes planilha.xlsx                             # lists what can be done with the file
 mexerica ferramenta Comprimir foto.jpg --p modo=pct --p pct=50
 mexerica vigiar D:\Fotos --para webp --subpastas          # converts whatever arrives until Ctrl+C
+mexerica doctor                                            # يتحقق من ffmpeg وGhostscript وقائمة النقر بالزر الأيمن واعتماديات أخرى
 ```
 
 </div>

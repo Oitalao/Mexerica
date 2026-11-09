@@ -60,6 +60,7 @@ Mexerica 把 Mac 上 [Tangerine](https://tangerineformac.com) 的想法搬到了
 - 压缩图片、视频、音频和 PDF：按级别、按百分比或压到指定大小
 - 照片编辑器：裁剪、调整颜色、箭头、矩形、画笔、文字和遮盖（黑块、模糊或马赛克）
 - 图片背景和边距，多张照片拼图，图片转 PDF，灰度，读取二维码
+- 用 AI 去除照片背景（本地模型 isnet-general-use，不会上传到网络）
 - 元数据：查看全部，编辑标题、作者和其他字段，删除位置信息或全部删除
 - 视频：剪取片段、裁剪画面、速度、分割、导出一帧或所有帧、提取音频和字幕、旋转、改变分辨率、去掉声音、合并
 - 音频：剪取片段、音量标准化、在片段上加哔声、单声道和立体声、速度、分割、合并
@@ -107,6 +108,7 @@ mexerica converter video.mov --para mp4 -o D:\Saida      # 指定输出文件夹
 mexerica opcoes planilha.xlsx                             # 列出这个文件可以做的事
 mexerica ferramenta Comprimir foto.jpg --p modo=pct --p pct=50
 mexerica vigiar D:\Fotos --para webp --subpastas          # 转换新到的文件，直到按下 Ctrl+C
+mexerica doctor                                            # 检查 ffmpeg、Ghostscript、右键菜单等依赖
 ```
 
 退出代码：全部成功为 0，有文件失败为 1，参数有错为 2。

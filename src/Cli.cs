@@ -12,7 +12,7 @@ namespace Mexerica;
 /// que espera o programa terminar e devolve o código de saída (0 = tudo certo).
 static class Cli
 {
-    public static readonly string[] Verbs = { "converter", "opcoes", "opções", "ferramenta", "vigiar", "ajuda", "versao", "versão", "--help", "-h", "/?" };
+    public static readonly string[] Verbs = { "converter", "opcoes", "opções", "ferramenta", "vigiar", "doctor", "ajuda", "versao", "versão", "--help", "-h", "/?" };
 
     [DllImport("kernel32.dll")] static extern bool AttachConsole(int pid);
     [DllImport("kernel32.dll")] static extern IntPtr GetStdHandle(int n);
@@ -42,6 +42,7 @@ static class Cli
                 "opcoes" or "opções" => Options(rest),
                 "ferramenta" => Tool(rest),
                 "vigiar" => Watch(rest),
+                "doctor" => Doctor(),
                 "versao" or "versão" => Say($"Mexerica {Version}"),
                 _ => Help(),
             };
@@ -63,9 +64,46 @@ static class Cli
       Aplica uma ferramenta da roda. Ex.: mexerica ferramenta Comprimir foto.jpg --p modo=pct --p pct=50
   mexerica vigiar <pasta> --para <formato> [--subpastas] [--mover-originais]
       Converte tudo o que chegar na pasta até você apertar Ctrl+C.
+  mexerica doctor
+      Confere se as ferramentas externas, o menu do botão direito e a pasta de dados estão bem.
   mexerica versao
 
 Código de saída: 0 = tudo certo, 1 = algum arquivo falhou, 2 = erro nos parâmetros.");
+
+    static int Doctor()
+    {
+        Out.WriteLine($"Mexerica {Version}");
+        Out.WriteLine();
+        int problemas = 0;
+        void Check(string nome, bool ok, string paraQue, bool critico = true)
+        {
+            Out.WriteLine((ok ? "✓" : critico ? "✗" : "–") + $" {nome}" + (ok ? "" : $" — falta; sem isso não dá para {paraQue}"));
+            if (!ok && critico) problemas++;
+        }
+
+        Check("FFmpeg / FFprobe", Ff.Ok, "converter ou editar vídeo e áudio");
+        Check("Ghostscript", Gs.Ok, "comprimir ou tarjar PDF");
+        Check("qpdf", Qpdf.Ok, "organizar, dividir ou juntar PDF");
+        Check("ExifTool", Meta.Ok, "ver ou editar metadados");
+        Check("Remover fundo (isnet-general-use)", Bg.Ok, "remover fundo de foto", critico: false);
+        Check("LibreOffice", Office.Ok, "converter documentos com mais fidelidade (sem ele o Mexerica converte por conta própria)", critico: false);
+
+        var enc = Hw.Encoder;
+        Out.WriteLine((enc != null ? "✓" : "–") + " Vídeo pela placa de vídeo" + (enc != null ? $" ({enc})" : " — vai pelo processador (mais lento, mas funciona)"));
+
+        bool menuAtivo = false;
+        try { using var k = Microsoft.Win32.Registry.CurrentUser.OpenSubKey(@"Software\Mexerica"); menuAtivo = k?.GetValue("MenuAssinatura") != null; } catch { }
+        if (!Config.Now.ShellMenu) Out.WriteLine("– Menu do botão direito — desligado nas configurações");
+        else Check("Menu do botão direito", menuAtivo, "usar o Mexerica pelo botão direito do Explorador; abra o programa de novo para registrar");
+
+        bool dadosOk = false;
+        try { Directory.CreateDirectory(Paths.Data); var t = Path.Combine(Paths.Data, ".teste-doctor"); File.WriteAllText(t, ""); File.Delete(t); dadosOk = true; } catch { }
+        Check("Pasta de dados gravável (" + Paths.Data + ")", dadosOk, "salvar configurações, histórico e o log");
+
+        Out.WriteLine();
+        Out.WriteLine(problemas == 0 ? "Tudo certo." : $"{problemas} problema(s) acima.");
+        return problemas > 0 ? 1 : 0;
+    }
 
     /// Separa arquivos (expandindo curingas) de opções --nome valor.
     static (List<string> files, Dictionary<string, string> opts, P p) Parse(List<string> a)

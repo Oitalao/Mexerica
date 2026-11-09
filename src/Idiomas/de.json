@@ -1475,5 +1475,9 @@
   "vigia {0}: pasta apagada, saiu da lista": "vigia {0}: pasta apagada, saiu da lista",
   "Essa pasta já está na lista.": "Dieser Ordner ist bereits in der Liste.",
   "Pasta não encontrada (unidade desconectada?). Volta a funcionar sozinha quando ela aparecer.": "Ordner nicht gefunden (Laufwerk getrennt?). Er funktioniert von selbst wieder, sobald er auftaucht.",
-  "{0} não encontrada(s)": "{0} nicht gefunden"
+  "{0} não encontrada(s)": "{0} nicht gefunden",
+  "com IA": "mit KI",
+  "nao-existe": "nao-existe",
+  "Remover fundo": "Hintergrund entfernen",
+  "Remover o fundo (com IA)": "Hintergrund entfernen (mit KI)"
 }

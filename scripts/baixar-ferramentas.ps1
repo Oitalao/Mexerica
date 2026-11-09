@@ -108,7 +108,15 @@ try {
     if ((Get-FileHash "$tools\hwpx\blank.hwpx" -Algorithm SHA256).Hash -ne '97279058DDA295C0A08985203624AC27900DDB649B6E28FC9E27CE0D061D4035') { throw 'blank.hwpx: o arquivo baixado não confere' }
     Baixar 'https://raw.githubusercontent.com/msjang/pypandoc-hwpx/main/LICENSE' "$tools\hwpx\LICENSE"
 
-    foreach ($f in 'ffmpeg.exe', 'ffprobe.exe', 'qpdf\qpdf.exe', 'exiftool.exe', 'gswin64c.exe', 'gsdll64.dll', 'vcruntime140.dll', 'msvcp140.dll', '7zip\7z.exe', '7zip\7z.dll', 'lzip\lzip.exe', 'rhwp\rhwp.exe', 'hwpx\blank.hwpx') {
+    # isnet-general-use (projeto DIS, Apache 2.0): modelo de IA para "Remover fundo". Mesmo arquivo que o rembg usa.
+    Write-Host 'Modelo de remover fundo (isnet-general-use, ~170 MB)...'
+    New-Item -ItemType Directory "$tools\onnx" -Force | Out-Null
+    Baixar 'https://github.com/danielgatis/rembg/releases/download/v0.0.0/isnet-general-use.onnx' "$tools\onnx\isnet-general-use.onnx"
+    if ((Get-FileHash "$tools\onnx\isnet-general-use.onnx" -Algorithm SHA256).Hash -ne '60920E99C45464F2BA57BEE2AD08C919A52BBF852739E96947FBB4358C0D964A') { throw 'isnet-general-use.onnx: o arquivo baixado não confere' }
+    Baixar 'https://raw.githubusercontent.com/xuebinqin/DIS/main/LICENSE.md' "$tools\onnx\LICENSE"
+    Set-Content "$tools\onnx\Source.txt" 'isnet-general-use.onnx, projeto DIS (Xuebin Qin e outros), Apache License 2.0. Fonte: https://github.com/xuebinqin/DIS. Arquivo .onnx convertido e hospedado pelo projeto rembg (MIT): https://github.com/danielgatis/rembg/releases/tag/v0.0.0' -Encoding UTF8
+
+    foreach ($f in 'ffmpeg.exe', 'ffprobe.exe', 'qpdf\qpdf.exe', 'exiftool.exe', 'gswin64c.exe', 'gsdll64.dll', 'vcruntime140.dll', 'msvcp140.dll', '7zip\7z.exe', '7zip\7z.dll', 'lzip\lzip.exe', 'rhwp\rhwp.exe', 'hwpx\blank.hwpx', 'onnx\isnet-general-use.onnx') {
         if (-not (Test-Path (Join-Path $tools $f))) { throw "Faltou $f" }
     }
     Write-Host "Pronto: ferramentas em $tools" -ForegroundColor Green

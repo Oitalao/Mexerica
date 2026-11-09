@@ -1475,5 +1475,9 @@
   "vigia {0}: pasta apagada, saiu da lista": "vigia {0}: pasta apagada, saiu da lista",
   "Essa pasta já está na lista.": "此文件夹已在列表中。",
   "Pasta não encontrada (unidade desconectada?). Volta a funcionar sozinha quando ela aparecer.": "找不到文件夹（驱动器已断开？）。文件夹重新出现后会自动恢复工作。",
-  "{0} não encontrada(s)": "{0} 个未找到"
+  "{0} não encontrada(s)": "{0} 个未找到",
+  "com IA": "用AI",
+  "nao-existe": "nao-existe",
+  "Remover fundo": "移除背景",
+  "Remover o fundo (com IA)": "移除背景(使用AI)"
 }

@@ -1475,5 +1475,9 @@
   "vigia {0}: pasta apagada, saiu da lista": "vigia {0}: pasta apagada, saiu da lista",
   "Essa pasta já está na lista.": "Эта папка уже есть в списке.",
   "Pasta não encontrada (unidade desconectada?). Volta a funcionar sozinha quando ela aparecer.": "Папка не найдена (диск отключён?). Она снова заработает сама, когда появится.",
-  "{0} não encontrada(s)": "не найдено: {0}"
+  "{0} não encontrada(s)": "не найдено: {0}",
+  "com IA": "с ИИ",
+  "nao-existe": "nao-existe",
+  "Remover fundo": "Удалить фон",
+  "Remover o fundo (com IA)": "Удалить фон (с ИИ)"
 }

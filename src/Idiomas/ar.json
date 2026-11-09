@@ -1475,5 +1475,9 @@
   "vigia {0}: pasta apagada, saiu da lista": "vigia {0}: pasta apagada, saiu da lista",
   "Essa pasta já está na lista.": "هذا المجلد موجود بالفعل في القائمة.",
   "Pasta não encontrada (unidade desconectada?). Volta a funcionar sozinha quando ela aparecer.": "لم يُعثر على المجلد (هل القرص غير متصل؟). سيعود للعمل تلقائيًا عند ظهوره.",
-  "{0} não encontrada(s)": "{0} غير موجود"
+  "{0} não encontrada(s)": "{0} غير موجود",
+  "com IA": "بالذكاء الاصطناعي",
+  "nao-existe": "nao-existe",
+  "Remover fundo": "إزالة الخلفية",
+  "Remover o fundo (com IA)": "إزالة الخلفية (بالذكاء الاصطناعي)"
 }

@@ -1477,5 +1477,9 @@
   "vigia {0}: pasta apagada, saiu da lista": "vigia {0}: pasta apagada, saiu da lista",
   "Essa pasta já está na lista.": "This folder is already on the list.",
   "Pasta não encontrada (unidade desconectada?). Volta a funcionar sozinha quando ela aparecer.": "Folder not found (drive disconnected?). It will start working again by itself when it reappears.",
-  "{0} não encontrada(s)": "{0} not found"
+  "{0} não encontrada(s)": "{0} not found",
+  "com IA": "with AI",
+  "nao-existe": "nao-existe",
+  "Remover fundo": "Remove background",
+  "Remover o fundo (com IA)": "Remove the background (with AI)"
 }

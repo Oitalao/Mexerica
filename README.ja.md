@@ -60,6 +60,7 @@ Mexerica は、Mac 用の [Tangerine](https://tangerineformac.com) のアイデ�
 - 画像、動画、音声、PDF の圧縮 (レベル、パーセント、または正確なサイズを指定)
 - 写真エディター: 切り抜き、色の調整、矢印、四角形、ペン、テキスト、黒塗り (黒、ぼかし、モザイク)
 - 画像の背景と余白、複数写真のコラージュ、画像から PDF、グレースケール、QR コードの読み取り
+- AIで写真の背景を削除（ローカルのモデル isnet-general-use を使用。何も外部に送信されません）
 - メタデータ: すべて表示、タイトルや作成者などの編集、位置情報またはすべての削除
 - 動画: 区間の切り出し、画面の切り抜き、速度、分割、1 コマまたは全コマの保存、音声と字幕の取り出し、回転、解像度の変更、音声の削除、結合
 - 音声: 区間の切り出し、音量の正規化、区間にピー音をかぶせる、モノラルとステレオ、速度、分割、結合
@@ -107,6 +108,7 @@ mexerica converter video.mov --para mp4 -o D:\Saida      # 保存先フォルダ
 mexerica opcoes planilha.xlsx                             # そのファイルでできることを一覧表示
 mexerica ferramenta Comprimir foto.jpg --p modo=pct --p pct=50
 mexerica vigiar D:\Fotos --para webp --subpastas          # Ctrl+C を押すまで、届いたものを変換
+mexerica doctor                                            # ffmpeg、Ghostscript、右クリックメニューなどの依存関係を確認
 ```
 
 終了コードは、すべて成功なら 0、失敗したファイルがあれば 1、パラメーターに誤りがあれば 2 です。

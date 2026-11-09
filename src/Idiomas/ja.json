@@ -1475,5 +1475,9 @@
   "vigia {0}: pasta apagada, saiu da lista": "vigia {0}: pasta apagada, saiu da lista",
   "Essa pasta já está na lista.": "このフォルダーはすでにリストにあります。",
   "Pasta não encontrada (unidade desconectada?). Volta a funcionar sozinha quando ela aparecer.": "フォルダーが見つかりません(ドライブが外れていますか?)。再び現れると自動で動作を再開します。",
-  "{0} não encontrada(s)": "{0} 件見つかりません"
+  "{0} não encontrada(s)": "{0} 件見つかりません",
+  "com IA": "AIで",
+  "nao-existe": "nao-existe",
+  "Remover fundo": "背景削除",
+  "Remover o fundo (com IA)": "背景を削除（AIで）"
 }

@@ -58,6 +58,7 @@ A roda só oferece o que faz sentido para aquele arquivo: vídeo sem som não of
 - Comprimir imagem, vídeo, áudio e PDF por nível, por porcentagem ou para um tamanho exato
 - Editor de foto: recortar, ajustar cor, setas, retângulos, caneta, texto e tarjas (preta, desfoque ou pixel)
 - Fundo e margem para imagens, colagem de várias fotos, imagens em PDF, tons de cinza, leitura de QR Code
+- Remover fundo de foto com IA (modelo local, isnet-general-use; nada sai do computador)
 - Metadados: ver tudo, editar título, autor e outros campos, apagar localização ou tudo
 - Vídeo: cortar trecho, recortar a imagem, velocidade, dividir, tirar um quadro ou todos, extrair o áudio e as legendas, girar, mudar a resolução, tirar o som, juntar
 - Áudio: cortar trecho, normalizar o volume, bipe por cima de trechos, mono e estéreo, velocidade, dividir, juntar
@@ -105,6 +106,7 @@ mexerica converter video.mov --para mp4 -o D:\Saida      # escolhe a pasta de sa
 mexerica opcoes planilha.xlsx                             # lista o que dá para fazer com o arquivo
 mexerica ferramenta Comprimir foto.jpg --p modo=pct --p pct=50
 mexerica vigiar D:\Fotos --para webp --subpastas          # converte o que chegar até apertar Ctrl+C
+mexerica doctor                                            # confere ffmpeg, Ghostscript, menu do botão direito e outras dependências
 ```
 
 O código de saída é 0 quando tudo deu certo, 1 quando algum arquivo falhou e 2 quando há erro nos parâmetros.

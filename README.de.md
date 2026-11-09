@@ -60,6 +60,7 @@ Das Rad bietet nur an, was für diese Datei sinnvoll ist: ein Video ohne Ton bie
 - Bilder, Videos, Audio und PDF komprimieren, nach Stufe, nach Prozent oder auf eine genaue Größe
 - Fotoeditor: zuschneiden, Farbe anpassen, Pfeile, Rechtecke, Stift, Text und Schwärzen (schwarz, unscharf oder verpixelt)
 - Hintergrund und Rand für Bilder, Collage aus mehreren Fotos, Bilder zu PDF, Graustufen, QR-Code lesen
+- Fotohintergrund per KI entfernen (lokales Modell, isnet-general-use; nichts verlässt den Computer)
 - Metadaten: alles ansehen, Titel, Autor und andere Felder bearbeiten, den Standort oder alles löschen
 - Video: einen Abschnitt schneiden, das Bild zuschneiden, Geschwindigkeit, teilen, ein Einzelbild oder alle speichern, Ton und Untertitel herausziehen, drehen, Auflösung ändern, Ton entfernen, zusammenfügen
 - Audio: einen Abschnitt schneiden, Lautstärke angleichen, Piepton über Abschnitte legen, Mono und Stereo, Geschwindigkeit, teilen, zusammenfügen
@@ -107,6 +108,7 @@ mexerica converter video.mov --para mp4 -o D:\Saida      # wählt den Zielordner
 mexerica opcoes planilha.xlsx                             # zeigt, was man mit der Datei machen kann
 mexerica ferramenta Comprimir foto.jpg --p modo=pct --p pct=50
 mexerica vigiar D:\Fotos --para webp --subpastas          # wandelt alles Ankommende um, bis Strg+C gedrückt wird
+mexerica doctor                                            # prüft ffmpeg, Ghostscript, das Rechtsklickmenü und andere Abhängigkeiten
 ```
 
 Der Rückgabewert ist 0, wenn alles geklappt hat, 1, wenn eine Datei fehlgeschlagen ist, und 2 bei einem Fehler in den Parametern.

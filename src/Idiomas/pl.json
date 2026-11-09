@@ -1475,5 +1475,9 @@
   "vigia {0}: pasta apagada, saiu da lista": "vigia {0}: pasta apagada, saiu da lista",
   "Essa pasta já está na lista.": "Ten folder jest już na liście.",
   "Pasta não encontrada (unidade desconectada?). Volta a funcionar sozinha quando ela aparecer.": "Nie znaleziono folderu (odłączony dysk?). Zacznie działać sam, gdy się pojawi.",
-  "{0} não encontrada(s)": "nie znaleziono: {0}"
+  "{0} não encontrada(s)": "nie znaleziono: {0}",
+  "com IA": "z AI",
+  "nao-existe": "nao-existe",
+  "Remover fundo": "Usuń tło",
+  "Remover o fundo (com IA)": "Usuń tło (za pomocą AI)"
 }

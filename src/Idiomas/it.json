@@ -1475,5 +1475,9 @@
   "vigia {0}: pasta apagada, saiu da lista": "vigia {0}: pasta apagada, saiu da lista",
   "Essa pasta já está na lista.": "Questa cartella è già nell'elenco.",
   "Pasta não encontrada (unidade desconectada?). Volta a funcionar sozinha quando ela aparecer.": "Cartella non trovata (unità scollegata?). Tornerà a funzionare da sola quando ricomparirà.",
-  "{0} não encontrada(s)": "{0} non trovata/e"
+  "{0} não encontrada(s)": "{0} non trovata/e",
+  "com IA": "con IA",
+  "nao-existe": "nao-existe",
+  "Remover fundo": "Rimuovi sfondo",
+  "Remover o fundo (com IA)": "Rimuovere lo sfondo (con IA)"
 }

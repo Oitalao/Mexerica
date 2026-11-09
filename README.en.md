@@ -60,6 +60,7 @@ The wheel only offers what makes sense for that file: a video without sound does
 - Compress images, videos, audio and PDFs by level, by percentage or to an exact size
 - Photo editor: crop, adjust color, arrows, rectangles, pen, text and redaction (black, blur or pixel)
 - Background and margin for images, collage of several photos, images to PDF, grayscale, QR Code reading
+- AI background removal (local model, isnet-general-use; nothing leaves your computer)
 - Metadata: see everything, edit title, author and other fields, remove the location or everything
 - Video: cut a section, crop the picture, speed, split, take one frame or all of them, extract the audio and subtitles, rotate, change the resolution, remove the sound, join
 - Audio: cut a section, normalize the volume, beep over sections, mono and stereo, speed, split, join
@@ -107,6 +108,7 @@ mexerica converter video.mov --para mp4 -o D:\Saida      # chooses the output fo
 mexerica opcoes planilha.xlsx                             # lists what can be done with the file
 mexerica ferramenta Comprimir foto.jpg --p modo=pct --p pct=50
 mexerica vigiar D:\Fotos --para webp --subpastas          # converts whatever arrives until you press Ctrl+C
+mexerica doctor                                            # checks ffmpeg, Ghostscript, the right-click menu and other dependencies
 ```
 
 The exit code is 0 when everything went well, 1 when some file failed and 2 when there is an error in the parameters.

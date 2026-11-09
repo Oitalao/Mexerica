@@ -6,6 +6,7 @@ using System.Linq;
 using System.Runtime.InteropServices.WindowsRuntime;
 using ImageMagick;
 using ImageMagick.Drawing;
+using Microsoft.ML.OnnxRuntime.Tensors;
 
 namespace Mexerica;
 
@@ -335,6 +336,62 @@ static class Images
         if (ext == "jpg" || color.A == 255) canvas.Alpha(AlphaAction.Off);
         var dst = Paths.Out(src, ext, "com fundo");
         Save(canvas, dst, ext, Math.Max(Q, 92));
+        return dst;
+    }
+
+    // ---------- Remover fundo (IA) ----------
+    public static string RemoveBackground(string src, P _)
+    {
+        using var original = Load(src);
+        int ow = (int)original.Width, oh = (int)original.Height;
+
+        using var work = original.Clone();
+        work.Alpha(AlphaAction.Off);
+        work.ColorSpace = ColorSpace.sRGB;
+        work.Depth = 8;
+        work.Resize(new MagickGeometry((uint)Bg.Size, (uint)Bg.Size) { IgnoreAspectRatio = true });
+        using var workPixels = work.GetPixels();
+        var rgb = workPixels.ToByteArray(PixelMapping.RGB) ?? throw new Exception("Não consegui ler os pixels");
+
+        Job.Check();
+        double max = 1e-6;
+        foreach (var b in rgb) if (b > max) max = b;
+
+        // Mesmo pré-processamento do rembg: RGB 0..1 pelo pico da própria foto (não 255 fixo), depois -0.5.
+        var input = new DenseTensor<float>(new[] { 1, 3, Bg.Size, Bg.Size });
+        for (int y = 0; y < Bg.Size; y++)
+            for (int x = 0; x < Bg.Size; x++)
+            {
+                int o = (y * Bg.Size + x) * 3;
+                for (int c = 0; c < 3; c++)
+                    input[0, c, y, x] = (float)(rgb[o + c] / max - 0.5);
+            }
+
+        var mask = Bg.Mask(input);
+        Job.Check();
+        var maskBytes = new byte[mask.Length * 3];
+        for (int i = 0; i < mask.Length; i++)
+        {
+            byte v = (byte)Math.Round(mask[i] * 255);
+            maskBytes[i * 3] = maskBytes[i * 3 + 1] = maskBytes[i * 3 + 2] = v;
+        }
+
+        using var maskImg = new MagickImage(MagickColors.Black, (uint)Bg.Size, (uint)Bg.Size);
+        using (var mp = maskImg.GetPixels()) mp.SetBytePixels(maskBytes);
+        maskImg.Resize(new MagickGeometry((uint)ow, (uint)oh) { IgnoreAspectRatio = true });
+        using var maskPixels = maskImg.GetPixels();
+        var maskOut = maskPixels.ToByteArray(PixelMapping.RGB)!;
+
+        // Só o alfa vem da máscara; as cores originais ficam intactas (sem a borda escurecida do recorte simples).
+        original.Alpha(AlphaAction.On);
+        using var origPixels = original.GetPixels();
+        var rgba = origPixels.ToByteArray(PixelMapping.RGBA)!;
+        for (int i = 0; i < ow * oh; i++) rgba[i * 4 + 3] = maskOut[i * 3];
+        origPixels.SetBytePixels(rgba);
+
+        var ext = NormExt(src) is "png" or "webp" or "avif" or "heic" or "tiff" ? NormExt(src) : "png";
+        var dst = Paths.Out(src, ext, "sem fundo");
+        Save(original, dst, ext, 92);
         return dst;
     }
 
