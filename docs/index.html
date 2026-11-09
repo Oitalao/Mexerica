@@ -1,0 +1,335 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Mexerica</title>
+<meta name="description" content="Converta e edite arquivos sem abrir programa nenhum: arraste, aperte Espaço e solte na opção. Grátis, de código aberto, para Windows." data-content-en="Convert and edit files without opening another app: drag, press Space and drop on an option. Free, open source, for Windows.">
+<link rel="icon" href="assets/mexerica-1024.png">
+<meta property="og:title" content="Mexerica">
+<meta property="og:description" content="Converta e edite arquivos sem abrir programa nenhum: arraste, aperte Espaço e solte na opção. Grátis, de código aberto, para Windows." data-content-en="Convert and edit files without opening another app: drag, press Space and drop on an option. Free, open source, for Windows.">
+<meta property="og:image" content="assets/mexerica-1024.png">
+<meta property="og:type" content="website">
+<meta name="twitter:card" content="summary">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Geologica:wght,CRSV,SHRP@200..500,0,0..100&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="styles.css?v=20261109-codex-3">
+</head>
+<body>
+
+<nav class="nav" aria-label="Navegação principal" data-label-en="Main navigation">
+  <div class="container">
+    <a class="nav-mark" href="#top">
+      <img src="assets/mexerica-1024.png" alt="" width="28" height="28">
+      Mexerica
+    </a>
+    <div class="nav-sections">
+      <a href="#como-funciona" data-en="How it works">Como funciona</a>
+      <a href="#o-que-faz" data-en="What it does">O que faz</a>
+      <a href="#baixar" data-en="Download">Baixar</a>
+    </div>
+    <div class="nav-actions">
+      <div class="language-switch" role="group" aria-label="Idioma" data-label-en="Language">
+        <button type="button" data-lang="pt" aria-pressed="true" aria-label="Português">PT</button><span aria-hidden="true">|</span><button type="button" data-lang="en" aria-pressed="false" aria-label="English">EN</button>
+      </div>
+      <a class="btn btn--primary btn--sm" href="https://github.com/Oitalao/Mexerica/releases/latest" data-en="Download for Windows">Baixar para Windows</a>
+    </div>
+  </div>
+</nav>
+
+<main id="top">
+
+<section class="hero">
+  <div class="container">
+    <div class="hero-text">
+      <h1 data-en="Drag.&lt;br&gt;Press Space.&lt;br&gt;&lt;span&gt;Transform.&lt;/span&gt;">Arraste.<br>Aperte Espaço.<br><span>Transforme.</span></h1>
+      <p class="lead" data-en="Convert and edit photos, video, audio and PDFs, right on Windows.">Converta e edite fotos, vídeos, áudio e PDF, direto no Windows.</p>
+      <div class="hero-actions">
+        <a class="btn btn--primary" href="https://github.com/Oitalao/Mexerica/releases/latest" data-en="Download for Windows">Baixar para Windows</a>
+        <a class="hero-demo-link" href="#como-funciona" data-en="See how it works &lt;span aria-hidden=&quot;true&quot;&gt;↓&lt;/span&gt;">Veja como funciona <span aria-hidden="true">↓</span></a>
+      </div>
+      <p class="hero-detail" data-en="Free. Open source. Windows 10 and 11.">Grátis. Código aberto. Windows 10 e 11.</p>
+      <p class="platform-notice" id="platform-notice" role="status"></p>
+      <div class="motion-notice" id="motion-notice" hidden>
+        <p data-en="Your system is set to reduce motion.">Seu sistema está com as animações reduzidas.</p>
+        <button type="button" id="motion-enable" data-en="Enable animations">Ativar animações</button>
+      </div>
+    </div>
+    <div class="hero-visual">
+      <fieldset class="switcher">
+        <legend class="visually-hidden" data-en="Show the wheel for">Mostrar a roda de</legend>
+        <div class="switcher-tabs">
+          <input type="radio" name="wheel" id="wheel-converter" checked><label for="wheel-converter" data-en="Convert">Converter</label>
+          <input type="radio" name="wheel" id="wheel-ferramentas"><label for="wheel-ferramentas" data-en="Tools">Ferramentas</label>
+          <input type="radio" name="wheel" id="wheel-acoes"><label for="wheel-acoes" data-en="Actions">Ações</label>
+        </div>
+        <div class="switcher-panels">
+          <figure class="switcher-panel" data-panel="converter" data-kind="product">
+            <img src="assets/roda-converter.png" width="760" height="760" fetchpriority="high" data-alt-en="Convert wheel open over foto2.jpg: WebP selected, with PNG, HEIC, AVIF, TIFF, BMP, GIF, ICO and PDF around it." alt="Roda Converter aberta sobre foto2.jpg: WEBP selecionado, com PNG, HEIC, AVIF, TIFF, BMP, GIF, ICO e PDF ao redor.">
+          </figure>
+          <figure class="switcher-panel" data-panel="ferramentas" data-kind="product">
+            <img src="assets/roda-ferramentas.png" width="760" height="760" data-alt-en="Photo tools wheel over foto2.jpg: Resize selected, with Compress, Rotate, Edit, Background, Metadata, Read QR, PDF and ZIP around it." alt="Roda Ferramentas sobre foto2.jpg: Tamanho selecionado, com Comprimir, Girar, Editar, Fundo, Metadados, Ler QR, PDF e ZIP ao redor.">
+          </figure>
+          <figure class="switcher-panel" data-panel="acoes" data-kind="product">
+            <img src="assets/roda-acoes.png" width="760" height="760" data-alt-en="Actions wheel over foto2.jpg: Float selected, with Share, Terminal, Path, Copy and Move around it." alt="Roda Ações sobre foto2.jpg: Flutuar selecionado, com Compartilhar, Terminal, Caminho, Copiar e Mover ao redor.">
+          </figure>
+          <div class="gesture" aria-hidden="true">
+            <div class="gesture-file">
+              <svg viewBox="0 0 32 40" fill="none"><path d="M5 1h15l10 10v28H5z" fill="currentColor"/><path d="M20 1v11h10M10 22h15M10 28h11" stroke="var(--color-paper)" stroke-width="2"/></svg>
+              <span>foto2.jpg</span>
+              <svg class="gesture-cursor" viewBox="0 0 24 28"><path d="M2 2v21l6-6 5 9 4-2-5-9h9z" fill="var(--color-ink)" stroke="var(--color-paper)" stroke-width="2"/></svg>
+            </div>
+            <div class="gesture-key"><kbd data-en="Space">Espaço</kbd><span data-en="The wheel appears">A roda aparece</span></div>
+            <div class="gesture-result"><svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="m5 12 4 4L19 6" stroke="currentColor" stroke-width="2"/></svg><span><strong>foto2.webp</strong><small data-en="Converted copy. Original kept.">Cópia convertida. Original preservado.</small></span></div>
+          </div>
+        </div>
+        <div class="switcher-captions">
+          <p data-caption="converter"><kbd>Shift</kbd><span data-en="&lt;strong&gt;A new format. The same file.&lt;/strong&gt; Convert right from the wheel."><strong>Outro formato. Mesmo arquivo.</strong> Converta direto pela roda.</span></p>
+          <p data-caption="ferramentas"><kbd>Ctrl</kbd><span data-en="&lt;strong&gt;A quick adjustment, right here.&lt;/strong&gt; Compress, edit or resize."><strong>Um ajuste, sem sair do lugar.</strong> Comprima, edite ou redimensione.</span></p>
+          <p data-caption="acoes"><kbd>Alt</kbd><span data-en="&lt;strong&gt;Your next step, within reach.&lt;/strong&gt; Copy, move or keep the file floating."><strong>O próximo passo, à mão.</strong> Copie, mova ou deixe o arquivo flutuando.</span></p>
+        </div>
+        <p class="demo-disclosure" data-en="Gesture simulation over a real screenshot. This site does not process files.">Demonstração do gesto sobre a tela real. O site não processa arquivos.</p>
+      </fieldset>
+    </div>
+  </div>
+</section>
+
+<section class="section steps" id="como-funciona">
+  <div class="container">
+    <h2 class="reveal" data-en="From dragging to done">Do arrastar ao pronto</h2>
+    <ol class="steps-list reveal-group">
+      <li><span class="key" data-en="Space">Espaço</span><h3 data-en="Drag">Arraste</h3><p data-en="Drag one or more files and press Space while holding the mouse button.">Arraste um ou mais arquivos e, sem soltar o mouse, aperte Espaço.</p></li>
+      <li><span class="key">Shift, Ctrl, Alt</span><h3 data-en="Choose a wheel">Escolha o lado</h3><p data-en="Press Space again, or use Shift, Ctrl and Alt to switch between Convert, Tools and Actions.">Espaço de novo, ou Shift, Ctrl e Alt trocam entre Converter, Ferramentas e Ações.</p></li>
+      <li><span class="key" data-en="Arrows, Enter">Setas, Enter</span><h3 data-en="Drop">Solte</h3><p data-en="Drop the file on an option, or use the arrow keys and Enter.">Solte o arquivo em cima da opção, ou use as setas e Enter.</p></li>
+      <li><span class="key key--blank" aria-hidden="true">&nbsp;</span><h3 data-en="Done">Pronto</h3><p data-en="The result is saved next to the original, which stays unchanged.">O resultado fica salvo ao lado do original, que nunca é alterado.</p></li>
+    </ol>
+  </div>
+</section>
+
+<section class="section split-adapt" id="ferramentas">
+  <div class="container">
+    <div class="section-head reveal">
+      <h2 data-en="The wheel adapts to your file">A roda muda com o arquivo</h2>
+      <p class="lead" data-en="Press Ctrl with the wheel open. The tools adapt to your file: photo tools on one side, video tools on the other.">Aperte Ctrl com a roda aberta. As ferramentas se adaptam ao tipo de arquivo: foto de um lado, vídeo do outro.</p>
+    </div>
+    <div class="comparison-grid">
+      <figure class="compare reveal" data-kind="product">
+        <h3 data-en="Photo tools">Ferramentas para foto</h3>
+        <img src="assets/roda-ferramentas.png" width="760" height="760" loading="lazy" data-alt-en="Photo tools wheel: resize, compress, rotate, edit and more." alt="Roda Ferramentas para foto: redimensionar, comprimir, girar, editar e mais.">
+        <figcaption data-en="Resize, compress, rotate, edit or adjust the background of a photo.">Redimensione, comprima, gire, edite ou ajuste o fundo da foto.</figcaption>
+      </figure>
+      <figure class="compare reveal" data-kind="product">
+        <h3 data-en="Video tools">Ferramentas para vídeo</h3>
+        <img src="assets/roda-video.png" width="760" height="760" loading="lazy" data-alt-en="Video tools wheel: Compress, Trim, Crop, Speed, Split, Frame, Audio, Mute, Resize, Rotate, Metadata and ZIP." alt="Roda Ferramentas sobre um vídeo: Comprimir, Cortar, Recortar, Velocidade, Dividir, Quadro, Áudio, Mudo, Tamanho, Girar, Metadados e ZIP.">
+        <figcaption data-en="Trim a clip, extract audio, mute a video or change its speed.">Corte um trecho, extraia o áudio, remova o som ou mude a velocidade do vídeo.</figcaption>
+      </figure>
+    </div>
+  </div>
+</section>
+
+<section class="section section--s section--paper2" id="o-que-faz">
+  <div class="container">
+    <div class="section-head reveal">
+      <h2 data-en="From photos to spreadsheets">De fotos a planilhas</h2>
+    </div>
+    <ul class="format-grid reveal-group">
+      <li><span class="format-type" aria-hidden="true">JPG</span><h3 data-en="Images">Imagens</h3><p data-en="JPG, PNG, WebP, HEIC, AVIF, camera RAW, PSD and more.">JPG, PNG, WebP, HEIC, AVIF, RAW de câmera, PSD e mais.</p><p class="format-example" data-en="Turn an iPhone HEIC photo into a JPG, ready to share.">Foto do iPhone em HEIC para JPG, pronta para compartilhar.</p></li>
+      <li><span class="format-type" aria-hidden="true">MP4</span><h3 data-en="Video">Vídeo</h3><p data-en="MP4, MOV, MKV, WebM, AVI and animated GIF.">MP4, MOV, MKV, WebM, AVI e GIF animado.</p><p class="format-example" data-en="Convert MOV to MP4. Or extract just the audio as MP3.">Vídeo MOV para MP4. Ou extraia só o áudio em MP3.</p></li>
+      <li><span class="format-type" aria-hidden="true">WAV</span><h3 data-en="Audio">Áudio</h3><p data-en="MP3, M4A, WAV, FLAC, OGG, Opus and AIFF.">MP3, M4A, WAV, FLAC, OGG, Opus e AIFF.</p><p class="format-example" data-en="Turn a WAV recording into an MP3 that takes up less space.">Gravação em WAV para MP3, ocupando menos espaço.</p></li>
+      <li><span class="format-type" aria-hidden="true">DOC</span><h3 data-en="Documents and slides">Documentos e apresentações</h3><p data-en="Word, PowerPoint, HWP, ODT and RTF.">Word, PowerPoint, HWP, ODT e RTF.</p><p class="format-example" data-en="DOCX to PDF. PPTX slides to PNG images.">DOCX para PDF. Apresentação PPTX para imagens PNG.</p></li>
+      <li><span class="format-type" aria-hidden="true">PDF</span><h3>PDF</h3><p data-en="To Word, Excel, PowerPoint and images, and back.">Para Word, Excel, PowerPoint, imagem e de volta.</p><p class="format-example" data-en="Turn a PDF into a DOCX to keep editing. Or export each page as an image.">PDF para DOCX para continuar editando. Ou uma imagem por página.</p></li>
+      <li><span class="format-type" aria-hidden="true">ZIP</span><h3 data-en="Archives">Compactados</h3><p data-en="ZIP, 7Z and TAR; also opens RAR and ISO.">ZIP, 7Z e TAR; também abre RAR e ISO.</p><p class="format-example" data-en="Pack multiple files into a ZIP or extract a RAR archive.">Reúna vários arquivos num ZIP ou extraia um arquivo RAR.</p></li>
+      <li><span class="format-type" aria-hidden="true">XLS</span><h3 data-en="Spreadsheets">Planilhas</h3><p data-en="XLSX, XLS, ODS, CSV, TSV and PDF.">XLSX, XLS, ODS, CSV, TSV e PDF.</p><p class="format-example" data-en="Convert an XLSX spreadsheet to CSV, ready to import into another app.">Planilha XLSX para CSV, pronta para importar em outro sistema.</p></li>
+      <li><span class="format-type" aria-hidden="true">EPUB</span><h3 data-en="Text and e-books">Texto e e-books</h3><p data-en="Markdown, TXT, HTML, EPUB, DOCX and PDF.">Markdown, TXT, HTML, EPUB, DOCX e PDF.</p><p class="format-example" data-en="Markdown notes to PDF. EPUB books to plain text.">Notas em Markdown para PDF. Livro EPUB para texto.</p></li>
+      <li><span class="format-type" aria-hidden="true">SRT</span><h3 data-en="Subtitles">Legendas</h3><p data-en="SRT, VTT and TXT.">SRT, VTT e TXT.</p><p class="format-example" data-en="Convert SRT to VTT for subtitles on the web.">SRT para VTT para usar a legenda na web.</p></li>
+    </ul>
+  </div>
+</section>
+
+<section class="section statement">
+  <div class="container reveal-group">
+    <p data-en="Everything happens on your computer. Your files stay off the cloud.">Tudo acontece dentro do seu computador, nunca na nuvem de alguém.</p>
+    <div class="figure">
+      <span class="num">0</span>
+      <span class="unit" data-en="files uploaded to the internet">arquivos enviados para a internet</span>
+    </div>
+  </div>
+</section>
+
+<section class="section band" id="baixar">
+  <div class="container">
+    <div class="band-text reveal">
+      <h2 data-en="No subscription. No account.">Sem assinatura, sem conta</h2>
+      <p data-en="Open source under the MIT license, for Windows 10 and 11 (64-bit). The app supports 13 languages.">Código aberto sob licença MIT, para Windows 10 e 11 (64 bits). Suporta 13 idiomas.</p>
+    </div>
+    <div class="band-actions">
+      <a class="btn btn--primary" href="https://github.com/Oitalao/Mexerica/releases/latest" data-en="Download for Windows">Baixar para Windows</a>
+      <a class="btn btn--line" href="https://github.com/Oitalao/Mexerica" data-en="View on GitHub">Ver no GitHub</a>
+    </div>
+  </div>
+</section>
+
+</main>
+
+<footer class="footer">
+  <div class="container">
+    <div>
+      <p class="footer-mark">Mexerica</p>
+      <p data-en="The Tangerine idea, for Windows. Code under the MIT license.">A ideia do Tangerine, para Windows. Código sob licença MIT.</p>
+    </div>
+    <ul class="footer-links">
+      <li><a href="https://github.com/Oitalao/Mexerica" data-en="Source code">Código</a></li>
+      <li><a href="https://github.com/Oitalao/Mexerica/releases" data-en="Releases">Versões</a></li>
+      <li><a href="https://github.com/Oitalao/Mexerica/issues" data-en="Issues">Problemas</a></li>
+      <li><a href="https://github.com/Oitalao/Mexerica/blob/main/LICENSE" data-en="License">Licença</a></li>
+    </ul>
+  </div>
+</footer>
+
+<dialog class="download-dialog" id="download-dialog" aria-labelledby="download-title" aria-describedby="download-description">
+  <h2 id="download-title" data-en="On your Windows computer.">No computador com Windows.</h2>
+  <p id="download-description" data-en="Mexerica only runs on Windows 10 and 11 (64-bit). This installer will not run on your current device.">O Mexerica funciona somente no Windows 10 e 11 (64 bits). Este instalador não funciona no seu dispositivo atual.</p>
+  <div class="dialog-actions">
+    <button type="button" class="btn btn--primary" id="download-close" data-en="Got it">Entendi</button>
+    <a class="btn btn--line" href="https://github.com/Oitalao/Mexerica/releases/latest" data-en="Download anyway">Ver download mesmo assim</a>
+  </div>
+</dialog>
+
+<script>
+(() => {
+  const root = document.documentElement;
+  const motion = matchMedia('(prefers-reduced-motion: reduce)');
+  root.classList.toggle('motion-reduced', motion.matches);
+  // cabeçalho ganha fundo sólido depois de rolar um pouco
+  const nav = document.querySelector('.nav');
+  const onScroll = () => nav.classList.toggle('is-scrolled', scrollY > 8);
+  addEventListener('scroll', onScroll, { passive: true });
+  onScroll();
+
+  // revela cada seção ao entrar na tela (sem JS, tudo já aparece normalmente: ver regra .js .reveal no CSS)
+  if ('IntersectionObserver' in window) {
+    const io = new IntersectionObserver((entries) => {
+      for (const e of entries) if (e.isIntersecting) { e.target.classList.add('in'); io.unobserve(e.target); }
+    }, { threshold: 0, rootMargin: '0px 0px -40px 0px' });
+    // Observe each row: the full ledger can be taller than a mobile viewport.
+    document.querySelectorAll('.reveal-group').forEach(group => {
+      group.classList.remove('reveal-group');
+      [...group.children].forEach((child, i) => {
+        child.classList.add('reveal');
+        child.style.setProperty('--reveal-delay', `${Math.min(i, 3) * 65}ms`);
+      });
+    });
+    root.classList.add('js');
+    document.querySelectorAll('.reveal').forEach((el) => io.observe(el));
+  }
+
+  // a roda troca sozinha (Converter → Ferramentas → Ações), pausa ao passar o mouse, focar ou clicar numa aba
+  const switcher = document.querySelector('.switcher');
+  const tabs = [...switcher.querySelectorAll('input[name="wheel"]')];
+  let timer = null, visible = true;
+
+  const advance = () => { const i = tabs.findIndex((t) => t.checked); tabs[(i + 1) % tabs.length].checked = true; };
+  const stop = () => { clearInterval(timer); timer = null; switcher.classList.remove('is-playing'); };
+  const start = (force = false) => {
+    stop();
+    if (root.classList.contains('motion-reduced') || !visible || document.hidden || (!force && (switcher.matches(':hover') || switcher.contains(document.activeElement)))) return;
+    switcher.classList.add('is-playing');
+    timer = setInterval(advance, 4200);
+  };
+  const motionNotice = document.getElementById('motion-notice');
+  const enableMotion = () => {
+    root.classList.remove('motion-reduced');
+    root.classList.add('motion-enabled');
+    motionNotice.hidden = true;
+    start(true);
+  };
+  motionNotice.hidden = !motion.matches;
+  document.getElementById('motion-enable').addEventListener('click', enableMotion);
+  motion.addEventListener('change', () => {
+    root.classList.remove('motion-enabled');
+    root.classList.toggle('motion-reduced', motion.matches);
+    motionNotice.hidden = !motion.matches;
+    start();
+  });
+  tabs.forEach((t) => t.addEventListener('change', stop));
+  switcher.addEventListener('mouseenter', stop);
+  switcher.addEventListener('mouseleave', () => start());
+  switcher.addEventListener('focusin', stop);
+  switcher.addEventListener('focusout', () => setTimeout(start, 0));
+  document.addEventListener('visibilitychange', () => start());
+  if ('IntersectionObserver' in window) {
+    new IntersectionObserver(([e]) => { visible = e.isIntersecting; start(); }).observe(switcher);
+  } else start();
+
+  // perto da roda, as próprias teclas do Mexerica (Shift, Ctrl, Alt) trocam a aba, como no programa de verdade
+  const map = { Shift: 'wheel-converter', Control: 'wheel-ferramentas', Alt: 'wheel-acoes' };
+  addEventListener('keydown', (e) => {
+    const id = map[e.key];
+    if (!id || !(switcher.contains(document.activeElement) || switcher.matches(':hover'))) return;
+    e.preventDefault();
+    document.getElementById(id).checked = true;
+    stop();
+  });
+
+  // avisa quem não está no Windows, sem bloquear o link: o texto do botão já diz "para Windows"
+  const notice = document.getElementById('platform-notice');
+  const ua = navigator.userAgent || '';
+  const platform = (navigator.userAgentData && navigator.userAgentData.platform) || navigator.platform || ua;
+  const mobile = /Android|iPhone|iPad|iPod/i.test(ua) || (/Mac/i.test(platform) && navigator.maxTouchPoints > 1);
+  const incompatible = mobile || !/Win/i.test(platform);
+  const system = /Android/i.test(ua) ? 'Android' : mobile ? 'iOS/iPadOS' : /Mac/i.test(platform) ? 'macOS' : /Linux/i.test(platform) ? 'Linux' : null;
+  const downloadLinks = [...document.querySelectorAll('a[href="https://github.com/Oitalao/Mexerica/releases/latest"]')];
+  downloadLinks.forEach(link => link.setAttribute('data-download', ''));
+  if (incompatible) {
+    notice.classList.add('show');
+    const dialog = document.getElementById('download-dialog');
+    downloadLinks.forEach(link => {
+      if (dialog.contains(link)) return;
+      link.addEventListener('click', event => { event.preventDefault(); dialog.showModal(); });
+    });
+    document.getElementById('download-close').addEventListener('click', () => dialog.close());
+  }
+
+  // Portuguese remains in the HTML so the page also works without JavaScript.
+  const translations = [...document.querySelectorAll('[data-en]')].map(el => ({ el, pt: el.innerHTML, en: el.dataset.en }));
+  const attributes = ['alt', 'label', 'content'].flatMap(kind => {
+    const attr = kind === 'label' ? 'aria-label' : kind;
+    return [...document.querySelectorAll(`[data-${kind}-en]`)].map(el => ({ el, attr, pt: el.getAttribute(attr), en: el.getAttribute(`data-${kind}-en`) }));
+  });
+  let language = 'pt';
+  const setLanguage = (lang) => {
+    language = lang === 'en' ? 'en' : 'pt';
+    root.lang = language === 'pt' ? 'pt-BR' : 'en';
+    translations.forEach(item => { item.el.innerHTML = item[language]; });
+    attributes.forEach(item => item.el.setAttribute(item.attr, item[language]));
+    document.querySelectorAll('[data-lang]').forEach(button => button.setAttribute('aria-pressed', String(button.dataset.lang === language)));
+    if (incompatible) notice.textContent = language === 'en'
+      ? `You're using ${system || 'another operating system'}. Mexerica only runs on Windows.`
+      : `Você está em ${system || 'outro sistema'}. O Mexerica só roda em Windows.`;
+    try { localStorage.setItem('mexerica-language', language); } catch {}
+  };
+  let storedLanguage;
+  try { storedLanguage = localStorage.getItem('mexerica-language'); } catch {}
+  setLanguage(storedLanguage);
+  document.querySelectorAll('[data-lang]').forEach(button => button.addEventListener('click', () => setLanguage(button.dataset.lang)));
+
+  // Keep the release page as fallback if GitHub is unavailable or rate-limited.
+  (async () => {
+    try {
+      const response = await fetch('https://api.github.com/repos/Oitalao/Mexerica/releases/latest', {
+        headers: { Accept: 'application/vnd.github+json' }, credentials: 'omit', referrerPolicy: 'no-referrer', signal: AbortSignal.timeout(8000)
+      });
+      if (!response.ok) return;
+      const release = await response.json();
+      const asset = release.assets?.find(item => /-instalador\.exe$/i.test(item.name));
+      if (!asset) return;
+      const url = new URL(asset.browser_download_url);
+      if (url.origin !== 'https://github.com' || !url.pathname.startsWith('/Oitalao/Mexerica/releases/download/') || !/-instalador\.exe$/i.test(url.pathname)) return;
+      downloadLinks.forEach(link => { link.href = url.href; });
+    } catch {}
+  })();
+})();
+</script>
+</body>
+</html>
