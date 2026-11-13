@@ -20,7 +20,75 @@ static class Actions
         new Op { Label = "Mover", Sub = "para pasta…", Ui = fs => CopyOrMove(fs, true) },
         new Op { Label = "Caminho", Sub = "copiar", Ui = fs => { Clipboard.SetText(string.Join("\r\n", fs)); App.Toast.Show("Caminho copiado", fs.Length == 1 ? fs[0] : $"{fs.Length} caminhos"); } },
         new Op { Label = "Terminal", Sub = "abrir aqui", Ui = Terminal },
+        new Op { Label = "Renomear", Sub = "vários de uma vez", Ui = Rename },
     };
+
+    /// Nomes novos, na ordem dada: {n} = número, {nome} = nome atual. Nome que já existe (e não é de outro da lista) ganha (1), (2)…
+    public static List<(string from, string to)> RenamePlan(string[] files, P p)
+    {
+        int n0 = (int)p.D("inicio", 1), dig = Math.Clamp((int)p.D("digitos", 2), 1, 6);
+        var model = p.S("modelo", "{nome}");
+        var mine = new HashSet<string>(files, StringComparer.OrdinalIgnoreCase);
+        var taken = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+        var plan = new List<(string, string)>();
+        for (int i = 0; i < files.Length; i++)
+        {
+            var f = files[i].TrimEnd('\\');
+            bool dir = Directory.Exists(f);
+            var ext = dir ? "" : Path.GetExtension(f);
+            var cur = dir ? Path.GetFileName(f) : Path.GetFileNameWithoutExtension(f);
+            var name = model.Replace("{n}", (n0 + i).ToString(new string('0', dig))).Replace("{nome}", cur);
+            name = Paths.CleanName(name + ".x") ?? cur; // tira caracteres proibidos (o ".x" protege um ponto no fim do nome)
+            var folder = Path.GetDirectoryName(f)!;
+            string to = Path.Combine(folder, name + ext);
+            for (int k = 1; taken.Contains(to) || ((File.Exists(to) || Directory.Exists(to)) && !mine.Contains(to)); k++)
+                to = Path.Combine(folder, $"{name} ({k}){ext}");
+            taken.Add(to);
+            plan.Add((f, to));
+        }
+        return plan;
+    }
+
+    static void Rename(string[] fs)
+    {
+        var p = Dialogs.Rename(fs);
+        if (p == null) return;
+        var plan = RenamePlan(Form.Ordered(fs, p), p).Where(x => !string.Equals(x.from, x.to, StringComparison.Ordinal)).ToList();
+        if (plan.Count == 0) { App.Toast.Show("Nada a fazer", "Os nomes já estavam assim."); return; }
+        var done = Apply(plan);
+        App.Toast.Done("Renomeados", done.Count == 1 ? Path.GetFileName(done[0].to) : $"{done.Count} arquivos", done[0].to,
+            undo: () => { Apply(done.Select(x => (x.to, x.from)).ToList()); App.Toast.Show("Desfeito", "Os nomes voltaram ao que eram."); });
+    }
+
+    /// Renomeia em duas etapas (primeiro para nomes provisórios), para que trocar nomes entre si não esbarre.
+    static List<(string from, string to)> Apply(List<(string from, string to)> plan)
+    {
+        var tmp = new List<(string tmp, string from, string to)>();
+        try
+        {
+            foreach (var (from, to) in plan)
+            {
+                var t = Path.Combine(Path.GetDirectoryName(from)!, $".mexerica-{Guid.NewGuid():N}");
+                if (Directory.Exists(from)) Directory.Move(from, t); else File.Move(from, t);
+                tmp.Add((t, from, to));
+            }
+            foreach (var (t, _, to) in tmp)
+                if (Directory.Exists(t)) Directory.Move(t, to); else File.Move(t, to);
+            return plan;
+        }
+        catch
+        {
+            // Algo deu errado (arquivo aberto em outro programa): devolve o que já foi mexido ao nome original.
+            foreach (var (t, from, to) in tmp)
+                try
+                {
+                    if (File.Exists(t)) File.Move(t, from); else if (Directory.Exists(t)) Directory.Move(t, from);
+                    else if (File.Exists(to)) File.Move(to, from); else if (Directory.Exists(to)) Directory.Move(to, from);
+                }
+                catch { }
+            throw new Exception("Não deu para renomear: algum arquivo está aberto em outro programa");
+        }
+    }
 
     static void Terminal(string[] fs)
     {

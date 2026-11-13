@@ -65,6 +65,8 @@ La rueda solo ofrece lo que tiene sentido para ese archivo: un video sin sonido 
 - Video: cortar un tramo, recortar la imagen, velocidad, dividir, sacar un fotograma o todos, extraer el audio y los subtítulos, girar, cambiar la resolución, quitar el sonido, unir
 - Audio: cortar un tramo, normalizar el volumen, pitido sobre tramos, mono y estéreo, velocidad, dividir, unir
 - PDF: organizar páginas (reordenar, girar, borrar), dividir, unir y tachar de verdad (el texto oculto desaparece)
+- PDF también: unir archivos de tipos distintos (Word, hoja de cálculo, imagen y PDF) en un solo PDF, en el orden y con el nombre que elijas; OCR que vuelve buscable un PDF escaneado, incluso con páginas de lado o al revés; numerar páginas y sellar "Doc. 01"; ajustarse a un límite de envío (comprime y, si hace falta, divide en partes); PDF/A; contraseña
+- Renombrar muchos archivos a la vez con un modelo ("Doc. {n} - {nombre}"), con vista previa y deshacer
 - Subtítulos: atrasar o adelantar el tiempo; fuentes: hoja de muestra; comprimidos: extraer y comprobar la integridad
 
 **Acciones**: compartir (Uso compartido en proximidad de Windows), dejar flotando en la pantalla, copiar o mover a una carpeta, copiar la ruta y abrir la terminal en la carpeta.

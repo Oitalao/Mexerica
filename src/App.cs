@@ -89,6 +89,17 @@ static class App
         Render(new HistoryWindow(), Path.Combine(folder, $"recentes-{language}.png"));
         Render(new WhatsNewWindow("1.1.0", "- Novidade de exemplo\n- Outra novidade"), Path.Combine(folder, $"novidades-{language}.png"));
         Render(new HelpWindow(), Path.Combine(folder, $"como-usar-{language}.png"));
+        // Janelas de ajuste das ferramentas de PDF e de juntar/renomear.
+        var docs = new[] { @"C:\Clientes\Peticao inicial.pdf", @"C:\Clientes\RG.jpg", @"C:\Clientes\Comprovante de residencia.pdf" };
+        string shot = "";
+        Form.Capture = w => Render(w, Path.Combine(folder, $"{shot}-{language}.png"));
+        foreach (var (name, ask) in new (string, Func<string[], P?>)[]
+        {
+            ("juntar", Dialogs.MergeName), ("limite", Dialogs.SizeLimit), ("carimbar", Dialogs.Stamp),
+            ("senha", Dialogs.PdfProtect), ("renomear", Dialogs.Rename),
+        })
+        { shot = name; ask(docs); }
+        Form.Capture = null;
         var test = Path.Combine(folder, "pasta-teste-" + language);
         if (Directory.Exists(test)) Directory.Delete(test, true);
         Directory.CreateDirectory(test);
@@ -354,6 +365,10 @@ static class App
         catch (OperationCanceledException) { Trim(); return; }
         catch (Exception ex) { Log.Write(ex.ToString()); Toast.Show("Não deu certo", Friendly(ex), error: true); return; }
         string what = files.Length == 1 ? Path.GetFileName(files[0].TrimEnd('\\')) : $"{files.Length} arquivos";
+        // Ordem escolhida na janela de ajustes (juntar, carimbar): os arquivos seguem nela, e os motores sabem a ordem.
+        if (!ReferenceEquals(p, P.None) && p.ContainsKey("ordem")) files = Form.Ordered(files, p);
+        if (!ReferenceEquals(p, P.None)) p["arquivos"] = string.Join("\n", files);
+        var started = DateTime.Now.AddSeconds(-2);
         var job = new Job();
         Job.Current = job;
         Paths.Enter();
@@ -393,13 +408,51 @@ static class App
         if (errors.Count == 0)
         {
             if (outputs.Count == 0) { Toast.Show("Nada a fazer", "Os arquivos já estavam assim."); return; }
-            Toast.Show("Pronto", outputs.Count == 1 ? Path.GetFileName(outputs[0].TrimEnd('\\')) : $"{outputs.Count} arquivos criados", outputs[0]);
+            Toast.Done("Pronto", outputs.Count == 1 ? Path.GetFileName(outputs[0].TrimEnd('\\')) : $"{outputs.Count} arquivos criados", outputs[0], UndoFor(outputs, files, started));
             if (Config.Now.RevealWhenDone) Toast.Reveal(outputs[0]);
         }
         else if (outputs.Count > 0)
             Toast.Show($"{outputs.Count} prontos, {errors.Count} com erro", errors[0], outputs[0], error: true);
         else
             Toast.Show("Não deu certo", errors[0], error: true);
+    }
+
+    /// "Desfazer" do aviso: manda para a Lixeira só o que este trabalho criou (arquivo ou pasta novos, que não são
+    /// os originais). Se algum resultado for um arquivo que já existia (edição no lugar), não oferece desfazer.
+    static Action? UndoFor(List<string> outputs, string[] inputs, DateTime started)
+    {
+        var made = new List<string>();
+        foreach (var o in outputs)
+        {
+            var path = o.TrimEnd('\\');
+            if (inputs.Any(i => string.Equals(i.TrimEnd('\\'), path, StringComparison.OrdinalIgnoreCase))) return null;
+            DateTime created;
+            if (File.Exists(path)) created = File.GetCreationTime(path);
+            else if (Directory.Exists(path)) created = Directory.GetCreationTime(path);
+            else continue;
+            if (created < started) return null;
+            made.Add(path);
+            // Ferramentas que entregam várias partes (limite de envio) devolvem a primeira; as irmãs vêm junto.
+            var name = Path.GetFileNameWithoutExtension(path);
+            int at = name.LastIndexOf(" - parte 1 de ", StringComparison.Ordinal);
+            if (at > 0 && File.Exists(path))
+                foreach (var sib in Directory.GetFiles(Path.GetDirectoryName(path)!, name[..at] + " - parte * de " + name[(at + 14)..] + Path.GetExtension(path)))
+                    if (File.GetCreationTime(sib) >= started && !made.Contains(sib, StringComparer.OrdinalIgnoreCase)) made.Add(sib);
+        }
+        if (made.Count == 0) return null;
+        return () =>
+        {
+            int ok = 0;
+            foreach (var m in made)
+                try
+                {
+                    if (File.Exists(m)) Microsoft.VisualBasic.FileIO.FileSystem.DeleteFile(m, Microsoft.VisualBasic.FileIO.UIOption.OnlyErrorDialogs, Microsoft.VisualBasic.FileIO.RecycleOption.SendToRecycleBin);
+                    else if (Directory.Exists(m)) Microsoft.VisualBasic.FileIO.FileSystem.DeleteDirectory(m, Microsoft.VisualBasic.FileIO.UIOption.OnlyErrorDialogs, Microsoft.VisualBasic.FileIO.RecycleOption.SendToRecycleBin);
+                    ok++;
+                }
+                catch (Exception ex) { Log.Write("desfazer: " + ex.Message); }
+            Toast.Show("Desfeito", ok == 1 ? "O arquivo novo foi para a Lixeira." : $"{ok} arquivos novos foram para a Lixeira.");
+        };
     }
 
     /// Se houver PDF com senha entre os arquivos, pede a senha (uma vez) e devolve a lista com cópias

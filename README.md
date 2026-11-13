@@ -63,6 +63,8 @@ A roda só oferece o que faz sentido para aquele arquivo: vídeo sem som não of
 - Vídeo: cortar trecho, recortar a imagem, velocidade, dividir, tirar um quadro ou todos, extrair o áudio e as legendas, girar, mudar a resolução, tirar o som, juntar
 - Áudio: cortar trecho, normalizar o volume, bipe por cima de trechos, mono e estéreo, velocidade, dividir, juntar
 - PDF: organizar páginas (reordenar, girar, apagar), dividir, juntar e tarjar de verdade (o texto escondido some)
+- PDF também: juntar arquivos de tipos diferentes (Word, planilha, imagem e PDF) num PDF só, na ordem e com o nome que você escolher; OCR que deixa o PDF escaneado pesquisável, mesmo com página de lado ou de cabeça para baixo; numerar páginas e carimbar "Doc. 01"; caber num limite de envio (comprime e, se preciso, divide em partes); PDF/A; senha
+- Renomear vários arquivos de uma vez por modelo ("Doc. {n} - {nome}"), com prévia e desfazer
 - Legendas: atrasar ou adiantar o tempo; fontes: folha de amostra; compactados: extrair e testar a integridade
 
 **Ações**: compartilhar (Compartilhamento por Proximidade do Windows), deixar flutuando na tela, copiar ou mover para uma pasta, copiar o caminho e abrir o terminal na pasta.

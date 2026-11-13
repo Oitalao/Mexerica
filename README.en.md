@@ -65,6 +65,8 @@ The wheel only offers what makes sense for that file: a video without sound does
 - Video: cut a section, crop the picture, speed, split, take one frame or all of them, extract the audio and subtitles, rotate, change the resolution, remove the sound, join
 - Audio: cut a section, normalize the volume, beep over sections, mono and stereo, speed, split, join
 - PDF: organize pages (reorder, rotate, delete), split, join and redact for real (the hidden text is removed)
+- PDF also: join files of different types (Word, spreadsheet, image and PDF) into one PDF, in the order and with the name you choose; OCR that makes a scanned PDF searchable, even with pages sideways or upside down; page numbers and a "Doc. 01" stamp; fit an upload limit (compresses and, if needed, splits into parts); PDF/A; password
+- Rename many files at once from a pattern ("Doc. {n} - {name}"), with a preview and undo
 - Subtitles: shift the timing earlier or later; fonts: sample sheet; archives: extract and test integrity
 
 **Actions**: share (Windows Nearby Sharing), keep floating on the screen, copy or move to a folder, copy the path and open the terminal in the folder.

@@ -117,6 +117,13 @@ static class Catalog
     /// Conversões embutidas mais as dos módulos (os módulos acrescentam destinos e, quando pedem, substituem os embutidos).
     static List<Op> Conversions(string[] files)
     {
+        var list = ConversionsOnly(files);
+        if (files.Length > 1) AddPdfMerge(list, files, Common(files));
+        return list;
+    }
+
+    static List<Op> ConversionsOnly(string[] files)
+    {
         var list = BuiltInConversions(files);
         var extra = Modules.TargetsFor(files);
         if (extra.Count == 0) return list;
@@ -133,6 +140,53 @@ static class Catalog
         // Sem LibreOffice, o convite para instalá-lo só faz sentido se nenhum módulo resolver sozinho.
         if (list.Count > 1) list.RemoveAll(o => o.Ui != null && o.Label == "LibreOffice");
         return list;
+    }
+
+    // ---------- Vários arquivos de tipos diferentes que viram PDF (ex.: DOCX + PDF + foto) ----------
+
+    static bool MaybePdf(Kind k) => k is Kind.Pdf or Kind.Image or Kind.Svg or Kind.Doc or Kind.Markdown or Kind.Text
+        or Kind.Html or Kind.Epub or Kind.Slides or Kind.Sheet or Kind.Csv;
+
+    /// Como este arquivo vira PDF (a mesma conversão que a roda dele oferece, inclusive a dos módulos). Null se já é PDF ou não dá.
+    static Func<string, P, Task<string?>>? ToPdf(string f) =>
+        KindOf(f) == Kind.Pdf ? null : ConversionsOnly(new[] { f }).FirstOrDefault(o => o.Label == "PDF" && o.One != null)?.One;
+
+    /// Todos viram PDF? Confere um arquivo de cada extensão, para a roda abrir rápido.
+    static bool AllPdfAble(string[] files) =>
+        files.Length > 1 && Qpdf.Ok && files.All(f => MaybePdf(KindOf(f))) &&
+        files.GroupBy(f => Path.GetExtension(f), StringComparer.OrdinalIgnoreCase)
+             .All(g => KindOf(g.First()) == Kind.Pdf || ToPdf(g.First()) != null);
+
+    /// Converte o que não é PDF e junta tudo num PDF só, na ordem em que os arquivos vieram (a da janela do Explorador).
+    static async Task<string?> MergeAsPdf(string[] files, P p)
+    {
+        var dst = Paths.Out(files[0], "pdf", name: p.S("nome")); // reserva o nome antes dos PDFs intermediários
+        var temps = new List<string>();
+        try
+        {
+            var parts = new List<string>();
+            foreach (var f in files)
+            {
+                Job.Token.ThrowIfCancellationRequested();
+                if (KindOf(f) == Kind.Pdf) { parts.Add(f); continue; }
+                var one = ToPdf(f) ?? throw new Exception("Tipo de arquivo não suportado");
+                var r = await one(f, p) ?? throw new Exception("Tipo de arquivo não suportado");
+                temps.Add(r);
+                parts.Add(r);
+            }
+            return await Pdf.Merge(parts.ToArray(), to: dst);
+        }
+        finally { foreach (var t in temps) Paths.TryDelete(t); }
+    }
+
+    static void AddPdfMerge(List<Op> list, string[] files, Kind? k)
+    {
+        if (!AllPdfAble(files)) return;
+        // Tipos misturados: também converter cada um para PDF (o que já é PDF fica como está).
+        if (k == null && !list.Any(o => o.Label == "PDF") && files.Any(f => KindOf(f) != Kind.Pdf))
+            list.Insert(0, new Op { Label = "PDF", Sub = subs["pdf"], One = (f, p) => ToPdf(f) is { } one ? one(f, p) : Task.FromResult<string?>(null) });
+        if (!list.Any(o => o.Label == "Juntar"))
+            list.Insert(k == null ? 0 : list.Count, TA("Juntar", "um PDF só", MergeAsPdf, Dialogs.MergeName));
     }
 
     static List<Op> BuiltInConversions(string[] files)
@@ -223,7 +277,7 @@ static class Catalog
             if (Bg.Ok) list.Add(T("Remover fundo", "com IA", Sync(Images.RemoveBackground)));
             if (Meta.Ok) list.Add(T("Metadados", "ver e editar", (f, p) => Meta.Apply(f, p).AsNullable(), fs => MetaWindow.Ask(fs)));
             list.Add(new Op { Label = "Ler QR", Sub = "códigos", All = (fs, _) => Task.Run(() => QrWindow.Read(fs)), Show = QrWindow.Show });
-            list.Add(TA("PDF", many ? "juntar em um" : "imagem em PDF", (fs, _) => Task.Run(() => (string?)Images.ToPdf(fs))));
+            list.Add(TA("PDF", many ? "juntar em um" : "imagem em PDF", (fs, p) => Task.Run(() => (string?)Images.ToPdf(fs, p.S("nome"))), many ? Dialogs.MergeName : null));
             if (many) list.Add(TA("Colagem", "uma imagem só", (fs, p) => Task.Run(() => (string?)Images.Collage(fs, p)), Dialogs.Collage));
         }
         if (k == Kind.Video && Ff.Ok)
@@ -239,7 +293,7 @@ static class Catalog
             list.Add(T("Tamanho", "resolução", (f, p) => Ff.ResizeVideo(f, p).AsNullable(), Dialogs.ResizeVideo));
             list.Add(T("Mudo", "tirar o som", (f, _) => Ff.Mute(f).AsNullable()));
             if (Meta.Ok) list.Add(T("Metadados", "ver e editar", (f, p) => Meta.Apply(f, p).AsNullable(), fs => MetaWindow.Ask(fs)));
-            if (many) list.Add(TA("Juntar", "um vídeo só", (fs, _) => Ff.Concat(fs, true).AsNullable()));
+            if (many) list.Add(TA("Juntar", "um vídeo só", (fs, p) => Ff.Concat(fs, true, p.S("nome")).AsNullable(), Dialogs.MergeName));
         }
         if (k == Kind.Audio && Ff.Ok)
         {
@@ -251,7 +305,7 @@ static class Catalog
             list.Add(T("Velocidade", "acelerar", (f, p) => Ff.Speed(f, p).AsNullable(), Dialogs.Speed));
             if (one) list.Add(T("Dividir", "em partes", (f, p) => Ff.Split(f, p).AsNullable(), fs => MediaWindow.Ask(fs[0], MediaMode.Split)));
             if (Meta.Ok) list.Add(T("Metadados", "ver e editar", (f, p) => Meta.Apply(f, p).AsNullable(), fs => MetaWindow.Ask(fs)));
-            if (many) list.Add(TA("Juntar", "um áudio só", (fs, _) => Ff.Concat(fs, false).AsNullable()));
+            if (many) list.Add(TA("Juntar", "um áudio só", (fs, p) => Ff.Concat(fs, false, p.S("nome")).AsNullable(), Dialogs.MergeName));
         }
         if (k == Kind.Pdf)
         {
@@ -262,12 +316,20 @@ static class Catalog
                 if (!many || files.All(f => Pdf.Pages(f) > 1))
                     list.Add(T("Dividir", "em partes", (f, p) => Pdf.Split(f, p).AsNullable(), Dialogs.SplitPdf));
                 if (one && Gs.Ok) list.Add(T("Tarjar", "esconder trechos", (f, p) => Pdf.Redact(f, p).AsNullable(), fs => PdfRedactWindow.Ask(fs[0])));
-                if (many) list.Add(TA("Juntar", "um PDF só", (fs, _) => Pdf.Merge(fs).AsNullable()));
+                if (many) list.Add(TA("Juntar", "um PDF só", (fs, p) => Pdf.Merge(fs, name: p.S("nome")).AsNullable(), Dialogs.MergeName));
+                list.Add(T("Limite", "tamanho de envio", PdfExtras.FitLimit, Dialogs.SizeLimit));
+                list.Add(T("Carimbar", "Doc. 01, páginas", PdfExtras.Stamp, Dialogs.Stamp));
+                list.Add(T("Senha", "proteger", PdfExtras.Protect, Dialogs.PdfProtect));
             }
+            if (PdfExtras.OcrOk) list.Add(T("OCR", "texto pesquisável", PdfExtras.Ocr));
+            if (Gs.Ok) list.Add(T("PDF/A", "arquivamento", PdfExtras.PdfA));
             if (Meta.Ok) list.Add(T("Metadados", "ver e editar", (f, p) => Meta.Apply(f, p).AsNullable(), fs => MetaWindow.Ask(fs)));
         }
         if (k == Kind.Archive)
             list.Add(T("Extrair", "aqui", (f, _) => Archives.Extract(f).AsNullable()));
+        // Tipos diferentes (ou documentos do mesmo tipo) que viram PDF: juntar tudo num PDF só.
+        if (many && k is not (Kind.Pdf or Kind.Image) && AllPdfAble(files))
+            list.Insert(0, TA("Juntar", "um PDF só", MergeAsPdf, Dialogs.MergeName));
 
         list.Add(TA("ZIP", "compactar", (fs, _) => Task.Run(() => (string?)Archives.Zip(fs))));
         if (k is Kind.Folder or Kind.Other or null) list.Add(TA("TAR.GZ", "compactar", (fs, _) => Archives.TarGz(fs).AsNullable()));

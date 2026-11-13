@@ -14,3 +14,6 @@ build-tools/
 
 # caches do Python
 __pycache__/
+
+# registros do Hallmark (capturas e log do site)
+.hallmark/

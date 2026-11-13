@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.IO;
 using System.IO.Pipes;
@@ -155,6 +155,8 @@ static class ShellMenu
         foreach (var (key, one, many) in new[] { ("<outro>", new[] { x1 }, new[] { x1, x1 }), ("<misto>", new[] { x2, x3 }, new[] { x2, x3 }) })
         {
             foreach (var op in Tools(one, many)) Line(key, "F", Mode.Tools, op.Label, Text(op));
+            // Documentos, PDFs e imagens misturados: juntar em um PDF (se a seleção não servir, avisa na hora).
+            if (key == "<misto>" && Qpdf.Ok) Line(key, "F", Mode.Tools, "Juntar", Tr.T("Juntar") + " (" + Tr.T("um PDF só") + ")");
             Line(key, "R", Mode.Convert, Wheel, "Abrir a roda…");
         }
         Directory.CreateDirectory(Paths.Data);

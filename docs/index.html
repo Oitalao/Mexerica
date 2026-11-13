@@ -2,28 +2,50 @@
 <html lang="pt-BR">
 <head>
 <meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#0b0b0e">
 <title>Mexerica</title>
 <meta name="description" content="Converta e edite arquivos sem abrir programa nenhum: arraste, aperte Espaço e solte na opção. Grátis, de código aberto, para Windows." data-content-en="Convert and edit files without opening another app: drag, press Space and drop on an option. Free, open source, for Windows.">
+<link rel="canonical" href="https://oitalao.github.io/Mexerica/">
 <link rel="icon" href="assets/mexerica-1024.png">
 <meta property="og:title" content="Mexerica">
 <meta property="og:description" content="Converta e edite arquivos sem abrir programa nenhum: arraste, aperte Espaço e solte na opção. Grátis, de código aberto, para Windows." data-content-en="Convert and edit files without opening another app: drag, press Space and drop on an option. Free, open source, for Windows.">
-<meta property="og:image" content="assets/mexerica-1024.png">
+<meta property="og:image" content="https://oitalao.github.io/Mexerica/assets/mexerica-1024.png">
+<meta property="og:url" content="https://oitalao.github.io/Mexerica/">
 <meta property="og:type" content="website">
 <meta name="twitter:card" content="summary">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Geologica:wght,CRSV,SHRP@200..500,0,0..100&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="styles.css?v=20261109-codex-3">
+<link href="https://fonts.googleapis.com/css2?family=Geist:wght@400;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="styles.css?v=20261113c">
+<script>document.documentElement.classList.add('js');</script>
 </head>
-<body>
+<body data-tone="convert">
+
+<svg width="0" height="0" style="position:absolute" aria-hidden="true">
+  <defs>
+    <linearGradient id="sky" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#5fb4ff"/><stop offset="1" stop-color="#bfe2ff"/></linearGradient>
+    <symbol id="file-photo" viewBox="0 0 64 76">
+      <path d="M6 2h36l16 16v54a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2z" fill="#f4f5f8"/>
+      <path d="M42 2v14a2 2 0 0 0 2 2h14" fill="#d5d8e0"/>
+      <rect x="10" y="22" width="44" height="32" rx="2" fill="url(#sky)"/>
+      <circle cx="44" cy="31" r="5" fill="#ffd23f"/>
+      <path d="M10 54l13-15 9 9 7-6 15 12z" fill="#2f9e5b"/>
+      <path d="M10 54l13-15 6 6-9 9z" fill="#257d48"/>
+    </symbol>
+    <symbol id="file-jpg" viewBox="0 0 64 76"><use href="#file-photo"/><rect x="10" y="60" width="26" height="10" rx="2" fill="#6b7080"/><text x="23" y="68" text-anchor="middle" font-family="Segoe UI, sans-serif" font-size="7.5" font-weight="700" fill="#fff">JPG</text></symbol>
+    <symbol id="file-webp" viewBox="0 0 64 76"><use href="#file-photo"/><rect x="10" y="60" width="30" height="10" rx="2" fill="#ff8a1f"/><text x="25" y="68" text-anchor="middle" font-family="Segoe UI, sans-serif" font-size="7.5" font-weight="700" fill="#1a1206">WEBP</text></symbol>
+    <symbol id="cursor" viewBox="0 0 24 28"><path d="M3 2v21l5.5-5.2 4.2 8.6 3.6-1.8-4.2-8.4H20z" fill="#fff" stroke="#111" stroke-width="1.5" stroke-linejoin="round"/></symbol>
+  </defs>
+</svg>
+
+<div class="aurora" aria-hidden="true"><span class="blob blob--convert"></span><span class="blob blob--tools"></span><span class="blob blob--actions"></span><span class="blob blob--deep"></span></div>
+
+<a class="skip" href="#top" data-en="Skip to content">Pular para o conteúdo</a>
 
 <nav class="nav" aria-label="Navegação principal" data-label-en="Main navigation">
-  <div class="container">
-    <a class="nav-mark" href="#top">
-      <img src="assets/mexerica-1024.png" alt="" width="28" height="28">
-      Mexerica
-    </a>
+  <div class="container nav-bar">
+    <a class="nav-mark" href="#top"><img src="assets/mexerica-1024.png" alt="" width="28" height="28">Mexerica</a>
     <div class="nav-sections">
       <a href="#como-funciona" data-en="How it works">Como funciona</a>
       <a href="#o-que-faz" data-en="What it does">O que faz</a>
@@ -31,141 +53,142 @@
     </div>
     <div class="nav-actions">
       <div class="language-switch" role="group" aria-label="Idioma" data-label-en="Language">
-        <button type="button" data-lang="pt" aria-pressed="true" aria-label="Português">PT</button><span aria-hidden="true">|</span><button type="button" data-lang="en" aria-pressed="false" aria-label="English">EN</button>
+        <button type="button" data-lang="pt" aria-pressed="true" aria-label="Português">PT</button>
+        <button type="button" data-lang="en" aria-pressed="false" aria-label="English">EN</button>
       </div>
-      <a class="btn btn--primary btn--sm" href="https://github.com/Oitalao/Mexerica/releases/latest" data-en="Download for Windows">Baixar para Windows</a>
+      <a class="btn btn--sm" href="https://github.com/Oitalao/Mexerica/releases/latest" data-en="Download">Baixar</a>
     </div>
   </div>
 </nav>
 
 <main id="top">
 
-<section class="hero">
-  <div class="container">
+<section class="hero" data-tone="convert">
+  <div class="container hero-inner">
     <div class="hero-text">
-      <h1 data-en="Drag.&lt;br&gt;Press Space.&lt;br&gt;&lt;span&gt;Transform.&lt;/span&gt;">Arraste.<br>Aperte Espaço.<br><span>Transforme.</span></h1>
-      <p class="lead" data-en="Convert and edit photos, video, audio and PDFs, right on Windows.">Converta e edite fotos, vídeos, áudio e PDF, direto no Windows.</p>
+      <h1 class="hero-head" data-en="Drag.&lt;br&gt;Press Space.&lt;br&gt;Transform.">Arraste.<br>Aperte Espaço.<br>Transforme.</h1>
+      <p class="lead hero-lead" data-en="Convert and edit photos, video, audio and PDFs, right on Windows.">Converta e edite fotos, vídeos, áudio e PDF, direto no Windows.</p>
       <div class="hero-actions">
-        <a class="btn btn--primary" href="https://github.com/Oitalao/Mexerica/releases/latest" data-en="Download for Windows">Baixar para Windows</a>
-        <a class="hero-demo-link" href="#como-funciona" data-en="See how it works &lt;span aria-hidden=&quot;true&quot;&gt;↓&lt;/span&gt;">Veja como funciona <span aria-hidden="true">↓</span></a>
+        <a class="btn" href="https://github.com/Oitalao/Mexerica/releases/latest" data-en="Download for Windows">Baixar para Windows</a>
+        <a class="btn btn--glass" href="#como-funciona" data-en="See how it works">Veja como funciona</a>
       </div>
       <p class="hero-detail" data-en="Free. Open source. Windows 10 and 11.">Grátis. Código aberto. Windows 10 e 11.</p>
       <p class="platform-notice" id="platform-notice" role="status"></p>
-      <div class="motion-notice" id="motion-notice" hidden>
-        <p data-en="Your system is set to reduce motion.">Seu sistema está com as animações reduzidas.</p>
-        <button type="button" id="motion-enable" data-en="Enable animations">Ativar animações</button>
+    </div>
+
+    <fieldset class="switcher">
+      <legend class="visually-hidden" data-en="Show the wheel for">Mostrar a roda de</legend>
+      <div class="switcher-stage">
+        <span class="intro-drag" aria-hidden="true"><span class="file-icon file-icon--jpg" aria-hidden="true"><svg viewBox="0 0 64 76"><use href="#file-jpg"/></svg><span class="file-name">foto2.jpg</span></span><svg class="cursor" viewBox="0 0 24 28"><use href="#cursor"/></svg></span>
+        <kbd class="intro-key" aria-hidden="true" data-en="Space">Espaço</kbd>
+        <figure class="switcher-panel" data-panel="converter" role="img" aria-label="Roda Converter aberta sobre foto2.jpg: WEBP selecionado, com PNG, HEIC, AVIF, TIFF, BMP, GIF, ICO e PDF ao redor." data-label-en="Convert wheel open over foto2.jpg: WebP selected, with PNG, HEIC, AVIF, TIFF, BMP, GIF, ICO and PDF around it."><svg class="wheel wheel--convert live" viewBox="0 0 560 560" data-wheel="converter" aria-hidden="true"><g class="seg" data-i="0"><path d="M200.64 48.21A245 245 0 0 1 359.36 48.21L301.38 217.56A66 66 0 0 0 258.62 217.56Z"/><g transform="translate(280.0 110.5)"><text class="lab" style="font-size:16px">PNG</text><g transform="translate(0 13.5)"><text class="sub" style="font-size:9.5px" data-en="image">imagem</text></g></g></g><g class="seg is-sel" data-i="1"><path d="M368.20 51.43A245 245 0 0 1 489.79 153.45L336.51 245.91A66 66 0 0 0 303.76 218.43Z"/><g transform="translate(387.7 149.7)"><text class="lab" style="font-size:16px">WEBP</text><g transform="translate(0 13.5)"><text class="sub" style="font-size:9.5px" data-en="image">imagem</text></g></g></g><g class="seg" data-i="2"><path d="M494.49 161.60A245 245 0 0 1 522.05 317.90L345.21 290.21A66 66 0 0 0 337.78 248.10Z"/><g transform="translate(445.0 248.9)"><text class="lab" style="font-size:16px">HEIC</text><g transform="translate(0 13.5)"><text class="sub" style="font-size:9.5px" data-en="image">imagem</text></g></g></g><g class="seg" data-i="3"><path d="M520.42 327.17A245 245 0 0 1 441.06 464.62L323.39 329.74A66 66 0 0 0 344.77 292.71Z"/><g transform="translate(425.1 361.8)"><text class="lab" style="font-size:16px">AVIF</text><g transform="translate(0 13.5)"><text class="sub" style="font-size:9.5px" data-en="image">imagem</text></g></g></g><g class="seg" data-i="4"><path d="M433.85 470.67A245 245 0 0 1 284.70 524.95L281.27 345.99A66 66 0 0 0 321.45 331.36Z"/><g transform="translate(337.3 435.4)"><text class="lab" style="font-size:16px">TIFF</text><g transform="translate(0 13.5)"><text class="sub" style="font-size:9.5px" data-en="image">imagem</text></g></g></g><g class="seg" data-i="5"><path d="M275.30 524.95A245 245 0 0 1 126.15 470.67L238.55 331.36A66 66 0 0 0 278.73 345.99Z"/><g transform="translate(222.7 435.4)"><text class="lab" style="font-size:16px">BMP</text><g transform="translate(0 13.5)"><text class="sub" style="font-size:9.5px" data-en="image">imagem</text></g></g></g><g class="seg" data-i="6"><path d="M118.94 464.62A245 245 0 0 1 39.58 327.17L215.23 292.71A66 66 0 0 0 236.61 329.74Z"/><g transform="translate(134.9 361.8)"><text class="lab" style="font-size:16px">GIF</text><g transform="translate(0 13.5)"><text class="sub" style="font-size:9.5px" data-en="animation">animação</text></g></g></g><g class="seg" data-i="7"><path d="M37.95 317.90A245 245 0 0 1 65.51 161.60L222.22 248.10A66 66 0 0 0 214.79 290.21Z"/><g transform="translate(115.0 248.9)"><text class="lab" style="font-size:16px">ICO</text><g transform="translate(0 13.5)"><text class="sub" style="font-size:9.5px" data-en="icon">ícone</text></g></g></g><g class="seg" data-i="8"><path d="M70.21 153.45A245 245 0 0 1 191.80 51.43L256.24 218.43A66 66 0 0 0 223.49 245.91Z"/><g transform="translate(172.3 149.7)"><text class="lab" style="font-size:16px">PDF</text><g transform="translate(0 13.5)"><text class="sub" style="font-size:9.5px" data-en="document">documento</text></g></g></g><circle class="hub" cx="280" cy="280" r="62"/><g transform="translate(280 277)"><text class="title" style="font-size:14px" data-en="Convert">Converter</text></g><g transform="translate(280 294)"><text class="file" style="font-size:10.5px">foto2.jpg</text></g></svg></figure>
+        <figure class="switcher-panel" data-panel="ferramentas" role="img" aria-label="Roda Ferramentas sobre foto2.jpg: Comprimir, Tamanho, Girar, Editar, Fundo, Metadados, Ler QR, PDF e ZIP." data-label-en="Tools wheel over foto2.jpg: Compress, Resize, Rotate, Edit, Background, Metadata, Read QR, PDF and ZIP."><svg class="wheel wheel--tools live" viewBox="0 0 560 560" data-wheel="foto" aria-hidden="true"><g class="seg" data-i="0"><path d="M200.64 48.21A245 245 0 0 1 359.36 48.21L301.38 217.56A66 66 0 0 0 258.62 217.56Z"/><g transform="translate(280.0 110.5)"><text class="lab" style="font-size:13px" data-en="Compress">Comprimir</text><g transform="translate(0 13.5)"><text class="sub" style="font-size:9.5px" data-en="smaller">menor</text></g></g></g><g class="seg is-sel" data-i="1"><path d="M368.20 51.43A245 245 0 0 1 489.79 153.45L336.51 245.91A66 66 0 0 0 303.76 218.43Z"/><g transform="translate(387.7 149.7)"><text class="lab" style="font-size:13px" data-en="Resize">Tamanho</text><g transform="translate(0 13.5)"><text class="sub" style="font-size:9.5px" data-en="resize">redimensionar</text></g></g></g><g class="seg" data-i="2"><path d="M494.49 161.60A245 245 0 0 1 522.05 317.90L345.21 290.21A66 66 0 0 0 337.78 248.10Z"/><g transform="translate(445.0 248.9)"><text class="lab" style="font-size:16px" data-en="Rotate">Girar</text><g transform="translate(0 13.5)"><text class="sub" style="font-size:9.5px" data-en="or mirror">ou espelhar</text></g></g></g><g class="seg" data-i="3"><path d="M520.42 327.17A245 245 0 0 1 441.06 464.62L323.39 329.74A66 66 0 0 0 344.77 292.71Z"/><g transform="translate(425.1 361.8)"><text class="lab" style="font-size:13px" data-en="Edit">Editar</text><g transform="translate(0 13.5)"><text class="sub" style="font-size:9.5px" data-en="crop, adjust…">recortar, ajustar…</text></g></g></g><g class="seg" data-i="4"><path d="M433.85 470.67A245 245 0 0 1 284.70 524.95L281.27 345.99A66 66 0 0 0 321.45 331.36Z"/><g transform="translate(337.3 435.4)"><text class="lab" style="font-size:16px" data-en="Background">Fundo</text><g transform="translate(0 13.5)"><text class="sub" style="font-size:9.5px" data-en="color and margin">cor e margem</text></g></g></g><g class="seg" data-i="5"><path d="M275.30 524.95A245 245 0 0 1 126.15 470.67L238.55 331.36A66 66 0 0 0 278.73 345.99Z"/><g transform="translate(222.7 435.4)"><text class="lab" style="font-size:13px" data-en="Metadata">Metadados</text><g transform="translate(0 13.5)"><text class="sub" style="font-size:9.5px" data-en="view and edit">ver e editar</text></g></g></g><g class="seg" data-i="6"><path d="M118.94 464.62A245 245 0 0 1 39.58 327.17L215.23 292.71A66 66 0 0 0 236.61 329.74Z"/><g transform="translate(134.9 361.8)"><text class="lab" style="font-size:13px" data-en="Read QR">Ler QR</text><g transform="translate(0 13.5)"><text class="sub" style="font-size:9.5px" data-en="codes">códigos</text></g></g></g><g class="seg" data-i="7"><path d="M37.95 317.90A245 245 0 0 1 65.51 161.60L222.22 248.10A66 66 0 0 0 214.79 290.21Z"/><g transform="translate(115.0 248.9)"><text class="lab" style="font-size:16px">PDF</text><g transform="translate(0 13.5)"><text class="sub" style="font-size:9.5px" data-en="image in PDF">imagem em PDF</text></g></g></g><g class="seg" data-i="8"><path d="M70.21 153.45A245 245 0 0 1 191.80 51.43L256.24 218.43A66 66 0 0 0 223.49 245.91Z"/><g transform="translate(172.3 149.7)"><text class="lab" style="font-size:16px">ZIP</text><g transform="translate(0 13.5)"><text class="sub" style="font-size:9.5px" data-en="compress">compactar</text></g></g></g><circle class="hub" cx="280" cy="280" r="62"/><g transform="translate(280 277)"><text class="title" style="font-size:14px" data-en="Tools">Ferramentas</text></g><g transform="translate(280 294)"><text class="file" style="font-size:10.5px">foto2.jpg</text></g></svg></figure>
+        <figure class="switcher-panel" data-panel="acoes" role="img" aria-label="Roda Ações sobre foto2.jpg: Compartilhar, Flutuar, Copiar, Mover, Caminho e Terminal." data-label-en="Actions wheel over foto2.jpg: Share, Float, Copy, Move, Path and Terminal."><svg class="wheel wheel--actions live" viewBox="0 0 560 560" data-wheel="acoes" aria-hidden="true"><g class="seg" data-i="0"><path d="M180.93 100.53A205 205 0 0 1 379.07 100.53L311.90 222.22A66 66 0 0 0 248.10 222.22Z"/><g transform="translate(280.0 138.5)"><text class="lab" style="font-size:13px" data-en="Share">Compartilhar</text><g transform="translate(0 14.5)"><text class="sub" style="font-size:10.5px" data-en="close by">por perto</text></g></g></g><g class="seg is-sel" data-i="1"><path d="M385.89 104.47A205 205 0 0 1 484.96 276.06L345.99 278.73A66 66 0 0 0 314.09 223.49Z"/><g transform="translate(400.8 208.2)"><text class="lab" style="font-size:14.5px" data-en="Float">Flutuar</text><g transform="translate(0 14.5)"><text class="sub" style="font-size:10.5px" data-en="leave at hand">deixar à mão</text></g></g></g><g class="seg" data-i="2"><path d="M484.96 283.94A205 205 0 0 1 385.89 455.53L314.09 336.51A66 66 0 0 0 345.99 281.27Z"/><g transform="translate(400.8 347.8)"><text class="lab" style="font-size:14.5px" data-en="Copy">Copiar</text><g transform="translate(0 14.5)"><text class="sub" style="font-size:10.5px" data-en="to folder…">para pasta…</text></g></g></g><g class="seg" data-i="3"><path d="M379.07 459.47A205 205 0 0 1 180.93 459.47L248.10 337.78A66 66 0 0 0 311.90 337.78Z"/><g transform="translate(280.0 417.5)"><text class="lab" style="font-size:19px" data-en="Move">Mover</text><g transform="translate(0 14.5)"><text class="sub" style="font-size:10.5px" data-en="to folder…">para pasta…</text></g></g></g><g class="seg" data-i="4"><path d="M174.11 455.53A205 205 0 0 1 75.04 283.94L214.01 281.27A66 66 0 0 0 245.91 336.51Z"/><g transform="translate(159.2 347.8)"><text class="lab" style="font-size:14.5px" data-en="Path">Caminho</text><g transform="translate(0 14.5)"><text class="sub" style="font-size:10.5px" data-en="copy">copiar</text></g></g></g><g class="seg" data-i="5"><path d="M75.04 276.06A205 205 0 0 1 174.11 104.47L245.91 223.49A66 66 0 0 0 214.01 278.73Z"/><g transform="translate(159.2 208.2)"><text class="lab" style="font-size:14.5px">Terminal</text><g transform="translate(0 14.5)"><text class="sub" style="font-size:10.5px" data-en="open here">abrir aqui</text></g></g></g><circle class="hub" cx="280" cy="280" r="62"/><g transform="translate(280 277)"><text class="title" style="font-size:14px" data-en="Actions">Ações</text></g><g transform="translate(280 294)"><text class="file" style="font-size:10.5px">foto2.jpg</text></g></svg></figure>
+        <span class="intro-done" aria-hidden="true"><span class="file-icon" aria-hidden="true"><svg viewBox="0 0 64 76"><use href="#file-photo"/><rect class="badge" x="10" y="60" width="30" height="10" rx="2"/><text class="badge-text" x="25" y="68">WEBP</text></svg><span class="file-name">foto2.webp</span></span></span>
       </div>
-    </div>
-    <div class="hero-visual">
-      <fieldset class="switcher">
-        <legend class="visually-hidden" data-en="Show the wheel for">Mostrar a roda de</legend>
-        <div class="switcher-tabs">
-          <input type="radio" name="wheel" id="wheel-converter" checked><label for="wheel-converter" data-en="Convert">Converter</label>
-          <input type="radio" name="wheel" id="wheel-ferramentas"><label for="wheel-ferramentas" data-en="Tools">Ferramentas</label>
-          <input type="radio" name="wheel" id="wheel-acoes"><label for="wheel-acoes" data-en="Actions">Ações</label>
-        </div>
-        <div class="switcher-panels">
-          <figure class="switcher-panel" data-panel="converter" data-kind="product">
-            <img src="assets/roda-converter.png" width="760" height="760" fetchpriority="high" data-alt-en="Convert wheel open over foto2.jpg: WebP selected, with PNG, HEIC, AVIF, TIFF, BMP, GIF, ICO and PDF around it." alt="Roda Converter aberta sobre foto2.jpg: WEBP selecionado, com PNG, HEIC, AVIF, TIFF, BMP, GIF, ICO e PDF ao redor.">
-          </figure>
-          <figure class="switcher-panel" data-panel="ferramentas" data-kind="product">
-            <img src="assets/roda-ferramentas.png" width="760" height="760" data-alt-en="Photo tools wheel over foto2.jpg: Resize selected, with Compress, Rotate, Edit, Background, Metadata, Read QR, PDF and ZIP around it." alt="Roda Ferramentas sobre foto2.jpg: Tamanho selecionado, com Comprimir, Girar, Editar, Fundo, Metadados, Ler QR, PDF e ZIP ao redor.">
-          </figure>
-          <figure class="switcher-panel" data-panel="acoes" data-kind="product">
-            <img src="assets/roda-acoes.png" width="760" height="760" data-alt-en="Actions wheel over foto2.jpg: Float selected, with Share, Terminal, Path, Copy and Move around it." alt="Roda Ações sobre foto2.jpg: Flutuar selecionado, com Compartilhar, Terminal, Caminho, Copiar e Mover ao redor.">
-          </figure>
-          <div class="gesture" aria-hidden="true">
-            <div class="gesture-file">
-              <svg viewBox="0 0 32 40" fill="none"><path d="M5 1h15l10 10v28H5z" fill="currentColor"/><path d="M20 1v11h10M10 22h15M10 28h11" stroke="var(--color-paper)" stroke-width="2"/></svg>
-              <span>foto2.jpg</span>
-              <svg class="gesture-cursor" viewBox="0 0 24 28"><path d="M2 2v21l6-6 5 9 4-2-5-9h9z" fill="var(--color-ink)" stroke="var(--color-paper)" stroke-width="2"/></svg>
-            </div>
-            <div class="gesture-key"><kbd data-en="Space">Espaço</kbd><span data-en="The wheel appears">A roda aparece</span></div>
-            <div class="gesture-result"><svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="m5 12 4 4L19 6" stroke="currentColor" stroke-width="2"/></svg><span><strong>foto2.webp</strong><small data-en="Converted copy. Original kept.">Cópia convertida. Original preservado.</small></span></div>
-          </div>
-        </div>
-        <div class="switcher-captions">
-          <p data-caption="converter"><kbd>Shift</kbd><span data-en="&lt;strong&gt;A new format. The same file.&lt;/strong&gt; Convert right from the wheel."><strong>Outro formato. Mesmo arquivo.</strong> Converta direto pela roda.</span></p>
-          <p data-caption="ferramentas"><kbd>Ctrl</kbd><span data-en="&lt;strong&gt;A quick adjustment, right here.&lt;/strong&gt; Compress, edit or resize."><strong>Um ajuste, sem sair do lugar.</strong> Comprima, edite ou redimensione.</span></p>
-          <p data-caption="acoes"><kbd>Alt</kbd><span data-en="&lt;strong&gt;Your next step, within reach.&lt;/strong&gt; Copy, move or keep the file floating."><strong>O próximo passo, à mão.</strong> Copie, mova ou deixe o arquivo flutuando.</span></p>
-        </div>
-        <p class="demo-disclosure" data-en="Gesture simulation over a real screenshot. This site does not process files.">Demonstração do gesto sobre a tela real. O site não processa arquivos.</p>
-      </fieldset>
-    </div>
+      <div class="switcher-tabs glass">
+        <input type="radio" name="wheel" id="wheel-converter" checked><label for="wheel-converter"><kbd>Shift</kbd><span data-en="Convert">Converter</span></label>
+        <input type="radio" name="wheel" id="wheel-ferramentas"><label for="wheel-ferramentas"><kbd>Ctrl</kbd><span data-en="Tools">Ferramentas</span></label>
+        <input type="radio" name="wheel" id="wheel-acoes"><label for="wheel-acoes"><kbd>Alt</kbd><span data-en="Actions">Ações</span></label>
+      </div>
+      <div class="switcher-captions">
+        <p data-caption="converter" data-en="A new format. The same file.">Outro formato. Mesmo arquivo.</p>
+        <p data-caption="ferramentas" data-en="A quick adjustment, right here.">Um ajuste, sem sair do lugar.</p>
+        <p data-caption="acoes" data-en="Your next step, within reach.">O próximo passo, à mão.</p>
+      </div>
+      <p class="demo-disclosure"><span class="on-mouse" data-en="Pass the mouse over the wheel.">Passe o mouse pela roda.</span><span class="on-touch" data-en="Tap the wheel.">Toque na roda.</span> <span data-en="This site does not process files.">O site não processa arquivos.</span></p>
+    </fieldset>
   </div>
 </section>
 
-<section class="section steps" id="como-funciona">
+<section class="steps" id="como-funciona" data-tone="tools">
   <div class="container">
-    <h2 class="reveal" data-en="From dragging to done">Do arrastar ao pronto</h2>
-    <ol class="steps-list reveal-group">
-      <li><span class="key" data-en="Space">Espaço</span><h3 data-en="Drag">Arraste</h3><p data-en="Drag one or more files and press Space while holding the mouse button.">Arraste um ou mais arquivos e, sem soltar o mouse, aperte Espaço.</p></li>
-      <li><span class="key">Shift, Ctrl, Alt</span><h3 data-en="Choose a wheel">Escolha o lado</h3><p data-en="Press Space again, or use Shift, Ctrl and Alt to switch between Convert, Tools and Actions.">Espaço de novo, ou Shift, Ctrl e Alt trocam entre Converter, Ferramentas e Ações.</p></li>
-      <li><span class="key" data-en="Arrows, Enter">Setas, Enter</span><h3 data-en="Drop">Solte</h3><p data-en="Drop the file on an option, or use the arrow keys and Enter.">Solte o arquivo em cima da opção, ou use as setas e Enter.</p></li>
-      <li><span class="key key--blank" aria-hidden="true">&nbsp;</span><h3 data-en="Done">Pronto</h3><p data-en="The result is saved next to the original, which stays unchanged.">O resultado fica salvo ao lado do original, que nunca é alterado.</p></li>
+    <div class="section-head">
+      <h2 data-en="From dragging to done">Do arrastar ao pronto</h2>
+    </div>
+    <ol class="scenes">
+      <li class="scene scene--drag glass">
+        <div class="scene-art" aria-hidden="true">
+          <span class="drag-icon"><span class="file-icon file-icon--jpg" aria-hidden="true"><svg viewBox="0 0 64 76"><use href="#file-jpg"/></svg><span class="file-name">foto2.jpg</span></span><svg class="cursor" viewBox="0 0 24 28"><use href="#cursor"/></svg></span>
+          <kbd class="scene-key" data-en="Space">Espaço</kbd>
+        </div>
+        <h3 data-en="Drag">Arraste</h3>
+        <p data-en="Drag one or more files and press Space while holding the mouse button.">Arraste um ou mais arquivos e, sem soltar o mouse, aperte Espaço.</p>
+      </li>
+      <li class="scene scene--sides glass">
+        <div class="scene-art" aria-hidden="true">
+          <div class="mini mini--tools"><svg class="wheel wheel--tools" viewBox="0 0 560 560" data-wheel="foto" aria-hidden="true"><g class="seg" data-i="0"><path d="M200.64 48.21A245 245 0 0 1 359.36 48.21L301.38 217.56A66 66 0 0 0 258.62 217.56Z"/><g transform="translate(280.0 110.5)"><text class="lab" style="font-size:13px" data-en="Compress">Comprimir</text><g transform="translate(0 13.5)"><text class="sub" style="font-size:9.5px" data-en="smaller">menor</text></g></g></g><g class="seg is-sel" data-i="1"><path d="M368.20 51.43A245 245 0 0 1 489.79 153.45L336.51 245.91A66 66 0 0 0 303.76 218.43Z"/><g transform="translate(387.7 149.7)"><text class="lab" style="font-size:13px" data-en="Resize">Tamanho</text><g transform="translate(0 13.5)"><text class="sub" style="font-size:9.5px" data-en="resize">redimensionar</text></g></g></g><g class="seg" data-i="2"><path d="M494.49 161.60A245 245 0 0 1 522.05 317.90L345.21 290.21A66 66 0 0 0 337.78 248.10Z"/><g transform="translate(445.0 248.9)"><text class="lab" style="font-size:16px" data-en="Rotate">Girar</text><g transform="translate(0 13.5)"><text class="sub" style="font-size:9.5px" data-en="or mirror">ou espelhar</text></g></g></g><g class="seg" data-i="3"><path d="M520.42 327.17A245 245 0 0 1 441.06 464.62L323.39 329.74A66 66 0 0 0 344.77 292.71Z"/><g transform="translate(425.1 361.8)"><text class="lab" style="font-size:13px" data-en="Edit">Editar</text><g transform="translate(0 13.5)"><text class="sub" style="font-size:9.5px" data-en="crop, adjust…">recortar, ajustar…</text></g></g></g><g class="seg" data-i="4"><path d="M433.85 470.67A245 245 0 0 1 284.70 524.95L281.27 345.99A66 66 0 0 0 321.45 331.36Z"/><g transform="translate(337.3 435.4)"><text class="lab" style="font-size:16px" data-en="Background">Fundo</text><g transform="translate(0 13.5)"><text class="sub" style="font-size:9.5px" data-en="color and margin">cor e margem</text></g></g></g><g class="seg" data-i="5"><path d="M275.30 524.95A245 245 0 0 1 126.15 470.67L238.55 331.36A66 66 0 0 0 278.73 345.99Z"/><g transform="translate(222.7 435.4)"><text class="lab" style="font-size:13px" data-en="Metadata">Metadados</text><g transform="translate(0 13.5)"><text class="sub" style="font-size:9.5px" data-en="view and edit">ver e editar</text></g></g></g><g class="seg" data-i="6"><path d="M118.94 464.62A245 245 0 0 1 39.58 327.17L215.23 292.71A66 66 0 0 0 236.61 329.74Z"/><g transform="translate(134.9 361.8)"><text class="lab" style="font-size:13px" data-en="Read QR">Ler QR</text><g transform="translate(0 13.5)"><text class="sub" style="font-size:9.5px" data-en="codes">códigos</text></g></g></g><g class="seg" data-i="7"><path d="M37.95 317.90A245 245 0 0 1 65.51 161.60L222.22 248.10A66 66 0 0 0 214.79 290.21Z"/><g transform="translate(115.0 248.9)"><text class="lab" style="font-size:16px">PDF</text><g transform="translate(0 13.5)"><text class="sub" style="font-size:9.5px" data-en="image in PDF">imagem em PDF</text></g></g></g><g class="seg" data-i="8"><path d="M70.21 153.45A245 245 0 0 1 191.80 51.43L256.24 218.43A66 66 0 0 0 223.49 245.91Z"/><g transform="translate(172.3 149.7)"><text class="lab" style="font-size:16px">ZIP</text><g transform="translate(0 13.5)"><text class="sub" style="font-size:9.5px" data-en="compress">compactar</text></g></g></g><circle class="hub" cx="280" cy="280" r="62"/><g transform="translate(280 277)"><text class="title" style="font-size:14px" data-en="Tools">Ferramentas</text></g><g transform="translate(280 294)"><text class="file" style="font-size:10.5px">foto2.jpg</text></g></svg></div>
+          <div class="mini mini--actions"><svg class="wheel wheel--actions" viewBox="0 0 560 560" data-wheel="acoes" aria-hidden="true"><g class="seg" data-i="0"><path d="M180.93 100.53A205 205 0 0 1 379.07 100.53L311.90 222.22A66 66 0 0 0 248.10 222.22Z"/><g transform="translate(280.0 138.5)"><text class="lab" style="font-size:13px" data-en="Share">Compartilhar</text><g transform="translate(0 14.5)"><text class="sub" style="font-size:10.5px" data-en="close by">por perto</text></g></g></g><g class="seg is-sel" data-i="1"><path d="M385.89 104.47A205 205 0 0 1 484.96 276.06L345.99 278.73A66 66 0 0 0 314.09 223.49Z"/><g transform="translate(400.8 208.2)"><text class="lab" style="font-size:14.5px" data-en="Float">Flutuar</text><g transform="translate(0 14.5)"><text class="sub" style="font-size:10.5px" data-en="leave at hand">deixar à mão</text></g></g></g><g class="seg" data-i="2"><path d="M484.96 283.94A205 205 0 0 1 385.89 455.53L314.09 336.51A66 66 0 0 0 345.99 281.27Z"/><g transform="translate(400.8 347.8)"><text class="lab" style="font-size:14.5px" data-en="Copy">Copiar</text><g transform="translate(0 14.5)"><text class="sub" style="font-size:10.5px" data-en="to folder…">para pasta…</text></g></g></g><g class="seg" data-i="3"><path d="M379.07 459.47A205 205 0 0 1 180.93 459.47L248.10 337.78A66 66 0 0 0 311.90 337.78Z"/><g transform="translate(280.0 417.5)"><text class="lab" style="font-size:19px" data-en="Move">Mover</text><g transform="translate(0 14.5)"><text class="sub" style="font-size:10.5px" data-en="to folder…">para pasta…</text></g></g></g><g class="seg" data-i="4"><path d="M174.11 455.53A205 205 0 0 1 75.04 283.94L214.01 281.27A66 66 0 0 0 245.91 336.51Z"/><g transform="translate(159.2 347.8)"><text class="lab" style="font-size:14.5px" data-en="Path">Caminho</text><g transform="translate(0 14.5)"><text class="sub" style="font-size:10.5px" data-en="copy">copiar</text></g></g></g><g class="seg" data-i="5"><path d="M75.04 276.06A205 205 0 0 1 174.11 104.47L245.91 223.49A66 66 0 0 0 214.01 278.73Z"/><g transform="translate(159.2 208.2)"><text class="lab" style="font-size:14.5px">Terminal</text><g transform="translate(0 14.5)"><text class="sub" style="font-size:10.5px" data-en="open here">abrir aqui</text></g></g></g><circle class="hub" cx="280" cy="280" r="62"/><g transform="translate(280 277)"><text class="title" style="font-size:14px" data-en="Actions">Ações</text></g><g transform="translate(280 294)"><text class="file" style="font-size:10.5px">foto2.jpg</text></g></svg></div>
+          <div class="mini mini--convert"><svg class="wheel wheel--convert" viewBox="0 0 560 560" data-wheel="converter" aria-hidden="true"><g class="seg" data-i="0"><path d="M200.64 48.21A245 245 0 0 1 359.36 48.21L301.38 217.56A66 66 0 0 0 258.62 217.56Z"/><g transform="translate(280.0 110.5)"><text class="lab" style="font-size:16px">PNG</text><g transform="translate(0 13.5)"><text class="sub" style="font-size:9.5px" data-en="image">imagem</text></g></g></g><g class="seg is-sel" data-i="1"><path d="M368.20 51.43A245 245 0 0 1 489.79 153.45L336.51 245.91A66 66 0 0 0 303.76 218.43Z"/><g transform="translate(387.7 149.7)"><text class="lab" style="font-size:16px">WEBP</text><g transform="translate(0 13.5)"><text class="sub" style="font-size:9.5px" data-en="image">imagem</text></g></g></g><g class="seg" data-i="2"><path d="M494.49 161.60A245 245 0 0 1 522.05 317.90L345.21 290.21A66 66 0 0 0 337.78 248.10Z"/><g transform="translate(445.0 248.9)"><text class="lab" style="font-size:16px">HEIC</text><g transform="translate(0 13.5)"><text class="sub" style="font-size:9.5px" data-en="image">imagem</text></g></g></g><g class="seg" data-i="3"><path d="M520.42 327.17A245 245 0 0 1 441.06 464.62L323.39 329.74A66 66 0 0 0 344.77 292.71Z"/><g transform="translate(425.1 361.8)"><text class="lab" style="font-size:16px">AVIF</text><g transform="translate(0 13.5)"><text class="sub" style="font-size:9.5px" data-en="image">imagem</text></g></g></g><g class="seg" data-i="4"><path d="M433.85 470.67A245 245 0 0 1 284.70 524.95L281.27 345.99A66 66 0 0 0 321.45 331.36Z"/><g transform="translate(337.3 435.4)"><text class="lab" style="font-size:16px">TIFF</text><g transform="translate(0 13.5)"><text class="sub" style="font-size:9.5px" data-en="image">imagem</text></g></g></g><g class="seg" data-i="5"><path d="M275.30 524.95A245 245 0 0 1 126.15 470.67L238.55 331.36A66 66 0 0 0 278.73 345.99Z"/><g transform="translate(222.7 435.4)"><text class="lab" style="font-size:16px">BMP</text><g transform="translate(0 13.5)"><text class="sub" style="font-size:9.5px" data-en="image">imagem</text></g></g></g><g class="seg" data-i="6"><path d="M118.94 464.62A245 245 0 0 1 39.58 327.17L215.23 292.71A66 66 0 0 0 236.61 329.74Z"/><g transform="translate(134.9 361.8)"><text class="lab" style="font-size:16px">GIF</text><g transform="translate(0 13.5)"><text class="sub" style="font-size:9.5px" data-en="animation">animação</text></g></g></g><g class="seg" data-i="7"><path d="M37.95 317.90A245 245 0 0 1 65.51 161.60L222.22 248.10A66 66 0 0 0 214.79 290.21Z"/><g transform="translate(115.0 248.9)"><text class="lab" style="font-size:16px">ICO</text><g transform="translate(0 13.5)"><text class="sub" style="font-size:9.5px" data-en="icon">ícone</text></g></g></g><g class="seg" data-i="8"><path d="M70.21 153.45A245 245 0 0 1 191.80 51.43L256.24 218.43A66 66 0 0 0 223.49 245.91Z"/><g transform="translate(172.3 149.7)"><text class="lab" style="font-size:16px">PDF</text><g transform="translate(0 13.5)"><text class="sub" style="font-size:9.5px" data-en="document">documento</text></g></g></g><circle class="hub" cx="280" cy="280" r="62"/><g transform="translate(280 277)"><text class="title" style="font-size:14px" data-en="Convert">Converter</text></g><g transform="translate(280 294)"><text class="file" style="font-size:10.5px">foto2.jpg</text></g></svg></div>
+          <span class="scene-keys"><kbd class="k-ctrl">Ctrl</kbd><kbd class="k-alt">Alt</kbd><kbd class="k-shift">Shift</kbd></span>
+        </div>
+        <h3 data-en="Choose a wheel">Escolha o lado</h3>
+        <p data-en="Press Space again, or use Shift, Ctrl and Alt to switch between Convert, Tools and Actions.">Espaço de novo, ou Shift, Ctrl e Alt trocam entre Converter, Ferramentas e Ações.</p>
+      </li>
+      <li class="scene scene--drop glass">
+        <div class="scene-art" aria-hidden="true">
+          <div class="mini mini--convert"><svg class="wheel wheel--convert" viewBox="0 0 560 560" data-wheel="converter" aria-hidden="true"><g class="seg" data-i="0"><path d="M200.64 48.21A245 245 0 0 1 359.36 48.21L301.38 217.56A66 66 0 0 0 258.62 217.56Z"/><g transform="translate(280.0 110.5)"><text class="lab" style="font-size:16px">PNG</text><g transform="translate(0 13.5)"><text class="sub" style="font-size:9.5px" data-en="image">imagem</text></g></g></g><g class="seg" data-i="1"><path d="M368.20 51.43A245 245 0 0 1 489.79 153.45L336.51 245.91A66 66 0 0 0 303.76 218.43Z"/><g transform="translate(387.7 149.7)"><text class="lab" style="font-size:16px">WEBP</text><g transform="translate(0 13.5)"><text class="sub" style="font-size:9.5px" data-en="image">imagem</text></g></g></g><g class="seg" data-i="2"><path d="M494.49 161.60A245 245 0 0 1 522.05 317.90L345.21 290.21A66 66 0 0 0 337.78 248.10Z"/><g transform="translate(445.0 248.9)"><text class="lab" style="font-size:16px">HEIC</text><g transform="translate(0 13.5)"><text class="sub" style="font-size:9.5px" data-en="image">imagem</text></g></g></g><g class="seg" data-i="3"><path d="M520.42 327.17A245 245 0 0 1 441.06 464.62L323.39 329.74A66 66 0 0 0 344.77 292.71Z"/><g transform="translate(425.1 361.8)"><text class="lab" style="font-size:16px">AVIF</text><g transform="translate(0 13.5)"><text class="sub" style="font-size:9.5px" data-en="image">imagem</text></g></g></g><g class="seg" data-i="4"><path d="M433.85 470.67A245 245 0 0 1 284.70 524.95L281.27 345.99A66 66 0 0 0 321.45 331.36Z"/><g transform="translate(337.3 435.4)"><text class="lab" style="font-size:16px">TIFF</text><g transform="translate(0 13.5)"><text class="sub" style="font-size:9.5px" data-en="image">imagem</text></g></g></g><g class="seg" data-i="5"><path d="M275.30 524.95A245 245 0 0 1 126.15 470.67L238.55 331.36A66 66 0 0 0 278.73 345.99Z"/><g transform="translate(222.7 435.4)"><text class="lab" style="font-size:16px">BMP</text><g transform="translate(0 13.5)"><text class="sub" style="font-size:9.5px" data-en="image">imagem</text></g></g></g><g class="seg" data-i="6"><path d="M118.94 464.62A245 245 0 0 1 39.58 327.17L215.23 292.71A66 66 0 0 0 236.61 329.74Z"/><g transform="translate(134.9 361.8)"><text class="lab" style="font-size:16px">GIF</text><g transform="translate(0 13.5)"><text class="sub" style="font-size:9.5px" data-en="animation">animação</text></g></g></g><g class="seg" data-i="7"><path d="M37.95 317.90A245 245 0 0 1 65.51 161.60L222.22 248.10A66 66 0 0 0 214.79 290.21Z"/><g transform="translate(115.0 248.9)"><text class="lab" style="font-size:16px">ICO</text><g transform="translate(0 13.5)"><text class="sub" style="font-size:9.5px" data-en="icon">ícone</text></g></g></g><g class="seg" data-i="8"><path d="M70.21 153.45A245 245 0 0 1 191.80 51.43L256.24 218.43A66 66 0 0 0 223.49 245.91Z"/><g transform="translate(172.3 149.7)"><text class="lab" style="font-size:16px">PDF</text><g transform="translate(0 13.5)"><text class="sub" style="font-size:9.5px" data-en="document">documento</text></g></g></g><circle class="hub" cx="280" cy="280" r="62"/><g transform="translate(280 277)"><text class="title" style="font-size:14px" data-en="Convert">Converter</text></g><g transform="translate(280 294)"><text class="file" style="font-size:10.5px">foto2.jpg</text></g></svg></div>
+          <span class="drop-icon"><span class="file-icon file-icon--jpg" aria-hidden="true"><svg viewBox="0 0 64 76"><use href="#file-jpg"/></svg><span class="file-name">foto2.jpg</span></span><svg class="cursor" viewBox="0 0 24 28"><use href="#cursor"/></svg></span>
+        </div>
+        <h3 data-en="Drop">Solte</h3>
+        <p data-en="Drop the file on an option, or use the arrow keys and Enter.">Solte o arquivo em cima da opção, ou use as setas e Enter.</p>
+      </li>
+      <li class="scene scene--done glass">
+        <div class="scene-art" aria-hidden="true">
+          <span class="done-pair"><span class="done-a"><span class="file-icon file-icon--jpg" aria-hidden="true"><svg viewBox="0 0 64 76"><use href="#file-jpg"/></svg><span class="file-name">foto2.jpg</span></span><small data-en="original, untouched">original, intacto</small></span><span class="done-b"><span class="file-icon file-icon--webp" aria-hidden="true"><svg viewBox="0 0 64 76"><use href="#file-webp"/></svg><span class="file-name">foto2.webp</span></span><small data-en="converted copy">cópia convertida</small></span></span>
+        </div>
+        <h3 data-en="Done">Pronto</h3>
+        <p data-en="The result is saved next to the original, which stays unchanged.">O resultado fica salvo ao lado do original, que nunca é alterado.</p>
+      </li>
     </ol>
   </div>
 </section>
 
-<section class="section split-adapt" id="ferramentas">
+<section class="adapt" id="ferramentas" data-tone="tools">
   <div class="container">
-    <div class="section-head reveal">
+    <div class="section-head">
       <h2 data-en="The wheel adapts to your file">A roda muda com o arquivo</h2>
-      <p class="lead" data-en="Press Ctrl with the wheel open. The tools adapt to your file: photo tools on one side, video tools on the other.">Aperte Ctrl com a roda aberta. As ferramentas se adaptam ao tipo de arquivo: foto de um lado, vídeo do outro.</p>
+      <p class="lead" data-en="Press Ctrl with the wheel open: photo tools on one side, video tools on the other.">Aperte Ctrl com a roda aberta: ferramentas de foto de um lado, de vídeo do outro.</p>
     </div>
-    <div class="comparison-grid">
-      <figure class="compare reveal" data-kind="product">
-        <h3 data-en="Photo tools">Ferramentas para foto</h3>
-        <img src="assets/roda-ferramentas.png" width="760" height="760" loading="lazy" data-alt-en="Photo tools wheel: resize, compress, rotate, edit and more." alt="Roda Ferramentas para foto: redimensionar, comprimir, girar, editar e mais.">
-        <figcaption data-en="Resize, compress, rotate, edit or adjust the background of a photo.">Redimensione, comprima, gire, edite ou ajuste o fundo da foto.</figcaption>
+    <div class="adapt-pair">
+      <figure class="adapt-item glass" role="img" aria-label="Roda Ferramentas para foto: redimensionar, comprimir, girar, editar e mais." data-label-en="Photo tools wheel: resize, compress, rotate, edit and more.">
+        <div class="grow"><svg class="wheel wheel--tools live" viewBox="0 0 560 560" data-wheel="foto" aria-hidden="true"><g class="seg" data-i="0"><path d="M200.64 48.21A245 245 0 0 1 359.36 48.21L301.38 217.56A66 66 0 0 0 258.62 217.56Z"/><g transform="translate(280.0 110.5)"><text class="lab" style="font-size:13px" data-en="Compress">Comprimir</text><g transform="translate(0 13.5)"><text class="sub" style="font-size:9.5px" data-en="smaller">menor</text></g></g></g><g class="seg" data-i="1"><path d="M368.20 51.43A245 245 0 0 1 489.79 153.45L336.51 245.91A66 66 0 0 0 303.76 218.43Z"/><g transform="translate(387.7 149.7)"><text class="lab" style="font-size:13px" data-en="Resize">Tamanho</text><g transform="translate(0 13.5)"><text class="sub" style="font-size:9.5px" data-en="resize">redimensionar</text></g></g></g><g class="seg" data-i="2"><path d="M494.49 161.60A245 245 0 0 1 522.05 317.90L345.21 290.21A66 66 0 0 0 337.78 248.10Z"/><g transform="translate(445.0 248.9)"><text class="lab" style="font-size:16px" data-en="Rotate">Girar</text><g transform="translate(0 13.5)"><text class="sub" style="font-size:9.5px" data-en="or mirror">ou espelhar</text></g></g></g><g class="seg" data-i="3"><path d="M520.42 327.17A245 245 0 0 1 441.06 464.62L323.39 329.74A66 66 0 0 0 344.77 292.71Z"/><g transform="translate(425.1 361.8)"><text class="lab" style="font-size:13px" data-en="Edit">Editar</text><g transform="translate(0 13.5)"><text class="sub" style="font-size:9.5px" data-en="crop, adjust…">recortar, ajustar…</text></g></g></g><g class="seg" data-i="4"><path d="M433.85 470.67A245 245 0 0 1 284.70 524.95L281.27 345.99A66 66 0 0 0 321.45 331.36Z"/><g transform="translate(337.3 435.4)"><text class="lab" style="font-size:16px" data-en="Background">Fundo</text><g transform="translate(0 13.5)"><text class="sub" style="font-size:9.5px" data-en="color and margin">cor e margem</text></g></g></g><g class="seg" data-i="5"><path d="M275.30 524.95A245 245 0 0 1 126.15 470.67L238.55 331.36A66 66 0 0 0 278.73 345.99Z"/><g transform="translate(222.7 435.4)"><text class="lab" style="font-size:13px" data-en="Metadata">Metadados</text><g transform="translate(0 13.5)"><text class="sub" style="font-size:9.5px" data-en="view and edit">ver e editar</text></g></g></g><g class="seg" data-i="6"><path d="M118.94 464.62A245 245 0 0 1 39.58 327.17L215.23 292.71A66 66 0 0 0 236.61 329.74Z"/><g transform="translate(134.9 361.8)"><text class="lab" style="font-size:13px" data-en="Read QR">Ler QR</text><g transform="translate(0 13.5)"><text class="sub" style="font-size:9.5px" data-en="codes">códigos</text></g></g></g><g class="seg" data-i="7"><path d="M37.95 317.90A245 245 0 0 1 65.51 161.60L222.22 248.10A66 66 0 0 0 214.79 290.21Z"/><g transform="translate(115.0 248.9)"><text class="lab" style="font-size:16px">PDF</text><g transform="translate(0 13.5)"><text class="sub" style="font-size:9.5px" data-en="image in PDF">imagem em PDF</text></g></g></g><g class="seg" data-i="8"><path d="M70.21 153.45A245 245 0 0 1 191.80 51.43L256.24 218.43A66 66 0 0 0 223.49 245.91Z"/><g transform="translate(172.3 149.7)"><text class="lab" style="font-size:16px">ZIP</text><g transform="translate(0 13.5)"><text class="sub" style="font-size:9.5px" data-en="compress">compactar</text></g></g></g><circle class="hub" cx="280" cy="280" r="62"/><g transform="translate(280 277)"><text class="title" style="font-size:14px" data-en="Tools">Ferramentas</text></g><g transform="translate(280 294)"><text class="file" style="font-size:10.5px">foto2.jpg</text></g></svg></div>
+        <figcaption><h3 data-en="Photo tools">Ferramentas para foto</h3><p data-en="Resize, compress, rotate, edit or adjust the background of a photo.">Redimensione, comprima, gire, edite ou ajuste o fundo da foto.</p></figcaption>
       </figure>
-      <figure class="compare reveal" data-kind="product">
-        <h3 data-en="Video tools">Ferramentas para vídeo</h3>
-        <img src="assets/roda-video.png" width="760" height="760" loading="lazy" data-alt-en="Video tools wheel: Compress, Trim, Crop, Speed, Split, Frame, Audio, Mute, Resize, Rotate, Metadata and ZIP." alt="Roda Ferramentas sobre um vídeo: Comprimir, Cortar, Recortar, Velocidade, Dividir, Quadro, Áudio, Mudo, Tamanho, Girar, Metadados e ZIP.">
-        <figcaption data-en="Trim a clip, extract audio, mute a video or change its speed.">Corte um trecho, extraia o áudio, remova o som ou mude a velocidade do vídeo.</figcaption>
+      <figure class="adapt-item glass" role="img" aria-label="Roda Ferramentas sobre um vídeo: Comprimir, Cortar, Recortar, Velocidade, Dividir, Quadro, Áudio, Mudo, Tamanho, Girar, Metadados e ZIP." data-label-en="Video tools wheel: Compress, Trim, Crop, Speed, Split, Frame, Audio, Mute, Resize, Rotate, Metadata and ZIP.">
+        <div class="grow"><svg class="wheel wheel--tools live" viewBox="0 0 560 560" data-wheel="video" aria-hidden="true"><g class="seg" data-i="0"><path d="M221.14 42.17A245 245 0 0 1 338.86 42.17L295.86 215.93A66 66 0 0 0 264.14 215.93Z"/><g transform="translate(280.0 110.5)"><text class="lab" style="font-size:13px" data-en="Compress">Comprimir</text><g transform="translate(0 13.5)"><text class="sub" style="font-size:9.5px" data-en="smaller">menor</text></g></g></g><g class="seg" data-i="1"><path d="M347.94 44.61A245 245 0 0 1 449.88 103.46L325.76 232.44A66 66 0 0 0 298.30 216.59Z"/><g transform="translate(363.8 132.9)"><text class="lab" style="font-size:13px" data-en="Trim">Cortar</text><g transform="translate(0 13.5)"><text class="sub" style="font-size:9.5px" data-en="section">trecho</text></g></g></g><g class="seg" data-i="2"><path d="M456.54 110.12A245 245 0 0 1 515.39 212.06L343.41 261.70A66 66 0 0 0 327.56 234.24Z"/><g transform="translate(425.1 194.2)"><text class="lab" style="font-size:13px" data-en="Crop">Recortar</text><g transform="translate(0 13.5)"><text class="sub" style="font-size:9.5px" data-en="frame">enquadrar</text></g></g></g><g class="seg" data-i="3"><path d="M517.83 221.14A245 245 0 0 1 517.83 338.86L344.07 295.86A66 66 0 0 0 344.07 264.14Z"/><g transform="translate(447.5 278.0)"><text class="lab" style="font-size:13px" data-en="Speed">Velocidade</text><g transform="translate(0 13.5)"><text class="sub" style="font-size:9.5px" data-en="accelerate">acelerar</text></g></g></g><g class="seg" data-i="4"><path d="M515.39 347.94A245 245 0 0 1 456.54 449.88L327.56 325.76A66 66 0 0 0 343.41 298.30Z"/><g transform="translate(425.1 361.8)"><text class="lab" style="font-size:13px" data-en="Split">Dividir</text><g transform="translate(0 13.5)"><text class="sub" style="font-size:9.5px" data-en="in parts">em partes</text></g></g></g><g class="seg" data-i="5"><path d="M449.88 456.54A245 245 0 0 1 347.94 515.39L298.30 343.41A66 66 0 0 0 325.76 327.56Z"/><g transform="translate(363.8 423.1)"><text class="lab" style="font-size:13px" data-en="Frame">Quadro</text><g transform="translate(0 13.5)"><text class="sub" style="font-size:9.5px" data-en="photo from video">foto do vídeo</text></g></g></g><g class="seg" data-i="6"><path d="M338.86 517.83A245 245 0 0 1 221.14 517.83L264.14 344.07A66 66 0 0 0 295.86 344.07Z"/><g transform="translate(280.0 445.5)"><text class="lab" style="font-size:16px" data-en="Audio">Áudio</text><g transform="translate(0 13.5)"><text class="sub" style="font-size:9.5px" data-en="extract">extrair</text></g></g></g><g class="seg" data-i="7"><path d="M212.06 515.39A245 245 0 0 1 110.12 456.54L234.24 327.56A66 66 0 0 0 261.70 343.41Z"/><g transform="translate(196.3 423.1)"><text class="lab" style="font-size:16px" data-en="Rotate">Girar</text><g transform="translate(0 13.5)"><text class="sub" style="font-size:9.5px" data-en="or mirror">ou espelhar</text></g></g></g><g class="seg" data-i="8"><path d="M103.46 449.88A245 245 0 0 1 44.61 347.94L216.59 298.30A66 66 0 0 0 232.44 325.76Z"/><g transform="translate(134.9 361.8)"><text class="lab" style="font-size:13px" data-en="Resize">Tamanho</text><g transform="translate(0 13.5)"><text class="sub" style="font-size:9.5px" data-en="resolution">resolução</text></g></g></g><g class="seg" data-i="9"><path d="M42.17 338.86A245 245 0 0 1 42.17 221.14L215.93 264.14A66 66 0 0 0 215.93 295.86Z"/><g transform="translate(112.5 278.0)"><text class="lab" style="font-size:16px" data-en="Mute">Mudo</text><g transform="translate(0 13.5)"><text class="sub" style="font-size:9.5px" data-en="mute the sound">tirar o som</text></g></g></g><g class="seg" data-i="10"><path d="M44.61 212.06A245 245 0 0 1 103.46 110.12L232.44 234.24A66 66 0 0 0 216.59 261.70Z"/><g transform="translate(134.9 194.2)"><text class="lab" style="font-size:13px" data-en="Metadata">Metadados</text><g transform="translate(0 13.5)"><text class="sub" style="font-size:9.5px" data-en="view and edit">ver e editar</text></g></g></g><g class="seg" data-i="11"><path d="M110.12 103.46A245 245 0 0 1 212.06 44.61L261.70 216.59A66 66 0 0 0 234.24 232.44Z"/><g transform="translate(196.2 132.9)"><text class="lab" style="font-size:16px">ZIP</text><g transform="translate(0 13.5)"><text class="sub" style="font-size:9.5px" data-en="compress">compactar</text></g></g></g><circle class="hub" cx="280" cy="280" r="62"/><g transform="translate(280 277)"><text class="title" style="font-size:14px" data-en="Tools">Ferramentas</text></g><g transform="translate(280 294)"><text class="file" style="font-size:10.5px">curto.mp4</text></g></svg></div>
+        <figcaption><h3 data-en="Video tools">Ferramentas para vídeo</h3><p data-en="Trim a clip, extract audio, mute a video or change its speed.">Corte um trecho, extraia o áudio, remova o som ou mude a velocidade do vídeo.</p></figcaption>
       </figure>
     </div>
   </div>
 </section>
 
-<section class="section section--s section--paper2" id="o-que-faz">
+<section class="kinds" id="o-que-faz" data-tone="actions">
   <div class="container">
-    <div class="section-head reveal">
+    <div class="section-head">
       <h2 data-en="From photos to spreadsheets">De fotos a planilhas</h2>
     </div>
-    <ul class="format-grid reveal-group">
-      <li><span class="format-type" aria-hidden="true">JPG</span><h3 data-en="Images">Imagens</h3><p data-en="JPG, PNG, WebP, HEIC, AVIF, camera RAW, PSD and more.">JPG, PNG, WebP, HEIC, AVIF, RAW de câmera, PSD e mais.</p><p class="format-example" data-en="Turn an iPhone HEIC photo into a JPG, ready to share.">Foto do iPhone em HEIC para JPG, pronta para compartilhar.</p></li>
-      <li><span class="format-type" aria-hidden="true">MP4</span><h3 data-en="Video">Vídeo</h3><p data-en="MP4, MOV, MKV, WebM, AVI and animated GIF.">MP4, MOV, MKV, WebM, AVI e GIF animado.</p><p class="format-example" data-en="Convert MOV to MP4. Or extract just the audio as MP3.">Vídeo MOV para MP4. Ou extraia só o áudio em MP3.</p></li>
-      <li><span class="format-type" aria-hidden="true">WAV</span><h3 data-en="Audio">Áudio</h3><p data-en="MP3, M4A, WAV, FLAC, OGG, Opus and AIFF.">MP3, M4A, WAV, FLAC, OGG, Opus e AIFF.</p><p class="format-example" data-en="Turn a WAV recording into an MP3 that takes up less space.">Gravação em WAV para MP3, ocupando menos espaço.</p></li>
-      <li><span class="format-type" aria-hidden="true">DOC</span><h3 data-en="Documents and slides">Documentos e apresentações</h3><p data-en="Word, PowerPoint, HWP, ODT and RTF.">Word, PowerPoint, HWP, ODT e RTF.</p><p class="format-example" data-en="DOCX to PDF. PPTX slides to PNG images.">DOCX para PDF. Apresentação PPTX para imagens PNG.</p></li>
-      <li><span class="format-type" aria-hidden="true">PDF</span><h3>PDF</h3><p data-en="To Word, Excel, PowerPoint and images, and back.">Para Word, Excel, PowerPoint, imagem e de volta.</p><p class="format-example" data-en="Turn a PDF into a DOCX to keep editing. Or export each page as an image.">PDF para DOCX para continuar editando. Ou uma imagem por página.</p></li>
-      <li><span class="format-type" aria-hidden="true">ZIP</span><h3 data-en="Archives">Compactados</h3><p data-en="ZIP, 7Z and TAR; also opens RAR and ISO.">ZIP, 7Z e TAR; também abre RAR e ISO.</p><p class="format-example" data-en="Pack multiple files into a ZIP or extract a RAR archive.">Reúna vários arquivos num ZIP ou extraia um arquivo RAR.</p></li>
-      <li><span class="format-type" aria-hidden="true">XLS</span><h3 data-en="Spreadsheets">Planilhas</h3><p data-en="XLSX, XLS, ODS, CSV, TSV and PDF.">XLSX, XLS, ODS, CSV, TSV e PDF.</p><p class="format-example" data-en="Convert an XLSX spreadsheet to CSV, ready to import into another app.">Planilha XLSX para CSV, pronta para importar em outro sistema.</p></li>
-      <li><span class="format-type" aria-hidden="true">EPUB</span><h3 data-en="Text and e-books">Texto e e-books</h3><p data-en="Markdown, TXT, HTML, EPUB, DOCX and PDF.">Markdown, TXT, HTML, EPUB, DOCX e PDF.</p><p class="format-example" data-en="Markdown notes to PDF. EPUB books to plain text.">Notas em Markdown para PDF. Livro EPUB para texto.</p></li>
-      <li><span class="format-type" aria-hidden="true">SRT</span><h3 data-en="Subtitles">Legendas</h3><p data-en="SRT, VTT and TXT.">SRT, VTT e TXT.</p><p class="format-example" data-en="Convert SRT to VTT for subtitles on the web.">SRT para VTT para usar a legenda na web.</p></li>
+    <ul class="kinds-grid">
+      <li class="glass"><span class="turn" role="img" aria-label="HEIC para JPG" data-label-en="HEIC to JPG"><span class="turn-from">HEIC</span><span class="turn-to">JPG</span></span><h3 data-en="Images">Imagens</h3><p data-en="JPG, PNG, WebP, HEIC, AVIF, camera RAW, PSD and more.">JPG, PNG, WebP, HEIC, AVIF, RAW de câmera, PSD e mais.</p></li>
+      <li class="glass"><span class="turn" role="img" aria-label="MOV para MP4" data-label-en="MOV to MP4"><span class="turn-from">MOV</span><span class="turn-to">MP4</span></span><h3 data-en="Video">Vídeo</h3><p data-en="MP4, MOV, MKV, WebM, AVI and animated GIF.">MP4, MOV, MKV, WebM, AVI e GIF animado.</p></li>
+      <li class="glass"><span class="turn" role="img" aria-label="WAV para MP3" data-label-en="WAV to MP3"><span class="turn-from">WAV</span><span class="turn-to">MP3</span></span><h3 data-en="Audio">Áudio</h3><p data-en="MP3, M4A, WAV, FLAC, OGG, Opus and AIFF.">MP3, M4A, WAV, FLAC, OGG, Opus e AIFF.</p></li>
+      <li class="glass"><span class="turn" role="img" aria-label="DOCX para PDF" data-label-en="DOCX to PDF"><span class="turn-from">DOCX</span><span class="turn-to">PDF</span></span><h3 data-en="Documents and slides">Documentos e apresentações</h3><p data-en="Word, PowerPoint, HWP, ODT and RTF.">Word, PowerPoint, HWP, ODT e RTF.</p></li>
+      <li class="glass"><span class="turn" role="img" aria-label="PDF para DOCX" data-label-en="PDF to DOCX"><span class="turn-from">PDF</span><span class="turn-to">DOCX</span></span><h3>PDF</h3><p data-en="To Word, Excel, PowerPoint and images, and back.">Para Word, Excel, PowerPoint, imagem e de volta.</p></li>
+      <li class="glass"><span class="turn" role="img" aria-label="RAR para ZIP" data-label-en="RAR to ZIP"><span class="turn-from">RAR</span><span class="turn-to">ZIP</span></span><h3 data-en="Archives">Compactados</h3><p data-en="ZIP, 7Z and TAR; also opens RAR and ISO.">ZIP, 7Z e TAR; também abre RAR e ISO.</p></li>
+      <li class="glass"><span class="turn" role="img" aria-label="XLSX para CSV" data-label-en="XLSX to CSV"><span class="turn-from">XLSX</span><span class="turn-to">CSV</span></span><h3 data-en="Spreadsheets">Planilhas</h3><p data-en="XLSX, XLS, ODS, CSV, TSV and PDF.">XLSX, XLS, ODS, CSV, TSV e PDF.</p></li>
+      <li class="glass"><span class="turn" role="img" aria-label="Markdown para PDF" data-label-en="Markdown to PDF"><span class="turn-from">MD</span><span class="turn-to">PDF</span></span><h3 data-en="Text and e-books">Texto e e-books</h3><p data-en="Markdown, TXT, HTML, EPUB, DOCX and PDF.">Markdown, TXT, HTML, EPUB, DOCX e PDF.</p></li>
+      <li class="glass"><span class="turn" role="img" aria-label="SRT para VTT" data-label-en="SRT to VTT"><span class="turn-from">SRT</span><span class="turn-to">VTT</span></span><h3 data-en="Subtitles">Legendas</h3><p data-en="SRT, VTT and TXT.">SRT, VTT e TXT.</p></li>
     </ul>
   </div>
 </section>
 
-<section class="section statement">
-  <div class="container reveal-group">
-    <p data-en="Everything happens on your computer. Your files stay off the cloud.">Tudo acontece dentro do seu computador, nunca na nuvem de alguém.</p>
-    <div class="figure">
-      <span class="num">0</span>
-      <span class="unit" data-en="files uploaded to the internet">arquivos enviados para a internet</span>
-    </div>
-  </div>
-</section>
-
-<section class="section band" id="baixar">
-  <div class="container">
-    <div class="band-text reveal">
-      <h2 data-en="No subscription. No account.">Sem assinatura, sem conta</h2>
-      <p data-en="Open source under the MIT license, for Windows 10 and 11 (64-bit). The app supports 13 languages.">Código aberto sob licença MIT, para Windows 10 e 11 (64 bits). Suporta 13 idiomas.</p>
-    </div>
-    <div class="band-actions">
-      <a class="btn btn--primary" href="https://github.com/Oitalao/Mexerica/releases/latest" data-en="Download for Windows">Baixar para Windows</a>
-      <a class="btn btn--line" href="https://github.com/Oitalao/Mexerica" data-en="View on GitHub">Ver no GitHub</a>
+<section class="close" id="baixar" data-tone="convert">
+  <div class="container close-inner">
+    <h2 data-en="No subscription. No account.">Sem assinatura, sem conta</h2>
+    <p class="lead" data-en="Open source under the MIT license, for Windows 10 and 11 (64-bit).">Código aberto sob licença MIT, para Windows 10 e 11 (64 bits).</p>
+    <div class="close-actions">
+      <a class="btn btn--lg" href="https://github.com/Oitalao/Mexerica/releases/latest" data-en="Download for Windows">Baixar para Windows</a>
+      <a class="btn btn--glass btn--lg" href="https://github.com/Oitalao/Mexerica" data-en="View on GitHub">Ver no GitHub</a>
     </div>
   </div>
 </section>
@@ -173,11 +196,8 @@
 </main>
 
 <footer class="footer">
-  <div class="container">
-    <div>
-      <p class="footer-mark">Mexerica</p>
-      <p data-en="The Tangerine idea, for Windows. Code under the MIT license.">A ideia do Tangerine, para Windows. Código sob licença MIT.</p>
-    </div>
+  <div class="container footer-inner">
+    <p><strong>Mexerica</strong> <span data-en="Code under the MIT license.">Código sob licença MIT.</span></p>
     <ul class="footer-links">
       <li><a href="https://github.com/Oitalao/Mexerica" data-en="Source code">Código</a></li>
       <li><a href="https://github.com/Oitalao/Mexerica/releases" data-en="Releases">Versões</a></li>
@@ -187,92 +207,109 @@
   </div>
 </footer>
 
-<dialog class="download-dialog" id="download-dialog" aria-labelledby="download-title" aria-describedby="download-description">
+<dialog class="download-dialog glass" id="download-dialog" aria-labelledby="download-title" aria-describedby="download-description">
   <h2 id="download-title" data-en="On your Windows computer.">No computador com Windows.</h2>
   <p id="download-description" data-en="Mexerica only runs on Windows 10 and 11 (64-bit). This installer will not run on your current device.">O Mexerica funciona somente no Windows 10 e 11 (64 bits). Este instalador não funciona no seu dispositivo atual.</p>
   <div class="dialog-actions">
-    <button type="button" class="btn btn--primary" id="download-close" data-en="Got it">Entendi</button>
-    <a class="btn btn--line" href="https://github.com/Oitalao/Mexerica/releases/latest" data-en="Download anyway">Ver download mesmo assim</a>
+    <button type="button" class="btn" id="download-close" data-en="Got it">Entendi</button>
+    <a class="btn btn--glass" href="https://github.com/Oitalao/Mexerica/releases/latest" data-en="Download anyway">Ver download mesmo assim</a>
   </div>
 </dialog>
 
 <script>
 (() => {
   const root = document.documentElement;
-  const motion = matchMedia('(prefers-reduced-motion: reduce)');
-  root.classList.toggle('motion-reduced', motion.matches);
-  // cabeçalho ganha fundo sólido depois de rolar um pouco
+
+  // cabeçalho ganha borda depois de rolar um pouco
   const nav = document.querySelector('.nav');
-  const onScroll = () => nav.classList.toggle('is-scrolled', scrollY > 8);
-  addEventListener('scroll', onScroll, { passive: true });
-  onScroll();
+  const onNav = () => nav.classList.toggle('is-scrolled', scrollY > 8);
+  addEventListener('scroll', onNav, { passive: true });
+  onNav();
 
-  // revela cada seção ao entrar na tela (sem JS, tudo já aparece normalmente: ver regra .js .reveal no CSS)
-  if ('IntersectionObserver' in window) {
-    const io = new IntersectionObserver((entries) => {
-      for (const e of entries) if (e.isIntersecting) { e.target.classList.add('in'); io.unobserve(e.target); }
-    }, { threshold: 0, rootMargin: '0px 0px -40px 0px' });
-    // Observe each row: the full ledger can be taller than a mobile viewport.
-    document.querySelectorAll('.reveal-group').forEach(group => {
-      group.classList.remove('reveal-group');
-      [...group.children].forEach((child, i) => {
-        child.classList.add('reveal');
-        child.style.setProperty('--reveal-delay', `${Math.min(i, 3) * 65}ms`);
-      });
+  // abertura: o ícone é arrastado, o Espaço é apertado, a roda abre e o WEBP acende (uma vez)
+  // a abertura termina e sai de cena, para não interferir no realce da fatia sob o mouse
+  root.classList.add('intro');
+  setTimeout(() => root.classList.remove('intro'), 3400);
+
+  // a fatia sob o mouse acende na cor do lado, como no programa; na roda Converter do topo,
+  // o arquivo do resultado troca de extensão junto
+  const done = document.querySelector('.intro-done');
+  const setResult = (ext) => {
+    if (!done) return;
+    done.querySelector('.file-name').textContent = 'foto2.' + ext.toLowerCase();
+    done.querySelector('.badge-text').textContent = ext;
+    done.querySelector('.badge').setAttribute('width', String(Math.max(22, ext.length * 6.5 + 4)));
+    done.querySelector('.badge-text').setAttribute('x', String(10 + Math.max(22, ext.length * 6.5 + 4) / 2));
+  };
+  document.querySelectorAll('.wheel.live').forEach((w) => {
+    const segs = [...w.querySelectorAll('.seg')];
+    const first = segs.find((s) => s.classList.contains('is-sel'));
+    const isHeroConvert = !!w.closest('[data-panel="converter"]');
+    const pick = (s) => {
+      segs.forEach((o) => o.classList.toggle('is-sel', o === s));
+      if (isHeroConvert && s) setResult(s.querySelector('.lab').textContent.trim());
+    };
+    // mouse: acende ao passar e volta ao sair; dedo: o toque escolhe e a escolha fica
+    segs.forEach((s) => {
+      s.addEventListener('pointerenter', (e) => { if (e.pointerType === 'mouse') pick(s); });
+      s.addEventListener('click', () => pick(s));
     });
-    root.classList.add('js');
-    document.querySelectorAll('.reveal').forEach((el) => io.observe(el));
-  }
-
-  // a roda troca sozinha (Converter → Ferramentas → Ações), pausa ao passar o mouse, focar ou clicar numa aba
-  const switcher = document.querySelector('.switcher');
-  const tabs = [...switcher.querySelectorAll('input[name="wheel"]')];
-  let timer = null, visible = true;
-
-  const advance = () => { const i = tabs.findIndex((t) => t.checked); tabs[(i + 1) % tabs.length].checked = true; };
-  const stop = () => { clearInterval(timer); timer = null; switcher.classList.remove('is-playing'); };
-  const start = (force = false) => {
-    stop();
-    if (root.classList.contains('motion-reduced') || !visible || document.hidden || (!force && (switcher.matches(':hover') || switcher.contains(document.activeElement)))) return;
-    switcher.classList.add('is-playing');
-    timer = setInterval(advance, 4200);
-  };
-  const motionNotice = document.getElementById('motion-notice');
-  const enableMotion = () => {
-    root.classList.remove('motion-reduced');
-    root.classList.add('motion-enabled');
-    motionNotice.hidden = true;
-    start(true);
-  };
-  motionNotice.hidden = !motion.matches;
-  document.getElementById('motion-enable').addEventListener('click', enableMotion);
-  motion.addEventListener('change', () => {
-    root.classList.remove('motion-enabled');
-    root.classList.toggle('motion-reduced', motion.matches);
-    motionNotice.hidden = !motion.matches;
-    start();
+    w.addEventListener('pointerleave', (e) => { if (e.pointerType === 'mouse') pick(first); });
   });
-  tabs.forEach((t) => t.addEventListener('change', stop));
-  switcher.addEventListener('mouseenter', stop);
-  switcher.addEventListener('mouseleave', () => start());
-  switcher.addEventListener('focusin', stop);
-  switcher.addEventListener('focusout', () => setTimeout(start, 0));
-  document.addEventListener('visibilitychange', () => start());
-  if ('IntersectionObserver' in window) {
-    new IntersectionObserver(([e]) => { visible = e.isIntersecting; start(); }).observe(switcher);
-  } else start();
 
-  // perto da roda, as próprias teclas do Mexerica (Shift, Ctrl, Alt) trocam a aba, como no programa de verdade
-  const map = { Shift: 'wheel-converter', Control: 'wheel-ferramentas', Alt: 'wheel-acoes' };
+  // os lados da roda: abas e as próprias teclas do Mexerica (Shift, Ctrl, Alt) perto dela
+  const switcher = document.querySelector('.switcher');
+  const keyMap = { Shift: 'wheel-converter', Control: 'wheel-ferramentas', Alt: 'wheel-acoes' };
   addEventListener('keydown', (e) => {
-    const id = map[e.key];
+    const id = keyMap[e.key];
     if (!id || !(switcher.contains(document.activeElement) || switcher.matches(':hover'))) return;
     e.preventDefault();
     document.getElementById(id).checked = true;
-    stop();
+  });
+  // a cor do fundo acompanha o lado escolhido no topo
+  const tones = { 'wheel-converter': 'convert', 'wheel-ferramentas': 'tools', 'wheel-acoes': 'actions' };
+  switcher.addEventListener('change', (e) => { if (tones[e.target.id]) document.body.dataset.tone = tones[e.target.id]; });
+
+  // cada peça começa a se mexer assim que aparece na tela, uma vez
+  const seen = new IntersectionObserver((entries) => {
+    for (const e of entries) if (e.isIntersecting) { e.target.classList.add('is-in'); seen.unobserve(e.target); }
+  }, { threshold: 0.18 });
+  document.querySelectorAll('.section-head, .adapt-item, .kinds-grid li, .close-inner').forEach((el, i) => {
+    el.style.setProperty('--i', String(i % 4));
+    seen.observe(el);
   });
 
-  // avisa quem não está no Windows, sem bloquear o link: o texto do botão já diz "para Windows"
+  // como funciona: cada cena só toca quando aparece inteira na tela, uma de cada vez, na ordem;
+  // a seguinte espera a anterior terminar
+  const scenes = [...document.querySelectorAll('.scene')];
+  const sceneTime = { 'scene--drag': 3600, 'scene--sides': 5200, 'scene--drop': 3800, 'scene--done': 1800 };
+  const whole = new Set();
+  let playing = false;
+  const playNext = () => {
+    if (playing) return;
+    const next = scenes.find((s) => !s.classList.contains('is-in') && whole.has(s));
+    if (!next) return;
+    playing = true;
+    next.classList.add('is-in');
+    const kind = [...next.classList].find((c) => sceneTime[c]);
+    setTimeout(() => { playing = false; playNext(); }, sceneTime[kind] || 3000);
+  };
+  const sceneObs = new IntersectionObserver((entries) => {
+    for (const e of entries) {
+      if (e.intersectionRatio >= 0.97) whole.add(e.target); else whole.delete(e.target);
+    }
+    playNext();
+  }, { threshold: [0, 0.5, 0.97, 1], rootMargin: '-56px 0px 0px 0px' });
+  scenes.forEach((s) => sceneObs.observe(s));
+
+  // o fundo muda de cor conforme a seção que está no meio da tela
+  const toneObs = new IntersectionObserver((entries) => {
+    for (const e of entries) if (e.isIntersecting) document.body.dataset.tone = e.target.dataset.tone;
+  }, { rootMargin: '-45% 0px -45% 0px' });
+  document.querySelectorAll('section[data-tone]').forEach((s) => toneObs.observe(s));
+
+
+  // avisa quem não está no Windows, sem bloquear o link: o botão já diz "para Windows"
   const notice = document.getElementById('platform-notice');
   const ua = navigator.userAgent || '';
   const platform = (navigator.userAgentData && navigator.userAgentData.platform) || navigator.platform || ua;
@@ -280,30 +317,30 @@
   const incompatible = mobile || !/Win/i.test(platform);
   const system = /Android/i.test(ua) ? 'Android' : mobile ? 'iOS/iPadOS' : /Mac/i.test(platform) ? 'macOS' : /Linux/i.test(platform) ? 'Linux' : null;
   const downloadLinks = [...document.querySelectorAll('a[href="https://github.com/Oitalao/Mexerica/releases/latest"]')];
-  downloadLinks.forEach(link => link.setAttribute('data-download', ''));
+  downloadLinks.forEach((link) => link.setAttribute('data-download', ''));
   if (incompatible) {
     notice.classList.add('show');
     const dialog = document.getElementById('download-dialog');
-    downloadLinks.forEach(link => {
+    downloadLinks.forEach((link) => {
       if (dialog.contains(link)) return;
-      link.addEventListener('click', event => { event.preventDefault(); dialog.showModal(); });
+      link.addEventListener('click', (event) => { event.preventDefault(); dialog.showModal(); });
     });
     document.getElementById('download-close').addEventListener('click', () => dialog.close());
   }
 
-  // Portuguese remains in the HTML so the page also works without JavaScript.
-  const translations = [...document.querySelectorAll('[data-en]')].map(el => ({ el, pt: el.innerHTML, en: el.dataset.en }));
-  const attributes = ['alt', 'label', 'content'].flatMap(kind => {
+  // o português fica no HTML, para a página funcionar também sem JavaScript
+  const translations = [...document.querySelectorAll('[data-en]')].map((el) => ({ el, pt: el.innerHTML, en: el.dataset.en }));
+  const attributes = ['alt', 'label', 'content'].flatMap((kind) => {
     const attr = kind === 'label' ? 'aria-label' : kind;
-    return [...document.querySelectorAll(`[data-${kind}-en]`)].map(el => ({ el, attr, pt: el.getAttribute(attr), en: el.getAttribute(`data-${kind}-en`) }));
+    return [...document.querySelectorAll(`[data-${kind}-en]`)].map((el) => ({ el, attr, pt: el.getAttribute(attr), en: el.getAttribute(`data-${kind}-en`) }));
   });
   let language = 'pt';
   const setLanguage = (lang) => {
     language = lang === 'en' ? 'en' : 'pt';
     root.lang = language === 'pt' ? 'pt-BR' : 'en';
-    translations.forEach(item => { item.el.innerHTML = item[language]; });
-    attributes.forEach(item => item.el.setAttribute(item.attr, item[language]));
-    document.querySelectorAll('[data-lang]').forEach(button => button.setAttribute('aria-pressed', String(button.dataset.lang === language)));
+    translations.forEach((item) => { item.el.innerHTML = item[language]; });
+    attributes.forEach((item) => item.el.setAttribute(item.attr, item[language]));
+    document.querySelectorAll('[data-lang]').forEach((button) => button.setAttribute('aria-pressed', String(button.dataset.lang === language)));
     if (incompatible) notice.textContent = language === 'en'
       ? `You're using ${system || 'another operating system'}. Mexerica only runs on Windows.`
       : `Você está em ${system || 'outro sistema'}. O Mexerica só roda em Windows.`;
@@ -312,9 +349,10 @@
   let storedLanguage;
   try { storedLanguage = localStorage.getItem('mexerica-language'); } catch {}
   setLanguage(storedLanguage);
-  document.querySelectorAll('[data-lang]').forEach(button => button.addEventListener('click', () => setLanguage(button.dataset.lang)));
+  document.querySelectorAll('[data-lang]').forEach((button) => button.addEventListener('click', () => setLanguage(button.dataset.lang)));
 
-  // Keep the release page as fallback if GitHub is unavailable or rate-limited.
+  // o botão de baixar sempre leva ao instalador da versão mais recente publicada no GitHub;
+  // se o GitHub não responder, fica a página da versão mais recente
   (async () => {
     try {
       const response = await fetch('https://api.github.com/repos/Oitalao/Mexerica/releases/latest', {
@@ -322,11 +360,11 @@
       });
       if (!response.ok) return;
       const release = await response.json();
-      const asset = release.assets?.find(item => /-instalador\.exe$/i.test(item.name));
+      const asset = release.assets?.find((item) => /-instalador\.exe$/i.test(item.name));
       if (!asset) return;
       const url = new URL(asset.browser_download_url);
       if (url.origin !== 'https://github.com' || !url.pathname.startsWith('/Oitalao/Mexerica/releases/download/') || !/-instalador\.exe$/i.test(url.pathname)) return;
-      downloadLinks.forEach(link => { link.href = url.href; });
+      downloadLinks.forEach((link) => { link.href = url.href; });
     } catch {}
   })();
 })();

@@ -396,7 +396,7 @@ static class Images
     }
 
     // ---------- PDF e colagem ----------
-    public static string ToPdf(string[] files)
+    public static string ToPdf(string[] files, string? name = null)
     {
         using var all = new MagickImageCollection();
         foreach (var f in files)
@@ -406,7 +406,7 @@ static class Images
             img.Density = new Density(150);
             all.Add(img);
         }
-        var dst = Paths.Out(files[0], "pdf", files.Length > 1 ? "juntas" : null);
+        var dst = Paths.Out(files[0], "pdf", name: name);
         all.Write(dst, MagickFormat.Pdf);
         return dst;
     }

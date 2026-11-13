@@ -14,7 +14,9 @@ namespace Mexerica;
 /// Clicar no aviso pronto abre a pasta com o resultado selecionado.
 sealed class Toast : Window
 {
-    readonly TextBlock head, body, cancel;
+    readonly TextBlock head, body, cancel, openLink, undoLink;
+    readonly StackPanel links;
+    Action? undoAction;
     readonly ProgressBar bar;
     readonly Border card;
     readonly DispatcherTimer timer = new();
@@ -32,7 +34,13 @@ sealed class Toast : Window
         bar = new ProgressBar { Height = 4, Minimum = 0, Maximum = 1, Margin = new Thickness(0, 9, 0, 0), Foreground = new SolidColorBrush(Color.FromRgb(0x3A, 0xA8, 0xFF)), Background = new SolidColorBrush(Color.FromArgb(50, 255, 255, 255)), BorderThickness = new Thickness(0), Visibility = Visibility.Collapsed };
         cancel = new TextBlock { Text = Tr.T("Cancelar"), Foreground = new SolidColorBrush(Color.FromRgb(0x3A, 0xA8, 0xFF)), FontSize = 12, Margin = new Thickness(0, 6, 0, 0), HorizontalAlignment = HorizontalAlignment.Right, Cursor = Cursors.Hand, Visibility = Visibility.Collapsed };
         cancel.MouseLeftButtonUp += (_, e) => { e.Handled = true; job?.Cts.Cancel(); head.Text = Tr.T("Cancelando…"); };
-        var st = new StackPanel(); st.Children.Add(head); st.Children.Add(body); st.Children.Add(bar); st.Children.Add(cancel);
+        TextBlock Link(string t) => new() { Text = Tr.T(t), Foreground = new SolidColorBrush(Color.FromRgb(0x3A, 0xA8, 0xFF)), FontSize = 12, Margin = new Thickness(14, 0, 0, 0), Cursor = Cursors.Hand };
+        openLink = Link("Abrir"); undoLink = Link("Desfazer");
+        openLink.MouseLeftButtonUp += (_, e) => { e.Handled = true; if (target != null) Open(target); Hide(); };
+        undoLink.MouseLeftButtonUp += (_, e) => { e.Handled = true; var u = undoAction; undoAction = null; Hide(); u?.Invoke(); };
+        links = new StackPanel { Orientation = Orientation.Horizontal, HorizontalAlignment = HorizontalAlignment.Right, Margin = new Thickness(0, 7, 0, 0), Visibility = Visibility.Collapsed };
+        links.Children.Add(openLink); links.Children.Add(undoLink);
+        var st = new StackPanel(); st.Children.Add(head); st.Children.Add(body); st.Children.Add(bar); st.Children.Add(cancel); st.Children.Add(links);
         card = new Border
         {
             CornerRadius = new CornerRadius(12), Padding = new Thickness(16, 12, 16, 13), Margin = new Thickness(8),
@@ -48,7 +56,23 @@ sealed class Toast : Window
 
     Action? onClick;
 
-    public void LanguageChanged() { Tr.Window(this); cancel.Text = Tr.T("Cancelar"); }
+    public void LanguageChanged() { Tr.Window(this); cancel.Text = Tr.T("Cancelar"); openLink.Text = Tr.T("Abrir"); undoLink.Text = Tr.T("Desfazer"); }
+
+    /// Aviso de trabalho pronto com "Abrir" e, quando dá para voltar atrás, "Desfazer". Fica mais tempo na tela.
+    public void Done(string title, string text, string path, Action? undo = null)
+    {
+        Show(title, text, path);
+        undoAction = undo;
+        openLink.Visibility = File.Exists(path) || Directory.Exists(path) ? Visibility.Visible : Visibility.Collapsed;
+        undoLink.Visibility = undo != null ? Visibility.Visible : Visibility.Collapsed;
+        links.Visibility = Visibility.Visible;
+        timer.Stop(); timer.Interval = TimeSpan.FromSeconds(undo != null ? 12 : 8); timer.Start();
+    }
+
+    static void Open(string path)
+    {
+        try { Process.Start(new ProcessStartInfo(path) { UseShellExecute = true }); } catch { Reveal(path); }
+    }
 
     /// Aviso que faz algo ao ser clicado (ex.: instalar a atualização).
     public void Show(string title, string text, Action click, int seconds = 12)
@@ -60,7 +84,7 @@ sealed class Toast : Window
 
     public void Show(string title, string text, string? path = null, bool sticky = false, bool error = false)
     {
-        head.Text = Tr.T(title); body.Text = Tr.T(text); target = path; onClick = null;
+        head.Text = Tr.T(title); body.Text = Tr.T(text); target = path; onClick = null; undoAction = null; links.Visibility = Visibility.Collapsed;
         card.BorderBrush = new SolidColorBrush(error ? Color.FromRgb(0xF0, 0x4A, 0x4A) : sticky ? Color.FromRgb(0x3A, 0xA8, 0xFF) : Color.FromRgb(0xFF, 0x8A, 0x1F));
         if (!sticky) { job = null; bar.Visibility = cancel.Visibility = Visibility.Collapsed; }
         timer.Stop();

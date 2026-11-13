@@ -65,6 +65,8 @@ Koło pokazuje tylko to, co ma sens dla danego pliku: wideo bez dźwięku nie pr
 - Wideo: wyciąć fragment, przyciąć obraz, prędkość, podzielić, zapisać jedną klatkę lub wszystkie, wyodrębnić dźwięk i napisy, obrócić, zmienić rozdzielczość, usunąć dźwięk, połączyć
 - Dźwięk: wyciąć fragment, wyrównać głośność, zapiszczeć fragmenty, mono i stereo, prędkość, podzielić, połączyć
 - PDF: porządkowanie stron (zmiana kolejności, obracanie, usuwanie), dzielenie, łączenie i prawdziwe zamazywanie (ukryty tekst znika)
+- PDF także: łączenie plików różnych typów (Word, arkusz, obraz i PDF) w jeden PDF, w wybranej kolejności i pod wybraną nazwą; OCR, który pozwala przeszukiwać zeskanowany PDF, nawet ze stronami bokiem lub do góry nogami; numerowanie stron i stempel "Doc. 01"; zmieszczenie się w limicie wysyłki (kompresja i w razie potrzeby podział na części); PDF/A; hasło
+- Zmiana nazw wielu plików naraz według wzoru ("Doc. {n} - {nazwa}"), z podglądem i cofnięciem
 - Napisy: opóźnić lub przyspieszyć czas; czcionki: arkusz z próbką; archiwa: rozpakować i sprawdzić spójność
 
 **Działania**: udostępnić (Udostępnianie w pobliżu w Windows), zostawić unoszące się na ekranie, skopiować lub przenieść do folderu, skopiować ścieżkę i otworzyć terminal w folderze.

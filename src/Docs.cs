@@ -200,7 +200,7 @@ static class Pdf
     }
 
     public static async Task<Windows.Data.Pdf.PdfDocument> Open(string pdf) =>
-        await Windows.Data.Pdf.PdfDocument.LoadFromFileAsync(await Windows.Storage.StorageFile.GetFileFromPathAsync(pdf));
+        await Windows.Data.Pdf.PdfDocument.LoadFromFileAsync(await Windows.Storage.StorageFile.GetFileFromPathAsync(Path.GetFullPath(pdf)));
 
     /// Parágrafos do PDF na ordem de leitura (blocos de texto pela posição na página).
     static List<string> Paragraphs(string src)
@@ -331,9 +331,9 @@ static class Pdf
         try { using var d = UglyToad.PdfPig.PdfDocument.Open(src); return d.NumberOfPages; } catch { return 0; }
     }
 
-    public static async Task<string> Merge(string[] files)
+    public static async Task<string> Merge(string[] files, string? nameFrom = null, string? name = null, string? to = null)
     {
-        var dst = Paths.Out(files[0], "pdf", "juntos");
+        var dst = to ?? Paths.Out(nameFrom ?? files[0], "pdf", name: name);
         var a = new List<string> { "--empty", "--pages" };
         a.AddRange(files); a.AddRange(new[] { "--", dst });
         try { await Qpdf.Run(a); } catch { Paths.TryDelete(dst); throw; }

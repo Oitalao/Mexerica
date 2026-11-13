@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
@@ -24,6 +24,7 @@ sealed class Config
     public int PdfDpi { get; set; } = 300;
     public string OutputDir { get; set; } = "";        // vazio = ao lado do original
     public bool RevealWhenDone { get; set; } = false;
+    public bool AskMergeName { get; set; } = true;     // ao juntar arquivos, perguntar o nome do resultado
     public bool Paused { get; set; }
     public bool UseGpu { get; set; } = true;           // vídeo pela placa (NVIDIA, Intel, AMD) quando houver
     public bool ShellMenu { get; set; } = true;        // submenu "Mexerica" no botão direito do Explorador
@@ -136,6 +137,7 @@ sealed class SettingsWindow : Window
         outRow.Children.Add(outLabel); outRow.Children.Add(pick); outRow.Children.Add(reset);
         st.Children.Add(Ui.Row("Onde salvar", outRow));
         st.Children.Add(Ui.Check("Ao terminar, mostrar o arquivo novo na pasta", c.RevealWhenDone, v => c.RevealWhenDone = v));
+        st.Children.Add(Ui.Check("Ao juntar arquivos, perguntar o nome do arquivo novo", c.AskMergeName, v => c.AskMergeName = v));
         var watchLabel = new TextBlock { Foreground = Ui.Dim, VerticalAlignment = VerticalAlignment.Center, Margin = new Thickness(0, 0, 8, 0) };
         void ShowWatch()
         {

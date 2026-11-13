@@ -136,11 +136,107 @@ sealed class Form : Window
         return this;
     }
 
-    public Form Note(string text)
+    public Form Check(string key, string label, bool def)
     {
-        body.Children.Add(new TextBlock { Text = text, Foreground = Ui.Dim, TextWrapping = TextWrapping.Wrap, Margin = new Thickness(0, 6, 0, 2), FontSize = 12 });
+        values[key] = def ? "1" : "0";
+        body.Children.Add(Ui.Check(label, def, v => values[key] = v ? "1" : "0"));
         return this;
     }
 
-    public P? Run() => ShowDialog() == true ? values : null;
+    /// Lista dos arquivos para pôr em ordem (setas ou arrastar). Grava em key os índices originais na nova ordem ("2,0,1").
+    public Form Order(string key, string[] files, string label = "Ordem")
+    {
+        var order = Enumerable.Range(0, files.Length).ToList();
+        void Save() => values[key] = string.Join(",", order);
+        Save();
+        var list = new ListBox
+        {
+            Height = Math.Min(220, 26 * files.Length + 8), Background = Ui.Panel, Foreground = Ui.Fg, BorderBrush = Ui.Line,
+            AllowDrop = true, Margin = new Thickness(0, 4, 0, 0),
+        };
+        void Fill(int sel)
+        {
+            list.Items.Clear();
+            for (int i = 0; i < order.Count; i++)
+            {
+                var item = new ListBoxItem { Content = $"{i + 1}. {Path.GetFileName(files[order[i]].TrimEnd('\\'))}", Foreground = Ui.Fg, Tag = i };
+                Tr.Raw(item);
+                list.Items.Add(item);
+            }
+            list.SelectedIndex = sel;
+        }
+        void Move(int from, int to)
+        {
+            if (from < 0 || to < 0 || from >= order.Count || to >= order.Count || from == to) return;
+            var v = order[from]; order.RemoveAt(from); order.Insert(to, v);
+            Save(); Fill(to); Changed?.Invoke();
+        }
+        Fill(0);
+        Point down = default; int dragFrom = -1;
+        list.PreviewMouseLeftButtonDown += (_, e) => { down = e.GetPosition(list); dragFrom = list.SelectedIndex; };
+        list.PreviewMouseMove += (_, e) =>
+        {
+            if (e.LeftButton != MouseButtonState.Pressed || list.SelectedItem is not ListBoxItem it) return;
+            var p = e.GetPosition(list);
+            if (Math.Abs(p.Y - down.Y) < 6) return;
+            dragFrom = list.SelectedIndex;
+            DragDrop.DoDragDrop(list, it, DragDropEffects.Move);
+        };
+        list.Drop += (_, e) =>
+        {
+            var target = (e.OriginalSource as DependencyObject) is { } d ? ItemsControl.ContainerFromElement(list, d) as ListBoxItem : null;
+            Move(dragFrom, target != null ? list.Items.IndexOf(target) : order.Count - 1);
+        };
+        var up = Ui.Button("↑", false); up.MinWidth = 34; up.Click += (_, _) => Move(list.SelectedIndex, list.SelectedIndex - 1);
+        var dn = Ui.Button("↓", false); dn.MinWidth = 34; dn.Click += (_, _) => Move(list.SelectedIndex, list.SelectedIndex + 1);
+        var btns = new StackPanel { Margin = new Thickness(6, 4, 0, 0) };
+        btns.Children.Add(up); btns.Children.Add(dn);
+        var grid = new DockPanel();
+        DockPanel.SetDock(btns, Dock.Right);
+        grid.Children.Add(btns); grid.Children.Add(list);
+        body.Children.Add(new TextBlock { Text = Tr.T(label), Foreground = Ui.Fg, Margin = new Thickness(0, 6, 0, 0) });
+        body.Children.Add(grid);
+        body.Children.Add(new TextBlock { Text = Tr.T("Arraste ou use as setas para mudar a ordem."), Foreground = Ui.Dim, FontSize = 12, Margin = new Thickness(0, 2, 0, 4) });
+        return this;
+    }
+
+    /// Avisado quando a ordem muda (para atualizar uma prévia).
+    public event Action? Changed;
+
+    /// Texto de prévia que se atualiza sozinho enquanto a pessoa mexe nos campos.
+    public Form Preview(Func<P, string> make)
+    {
+        var tb = new TextBlock { Foreground = Ui.Dim, FontSize = 12, TextWrapping = TextWrapping.Wrap, Margin = new Thickness(0, 8, 0, 0) };
+        Tr.Raw(tb);
+        body.Children.Add(tb);
+        void Upd() { try { tb.Text = make(values); } catch { tb.Text = ""; } }
+        var t = new System.Windows.Threading.DispatcherTimer { Interval = TimeSpan.FromMilliseconds(300) };
+        t.Tick += (_, _) => Upd();
+        Loaded += (_, _) => { Upd(); t.Start(); };
+        Closed += (_, _) => t.Stop();
+        return this;
+    }
+
+    /// Os arquivos na ordem escolhida em Order (ou como vieram, se não houve lista).
+    public static string[] Ordered(string[] files, P p, string key = "ordem")
+    {
+        var idx = p.S(key).Split(',', StringSplitOptions.RemoveEmptyEntries).Select(s => int.TryParse(s, out var i) ? i : -1).ToArray();
+        if (idx.Length != files.Length || idx.Any(i => i < 0 || i >= files.Length) || idx.Distinct().Count() != idx.Length) return files;
+        return idx.Select(i => files[i]).ToArray();
+    }
+
+    public Form Note(string text)
+    {
+        body.Children.Add(new TextBlock { Text = Tr.T(text), Foreground = Ui.Dim, TextWrapping = TextWrapping.Wrap, Margin = new Thickness(0, 6, 0, 2), FontSize = 12 });
+        return this;
+    }
+
+    /// Só no modo de capturas de tela (MEXERICA_TESTE_UI): desenha a janela em arquivo em vez de abrir.
+    public static Action<Window>? Capture;
+
+    public P? Run()
+    {
+        if (Capture != null) { Capture(this); return null; }
+        return ShowDialog() == true ? values : null;
+    }
 }

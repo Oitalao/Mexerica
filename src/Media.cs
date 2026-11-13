@@ -433,13 +433,13 @@ static class Ff
         return dir;
     }
 
-    public static async Task<string> Concat(string[] files, bool video)
+    public static async Task<string> Concat(string[] files, bool video, string? name = null)
     {
         var tmp = Paths.Temp();
         try
         {
             var ext = video ? "mp4" : (files.Select(AOut).Distinct().Count() == 1 ? AOut(files[0]) : "mp3");
-            var dst = Paths.Out(files[0], ext, "juntos");
+            var dst = Paths.Out(files[0], ext, name: name);
             double total = files.Sum(Duration);
             var a = new List<string>();
             if (video)

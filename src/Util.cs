@@ -13,19 +13,30 @@ static class Paths
     public static readonly string Data = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "Mexerica");
 
     /// Caminho de saída ao lado do original, sem sobrescrever nada.
-    public static string Out(string src, string ext, string? suffix = null)
+    public static string Out(string src, string ext, string? suffix = null, string? name = null)
     {
         var dir = Dir(src);
         var b = Path.GetFileNameWithoutExtension(src.TrimEnd('\\'));
         if (b.EndsWith(".tar", StringComparison.OrdinalIgnoreCase)) b = b[..^4];
         if (suffix != null) b += $" ({suffix})";
+        if (CleanName(name) is { } n) b = n;
         lock (reserved)
         {
             var p = Path.Combine(dir, $"{b}.{ext}");
-            for (int i = 2; Taken(p); i++) p = Path.Combine(dir, $"{b} {i}.{ext}");
+            for (int i = 1; Taken(p); i++) p = Path.Combine(dir, $"{b} ({i}).{ext}");
             reserved.Add(p);
             return p;
         }
+    }
+
+    /// Nome digitado pela pessoa, sem caracteres que o Windows recusa e sem a extensão (se ela digitou). Null se vazio.
+    public static string? CleanName(string? name)
+    {
+        if (string.IsNullOrWhiteSpace(name)) return null;
+        var n = string.Concat(name.Trim().Where(c => !Path.GetInvalidFileNameChars().Contains(c))).Trim().TrimEnd('.');
+        var e = Path.GetExtension(n);
+        if (e.Length is > 1 and <= 5 && e.Skip(1).All(char.IsLetterOrDigit)) n = Path.GetFileNameWithoutExtension(n);
+        return n.Length == 0 ? null : n;
     }
 
     // Nomes já entregues a trabalhos em andamento: com vários arquivos ao mesmo tempo,
@@ -51,7 +62,7 @@ static class Paths
         lock (reserved)
         {
             var p = Path.Combine(dir, b);
-            for (int i = 2; Taken(p); i++) p = Path.Combine(dir, $"{b} {i}");
+            for (int i = 1; Taken(p); i++) p = Path.Combine(dir, $"{b} ({i})");
             reserved.Add(p);
             return p;
         }

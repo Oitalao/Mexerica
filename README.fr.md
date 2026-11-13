@@ -65,6 +65,8 @@ La roue ne propose que ce qui a du sens pour ce fichier : une vidéo sans son ne
 - Vidéo : couper un passage, recadrer l'image, vitesse, découper, extraire une image ou toutes, extraire l'audio et les sous-titres, pivoter, changer la résolution, enlever le son, assembler
 - Audio : couper un passage, normaliser le volume, bip sur des passages, mono et stéréo, vitesse, découper, assembler
 - PDF : organiser les pages (réordonner, pivoter, supprimer), découper, assembler et caviarder pour de vrai (le texte caché disparaît)
+- PDF aussi : assembler des fichiers de types différents (Word, tableur, image et PDF) en un seul PDF, dans l'ordre et sous le nom de votre choix ; OCR qui rend un PDF scanné consultable, même avec des pages de travers ou à l'envers ; numéroter les pages et tamponner « Doc. 01 » ; tenir dans une limite d'envoi (compresse et, si besoin, découpe en parties) ; PDF/A ; mot de passe
+- Renommer plusieurs fichiers d'un coup selon un modèle (« Doc. {n} - {nom} »), avec aperçu et annulation
 - Sous-titres : retarder ou avancer le minutage ; polices : planche d'exemple ; archives : extraire et tester l'intégrité
 
 **Actions** : partager (Partage de proximité de Windows), laisser flottant à l'écran, copier ou déplacer vers un dossier, copier le chemin et ouvrir le terminal dans le dossier.

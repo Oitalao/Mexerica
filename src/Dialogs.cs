@@ -56,6 +56,90 @@ static class Dialogs
         return f.Run();
     }
 
+    /// Nome do arquivo que resulta de juntar vários. Sem perguntar (opção desligada), usa o nome do primeiro arquivo.
+    public static P? MergeName(string[] fs)
+    {
+        if (!Config.Now.AskMergeName) return new P();
+        var f = new Form("Juntar", fs);
+        var first = Path.GetFileNameWithoutExtension(fs[0].TrimEnd('\\'));
+        if (fs.Length > 1) f.Order("ordem", fs, "Ordem no arquivo novo");
+        f.Text("nome", "Nome do arquivo novo", first, width: 230);
+        f.Check("nao_perguntar", "Não perguntar de novo (usar o nome do primeiro arquivo)", false);
+        f.Note("Para voltar a perguntar: Configurações → Pastas.");
+        var p = f.Run();
+        if (p == null) return null;
+        // Mudou a ordem e não mexeu no nome: o nome acompanha o novo primeiro arquivo.
+        var ordered = Form.Ordered(fs, p);
+        if (p.S("nome") == first && ordered[0] != fs[0]) p["nome"] = Path.GetFileNameWithoutExtension(ordered[0].TrimEnd('\\'));
+        if (p.S("nao_perguntar") == "1")
+        {
+            var c = Config.Now.Clone();
+            c.AskMergeName = false;
+            c.Save();
+        }
+        return p;
+    }
+
+    /// Limite de tamanho do sistema de envio (tribunal, e-mail, formulário).
+    public static P? SizeLimit(string[] fs)
+    {
+        var f = new Form("Limite de envio", fs);
+        f.Choice("mb", "Cada arquivo com no máximo", new[] { ("1", "1 MB"), ("2", "2 MB"), ("3", "3 MB"), ("5", "5 MB"), ("10", "10 MB"), ("15", "15 MB"), ("20", "20 MB"), ("25", "25 MB (e-mail)"), ("30", "30 MB"), ("outro", "Outro") }, "5");
+        f.Number("outro", "Tamanho", 5, 0.2, 2000, "MB", ("mb", new[] { "outro" }), decimals: true);
+        f.Note("Primeiro comprime. Se mesmo assim não couber, divide em partes (nome - parte 1 de 3).");
+        var p = f.Run();
+        if (p != null && p.S("mb") == "outro") p["mb"] = p.S("outro");
+        return p;
+    }
+
+    /// Número de página e carimbo ("Doc. 01") no canto das páginas.
+    public static P? Stamp(string[] fs)
+    {
+        var f = new Form("Carimbar", fs);
+        if (fs.Length > 1) f.Order("ordem", fs, "Ordem dos documentos");
+        f.Text("carimbo", "Carimbo ({d} = número)", "Doc. {d}", width: 200);
+        f.Number("inicio", "Começar no número", 1, 0, 99999);
+        f.Choice("digitos", "Algarismos", new[] { ("1", "1, 2, 3"), ("2", "01, 02, 03"), ("3", "001, 002, 003") }, "2");
+        f.Check("numerar", "Numerar as páginas", true);
+        f.Choice("formato", "Número da página", new[] { ("{n}", "1"), ("{n}/{total}", "1/10"), ("Página {n} de {total}", "Página 1 de 10"), ("Fls. {n}", "Fls. 1") }, "Página {n} de {total}");
+        f.Choice("posicao", "Posição", new[] { ("sd", "Em cima, à direita"), ("se", "Em cima, à esquerda"), ("sc", "Em cima, no meio"), ("id", "Embaixo, à direita"), ("ie", "Embaixo, à esquerda"), ("ic", "Embaixo, no meio") }, "sd");
+        f.Number("tamanho", "Tamanho da letra", 10, 6, 48, "pt");
+        f.Note("Deixe o carimbo vazio para só numerar as páginas. Com vários PDFs, cada um ganha o número seguinte.");
+        return f.Run();
+    }
+
+    /// Senha para abrir o PDF.
+    public static P? PdfProtect(string[] fs)
+    {
+        var f = new Form("Pôr senha", fs);
+        f.Text("senha", "Senha", "", validate: v => v.Length < 4 ? "Use uma senha com pelo menos 4 caracteres." : null, width: 200);
+        f.Text("senha2", "Repita a senha", "", width: 200);
+        f.Note("Guarde a senha: sem ela, ninguém abre o arquivo (nem o Mexerica).");
+        while (true)
+        {
+            var p = f.Run();
+            if (p == null) return null;
+            if (p.S("senha") == p.S("senha2")) return p;
+            Tr.Box("As duas senhas não são iguais.", "Mexerica", System.Windows.MessageBoxButton.OK, System.Windows.MessageBoxImage.Warning);
+            f = new Form("Pôr senha", fs);
+            f.Text("senha", "Senha", "", validate: v => v.Length < 4 ? "Use uma senha com pelo menos 4 caracteres." : null, width: 200);
+            f.Text("senha2", "Repita a senha", "", width: 200);
+        }
+    }
+
+    /// Renomear vários arquivos de uma vez, com número e na ordem escolhida.
+    public static P? Rename(string[] fs)
+    {
+        var f = new Form("Renomear", fs);
+        if (fs.Length > 1) f.Order("ordem", fs, "Ordem");
+        f.Text("modelo", "Novo nome", "Doc. {n} - {nome}", width: 230);
+        f.Number("inicio", "Começar no número", 1, 0, 99999);
+        f.Choice("digitos", "Algarismos", new[] { ("1", "1, 2, 3"), ("2", "01, 02, 03"), ("3", "001, 002, 003") }, "2");
+        f.Note("{n} = número, {nome} = nome atual. A extensão continua a mesma.");
+        f.Preview(p => Tr.T("Exemplo") + ": " + string.Join("   ", Actions.RenamePlan(Form.Ordered(fs, p), p).Take(3).Select(x => Path.GetFileName(x.to))));
+        return f.Run();
+    }
+
     public static P? Collage(string[] fs)
     {
         var f = new Form("Colagem", fs);

@@ -65,6 +65,8 @@ Das Rad bietet nur an, was für diese Datei sinnvoll ist: ein Video ohne Ton bie
 - Video: einen Abschnitt schneiden, das Bild zuschneiden, Geschwindigkeit, teilen, ein Einzelbild oder alle speichern, Ton und Untertitel herausziehen, drehen, Auflösung ändern, Ton entfernen, zusammenfügen
 - Audio: einen Abschnitt schneiden, Lautstärke angleichen, Piepton über Abschnitte legen, Mono und Stereo, Geschwindigkeit, teilen, zusammenfügen
 - PDF: Seiten ordnen (umsortieren, drehen, löschen), teilen, zusammenfügen und wirklich schwärzen (der verdeckte Text verschwindet)
+- PDF außerdem: Dateien verschiedener Typen (Word, Tabelle, Bild und PDF) zu einem PDF zusammenfügen, in der Reihenfolge und mit dem Namen Ihrer Wahl; OCR, die ein gescanntes PDF durchsuchbar macht, auch mit seitlich oder kopfstehend gescannten Seiten; Seitenzahlen und Stempel "Doc. 01"; in ein Upload-Limit passen (komprimiert und teilt bei Bedarf in Teile); PDF/A; Passwort
+- Viele Dateien auf einmal nach Muster umbenennen ("Doc. {n} - {Name}"), mit Vorschau und Rückgängig
 - Untertitel: Zeit verzögern oder vorziehen; Schriftarten: Musterblatt; Archive: entpacken und auf Fehler prüfen
 
 **Aktionen**: teilen (Windows-Umgebungsfreigabe), auf dem Bildschirm schweben lassen, in einen Ordner kopieren oder verschieben, den Pfad kopieren und das Terminal im Ordner öffnen.
