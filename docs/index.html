@@ -218,6 +218,46 @@
 </dialog>
 
 <script>
+// aviso de "só Windows" num script à parte, em JavaScript antigo, para funcionar
+// mesmo em navegador de celular velho ou se o script principal falhar
+(function () {
+  var ua = navigator.userAgent || '';
+  var plat = (navigator.userAgentData && navigator.userAgentData.platform) || navigator.platform || ua;
+  var mobile = /Android|iPhone|iPad|iPod|Mobile/i.test(ua) || (/Mac/i.test(plat) && navigator.maxTouchPoints > 1);
+  var outro = mobile || !/Win/i.test(plat);
+  document.documentElement.setAttribute('data-sistema', outro ? 'outro' : 'windows');
+  if (!outro) return;
+  var nome = /Android/i.test(ua) ? 'Android' : /iPhone|iPad|iPod/i.test(ua) || mobile ? 'iOS/iPadOS' : /Mac/i.test(plat) ? 'macOS' : /Linux/i.test(plat) ? 'Linux' : '';
+  document.documentElement.setAttribute('data-sistema-nome', nome);
+  var notice = document.getElementById('platform-notice');
+  if (notice) {
+    notice.className += ' show';
+    notice.textContent = 'Você está em ' + (nome || 'outro sistema') + '. O Mexerica só roda em Windows.';
+  }
+  var dialog = document.getElementById('download-dialog');
+  var abrir = function () {
+    if (dialog.showModal) { try { dialog.showModal(); return; } catch (e) {} }
+    dialog.setAttribute('open', '');
+  };
+  var fechar = function () {
+    if (dialog.close) { try { dialog.close(); return; } catch (e) {} }
+    dialog.removeAttribute('open');
+  };
+  // na captura, antes de qualquer outro clique: o toque em "Baixar" abre o aviso
+  document.addEventListener('click', function (e) {
+    var t = e.target;
+    while (t && t.nodeType !== 1) t = t.parentNode;
+    while (t && !(t.tagName === 'A' && /\/Oitalao\/Mexerica\/releases/.test(t.getAttribute('href') || ''))) t = t.parentNode;
+    if (!t || !dialog || dialog.contains(t)) return;
+    e.preventDefault();
+    abrir();
+  }, true);
+  var botao = document.getElementById('download-close');
+  if (botao) botao.addEventListener('click', fechar);
+})();
+</script>
+
+<script>
 (() => {
   const root = document.documentElement;
 
@@ -310,24 +350,12 @@
   document.querySelectorAll('section[data-tone]').forEach((s) => toneObs.observe(s));
 
 
-  // avisa quem não está no Windows, sem bloquear o link: o botão já diz "para Windows"
+  // o aviso de "só Windows" e o bloqueio do toque em Baixar ficam no script pequeno acima
   const notice = document.getElementById('platform-notice');
-  const ua = navigator.userAgent || '';
-  const platform = (navigator.userAgentData && navigator.userAgentData.platform) || navigator.platform || ua;
-  const mobile = /Android|iPhone|iPad|iPod/i.test(ua) || (/Mac/i.test(platform) && navigator.maxTouchPoints > 1);
-  const incompatible = mobile || !/Win/i.test(platform);
-  const system = /Android/i.test(ua) ? 'Android' : mobile ? 'iOS/iPadOS' : /Mac/i.test(platform) ? 'macOS' : /Linux/i.test(platform) ? 'Linux' : null;
+  const incompatible = root.dataset.sistema === 'outro';
+  const system = root.dataset.sistemaNome || null;
   const downloadLinks = [...document.querySelectorAll('a[href="https://github.com/Oitalao/Mexerica/releases/latest"]')];
   downloadLinks.forEach((link) => link.setAttribute('data-download', ''));
-  if (incompatible) {
-    notice.classList.add('show');
-    const dialog = document.getElementById('download-dialog');
-    downloadLinks.forEach((link) => {
-      if (dialog.contains(link)) return;
-      link.addEventListener('click', (event) => { event.preventDefault(); dialog.showModal(); });
-    });
-    document.getElementById('download-close').addEventListener('click', () => dialog.close());
-  }
 
   // o português fica no HTML, para a página funcionar também sem JavaScript
   const translations = [...document.querySelectorAll('[data-en]')].map((el) => ({ el, pt: el.innerHTML, en: el.dataset.en }));
@@ -354,7 +382,8 @@
 
   // o botão de baixar sempre leva ao instalador da versão mais recente publicada no GitHub;
   // se o GitHub não responder, fica a página da versão mais recente
-  (async () => {
+  // fora do Windows o link fica na página da versão, nunca direto no .exe
+  if (!incompatible) (async () => {
     try {
       const response = await fetch('https://api.github.com/repos/Oitalao/Mexerica/releases/latest', {
         headers: { Accept: 'application/vnd.github+json' }, credentials: 'omit', referrerPolicy: 'no-referrer', signal: AbortSignal.timeout(8000)
