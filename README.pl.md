@@ -64,7 +64,7 @@ Koło pokazuje tylko to, co ma sens dla danego pliku: wideo bez dźwięku nie pr
 - Metadane: zobaczyć wszystko, edytować tytuł, autora i inne pola, usunąć lokalizację albo wszystko
 - Wideo: wyciąć fragment, przyciąć obraz, prędkość, podzielić, zapisać jedną klatkę lub wszystkie, wyodrębnić dźwięk i napisy, obrócić, zmienić rozdzielczość, usunąć dźwięk, połączyć
 - Dźwięk: wyciąć fragment, wyrównać głośność, zapiszczeć fragmenty, mono i stereo, prędkość, podzielić, połączyć
-- PDF: porządkowanie stron (zmiana kolejności, obracanie, usuwanie), dzielenie, łączenie i prawdziwe zamazywanie (ukryty tekst znika)
+- PDF: porządkowanie stron (zmiana kolejności, obracanie, usuwanie), dzielenie (części trafiają obok oryginału, do folderu lub do pliku ZIP), łączenie i prawdziwe zamazywanie (ukryty tekst znika)
 - PDF także: łączenie plików różnych typów (Word, arkusz, obraz i PDF) w jeden PDF, w wybranej kolejności i pod wybraną nazwą; OCR, który pozwala przeszukiwać zeskanowany PDF, nawet ze stronami bokiem lub do góry nogami; numerowanie stron i stempel "Doc. 01"; zmieszczenie się w limicie wysyłki (kompresja i w razie potrzeby podział na części); PDF/A; hasło
 - Zmiana nazw wielu plików naraz według wzoru ("Doc. {n} - {nazwa}"), z podglądem i cofnięciem
 - Napisy: opóźnić lub przyspieszyć czas; czcionki: arkusz z próbką; archiwa: rozpakować i sprawdzić spójność
@@ -86,7 +86,9 @@ Ustawienia otwiera się podwójnym kliknięciem ikony Mexerica obok zegara albo 
 | **Prosto z przeglądarki** | Skonwertować obraz lub plik ze strony bez pobierania go wcześniej | Przeciągnij obraz lub link ze strony, naciśnij **Spację** i upuść na opcji. Plik trafi do Pobranych |
 | **Język** | Portugalski, angielski, hiszpański, francuski, niemiecki, włoski, japoński, koreański, chiński, rosyjski, polski, hindi i arabski. Mexerica otwiera się po portugalsku | **Configurações** (Ustawienia) → **Idioma** (Język) |
 | **Aktualizacje** | Powiadomienie obok zegara, gdy wyjdzie nowa wersja; jedno kliknięcie aktualizuje. Pobrany plik jest sprawdzany (SHA-256) przed instalacją | Ustawienia → Aktualizacje (sprawdź teraz lub wyłącz powiadomienie) |
-| **Wiersz poleceń** | Konwertowanie z wiersza polecenia lub w skryptach | Zobacz [Wiersz poleceń](#wiersz-poleceń) |
+| **Sprawdź integralność programu** | Sprawdza, czy narzędzia (FFmpeg, Ghostscript, qpdf, ExifTool, LibreOffice), menu prawego przycisku i folder danych działają prawidłowo | Prawy przycisk na ikonie → **Sprawdź integralność programu…** |
+| **Wiersz poleceń** | Wszystko, co potrafi koło, z wiersza poleceń lub w skryptach | Zobacz [Wiersz poleceń](#wiersz-poleceń) |
+| **Sztuczna inteligencja w wierszu poleceń** | Jeśli Claude Code lub Codex są zainstalowane, Mexerica udostępnia im aktualizowany z każdą wersją przewodnik po poleceniu `mexerica`, aby korzystały z Mexeriki zamiast instalować inne programy | Automatycznie; odinstalowanie Mexeriki usuwa przewodnik |
 
 Skróty (.lnk) prowadzą do prawdziwego pliku, a o pustym pliku program ostrzega przed próbą.
 
@@ -102,14 +104,18 @@ Wymagania: Windows 10 (wersja 2004 lub nowsza) albo Windows 11, 64 bity. Nic wi�
 
 ## Wiersz poleceń
 
-Podczas instalacji zaznacz **Usar o comando "mexerica" no Prompt de Comando e no PowerShell** (Używaj polecenia "mexerica" w wierszu polecenia i w PowerShell), aby móc wywołać `mexerica` z dowolnego folderu:
+Instalator dodaje `mexerica` do wiersza polecenia i PowerShella. Polecenie robi wszystko, co koło, i działa z dowolnego folderu:
 
 ```powershell
 mexerica converter *.heic --para jpg                      # konwertuje wszystko do JPG, obok oryginałów
 mexerica converter video.mov --para mp4 -o D:\Saida      # wybiera folder wyników
 mexerica opcoes planilha.xlsx                             # pokazuje, co można zrobić z plikiem
 mexerica ferramenta Comprimir foto.jpg --p modo=pct --p pct=50
+mexerica ajuda Dividir contrato.pdf                       # pokazuje ustawienia narzędzia i wartości domyślne
+mexerica ferramenta Dividir contrato.pdf --p saida=zip    # części w ZIP (lub saida=pasta; domyślnie obok oryginału)
+mexerica acao Renomear *.pdf --p "modelo=Doc. {n} - {nome}"
 mexerica vigiar D:\Fotos --para webp --subpastas          # konwertuje to, co przychodzi, aż do Ctrl+C
+mexerica vigiar D:\Envio --acao comprimir --mb 4          # kompresuje pliki większe niż 4 MB
 mexerica doctor                                            # sprawdza ffmpeg, Ghostscript, menu prawego przycisku i inne zależności
 ```
 

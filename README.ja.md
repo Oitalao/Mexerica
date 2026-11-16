@@ -64,7 +64,7 @@ Mexerica は、Mac 用の [Tangerine](https://tangerineformac.com) のアイデ�
 - メタデータ: すべて表示、タイトルや作成者などの編集、位置情報またはすべての削除
 - 動画: 区間の切り出し、画面の切り抜き、速度、分割、1 コマまたは全コマの保存、音声と字幕の取り出し、回転、解像度の変更、音声の削除、結合
 - 音声: 区間の切り出し、音量の正規化、区間にピー音をかぶせる、モノラルとステレオ、速度、分割、結合
-- PDF: ページの整理 (並べ替え、回転、削除)、分割、結合、本当の黒塗り (隠した文字が消える)
+- PDF: ページの整理 (並べ替え、回転、削除)、分割 (分割したファイルは元のファイルの隣、フォルダー、または ZIP に保存)、結合、本当の黒塗り (隠した文字が消える)
 - PDF ではさらに: 種類の違うファイル (Word、表計算、画像、PDF) を、選んだ順番と名前で 1 つの PDF に結合; スキャンした PDF を検索できるようにする OCR (横向きや逆さまのページにも対応); ページ番号と「Doc. 01」スタンプ; 送信サイズの上限に収める (圧縮し、必要なら分割); PDF/A; パスワード
 - 複数のファイルをパターンで一括リネーム (「Doc. {n} - {名前}」)、プレビューと元に戻す付き
 - 字幕: 時間を遅らせる・早める。フォント: 見本シート。圧縮ファイル: 展開と整合性の確認
@@ -86,7 +86,9 @@ Mexerica は、Mac 用の [Tangerine](https://tangerineformac.com) のアイデ�
 | **ブラウザーから直接** | Web サイトの画像やファイルを、先にダウンロードせずに変換 | サイトの画像やリンクをドラッグし、**スペース** を押して項目の上で離す。ファイルはダウンロードに保存されます |
 | **言語** | ポルトガル語、英語、スペイン語、フランス語、ドイツ語、イタリア語、日本語、韓国語、中国語、ロシア語、ポーランド語、ヒンディー語、アラビア語。Mexerica はポルトガル語で起動します | **Configurações** (設定) → **Idioma** (言語) |
 | **アップデート** | 新しいバージョンが出ると時計の近くにお知らせが出て、クリック 1 回で更新。ダウンロードしたファイルはインストール前に確認 (SHA-256) されます | 設定 → アップデート (今すぐ確認、またはお知らせをオフ) |
-| **コマンドライン** | コマンドプロンプトやスクリプトから変換 | [コマンドライン](#コマンドライン) を参照 |
+| **プログラムの整合性を確認** | ツール (FFmpeg、Ghostscript、qpdf、ExifTool、LibreOffice)、右クリックメニュー、データフォルダーが正常か確認します | アイコンを右クリック → **プログラムの整合性を確認…** |
+| **コマンドライン** | ホイールでできるすべての操作を、コマンドプロンプトやスクリプトから実行 | [コマンドライン](#コマンドライン) を参照 |
+| **コマンドライン AI** | Claude Code または Codex がインストールされている場合、Mexerica は各バージョンに対応した `mexerica` コマンドのガイドを用意し、ほかのプログラムをインストールせず Mexerica を使えるようにします | 自動。Mexerica をアンインストールするとガイドも削除されます |
 
 ショートカット (.lnk) は実際のファイルまでたどり、空のファイルは処理の前にお知らせします。
 
@@ -102,14 +104,18 @@ Mexerica は、Mac 用の [Tangerine](https://tangerineformac.com) のアイデ�
 
 ## コマンドライン
 
-インストール時に **Usar o comando "mexerica" no Prompt de Comando e no PowerShell** (コマンドプロンプトと PowerShell で「mexerica」コマンドを使う) にチェックを入れると、どのフォルダーからでも `mexerica` を呼び出せます。
+インストーラーが `mexerica` をコマンドプロンプトと PowerShell に追加します。ホイールでできるすべての操作を、どのフォルダーからでも実行できます。
 
 ```powershell
 mexerica converter *.heic --para jpg                      # すべて JPG に変換し、元のファイルの隣に保存
 mexerica converter video.mov --para mp4 -o D:\Saida      # 保存先フォルダーを指定
 mexerica opcoes planilha.xlsx                             # そのファイルでできることを一覧表示
 mexerica ferramenta Comprimir foto.jpg --p modo=pct --p pct=50
+mexerica ajuda Dividir contrato.pdf                       # ツールの設定と既定値を表示
+mexerica ferramenta Dividir contrato.pdf --p saida=zip    # 分割ファイルを ZIP に保存 (または saida=pasta。既定では元ファイルの隣)
+mexerica acao Renomear *.pdf --p "modelo=Doc. {n} - {nome}"
 mexerica vigiar D:\Fotos --para webp --subpastas          # Ctrl+C を押すまで、届いたものを変換
+mexerica vigiar D:\Envio --acao comprimir --mb 4          # 4 MB を超えるファイルを圧縮
 mexerica doctor                                            # ffmpeg、Ghostscript、右クリックメニューなどの依存関係を確認
 ```
 

@@ -64,7 +64,7 @@ Mexerica는 Mac용 [Tangerine](https://tangerineformac.com)의 아이디어를 W
 - 메타데이터: 전부 보기, 제목과 작성자 등 편집, 위치 정보나 전부 지우기
 - 동영상: 구간 자르기, 화면 자르기, 속도, 나누기, 장면 하나 또는 전부 저장, 오디오와 자막 꺼내기, 회전, 해상도 바꾸기, 소리 없애기, 합치기
 - 오디오: 구간 자르기, 볼륨 맞추기, 구간에 삐 소리 넣기, 모노와 스테레오, 속도, 나누기, 합치기
-- PDF: 페이지 정리 (순서 바꾸기, 회전, 삭제), 나누기, 합치기, 제대로 가리기 (가린 글자가 완전히 사라짐)
+- PDF: 페이지 정리 (순서 바꾸기, 회전, 삭제), 나누기 (나눈 파일은 원본 옆, 폴더 또는 ZIP에 저장), 합치기, 제대로 가리기 (가린 글자가 완전히 사라짐)
 - PDF 추가 기능: 종류가 다른 파일(Word, 스프레드시트, 이미지, PDF)을 원하는 순서와 이름으로 PDF 하나로 합치기; 스캔한 PDF를 검색할 수 있게 하는 OCR(옆으로 눕거나 뒤집힌 페이지도 인식); 페이지 번호와 "Doc. 01" 도장; 전송 용량 제한에 맞추기(압축하고 필요하면 나누기); PDF/A; 암호
 - 여러 파일 이름을 패턴으로 한 번에 바꾸기("Doc. {n} - {이름}"), 미리 보기와 실행 취소 포함
 - 자막: 시간을 늦추거나 당기기. 글꼴: 견본 시트. 압축 파일: 풀기와 무결성 검사
@@ -86,7 +86,9 @@ Mexerica는 Mac용 [Tangerine](https://tangerineformac.com)의 아이디어를 W
 | **브라우저에서 바로** | 웹사이트의 이미지나 파일을 먼저 내려받지 않고 변환 | 사이트의 이미지나 링크를 끌고 **스페이스**를 누른 뒤 항목 위에 놓기. 파일은 다운로드 폴더에 저장됨 |
 | **언어** | 포르투갈어, 영어, 스페인어, 프랑스어, 독일어, 이탈리아어, 일본어, 한국어, 중국어, 러시아어, 폴란드어, 힌디어, 아랍어. Mexerica는 포르투갈어로 열립니다 | **Configurações** (설정) → **Idioma** (언어) |
 | **업데이트** | 새 버전이 나오면 시계 근처에 알림이 뜨고, 한 번 클릭하면 업데이트됩니다. 내려받은 파일은 설치 전에 확인 (SHA-256)합니다 | 설정 → 업데이트 (지금 확인 또는 알림 끄기) |
-| **명령줄** | 명령 프롬프트나 스크립트에서 변환 | [명령줄](#명령줄) 참고 |
+| **프로그램 무결성 확인** | 도구 (FFmpeg, Ghostscript, qpdf, ExifTool, LibreOffice), 오른쪽 클릭 메뉴와 데이터 폴더가 제대로 작동하는지 확인합니다 | 아이콘에서 마우스 오른쪽 버튼 → **프로그램 무결성 확인…** |
+| **명령줄** | 휠에서 할 수 있는 모든 작업을 명령 프롬프트나 스크립트에서 실행 | [명령줄](#명령줄) 참고 |
+| **명령줄 AI** | Claude Code 또는 Codex가 설치되어 있으면 Mexerica가 버전마다 최신 상태로 갱신되는 `mexerica` 명령 사용 안내서를 제공하여 다른 프로그램 대신 Mexerica를 사용하게 합니다 | 자동. Mexerica를 제거하면 안내서도 삭제됩니다 |
 
 바로 가기 (.lnk)는 실제 파일을 찾아가서 처리하고, 빈 파일은 처리하기 전에 알려 줍니다.
 
@@ -102,14 +104,18 @@ Mexerica는 Mac용 [Tangerine](https://tangerineformac.com)의 아이디어를 W
 
 ## 명령줄
 
-설치할 때 **Usar o comando "mexerica" no Prompt de Comando e no PowerShell** (명령 프롬프트와 PowerShell에서 "mexerica" 명령 사용)에 체크하면 어느 폴더에서나 `mexerica`를 부를 수 있습니다.
+설치 프로그램이 `mexerica`를 명령 프롬프트와 PowerShell에 추가합니다. 휠에서 할 수 있는 모든 작업을 어느 폴더에서나 실행할 수 있습니다:
 
 ```powershell
 mexerica converter *.heic --para jpg                      # 모두 JPG로 변환해 원본 옆에 저장
 mexerica converter video.mov --para mp4 -o D:\Saida      # 저장 폴더 지정
 mexerica opcoes planilha.xlsx                             # 그 파일로 할 수 있는 일 목록
 mexerica ferramenta Comprimir foto.jpg --p modo=pct --p pct=50
+mexerica ajuda Dividir contrato.pdf                       # 도구 설정과 기본값을 표시
+mexerica ferramenta Dividir contrato.pdf --p saida=zip    # 분할 파일을 ZIP으로 저장 (또는 saida=pasta; 기본값은 원본 옆)
+mexerica acao Renomear *.pdf --p "modelo=Doc. {n} - {nome}"
 mexerica vigiar D:\Fotos --para webp --subpastas          # Ctrl+C를 누를 때까지 들어오는 것을 변환
+mexerica vigiar D:\Envio --acao comprimir --mb 4          # 4MB를 초과하는 파일을 압축
 mexerica doctor                                            # ffmpeg, Ghostscript, 오른쪽 클릭 메뉴 등 의존성을 확인
 ```
 

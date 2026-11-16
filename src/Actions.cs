@@ -61,7 +61,7 @@ static class Actions
     }
 
     /// Renomeia em duas etapas (primeiro para nomes provisórios), para que trocar nomes entre si não esbarre.
-    static List<(string from, string to)> Apply(List<(string from, string to)> plan)
+    public static List<(string from, string to)> Apply(List<(string from, string to)> plan)
     {
         var tmp = new List<(string tmp, string from, string to)>();
         try
@@ -90,7 +90,7 @@ static class Actions
         }
     }
 
-    static void Terminal(string[] fs)
+    public static void Terminal(string[] fs)
     {
         var p = fs[0].TrimEnd('\\');
         var dir = Directory.Exists(p) ? p : Path.GetDirectoryName(p)!;
@@ -107,28 +107,32 @@ static class Actions
         App.Toast.Show(move ? "Movendo…" : "Copiando…", fs.Length == 1 ? Path.GetFileName(fs[0].TrimEnd('\\')) : $"{fs.Length} itens", sticky: true);
         try
         {
-            string? last = null;
-            await Task.Run(() =>
-            {
-                foreach (var f in fs)
-                {
-                    var src = f.TrimEnd('\\');
-                    var target = Path.Combine(dest, Path.GetFileName(src));
-                    if (string.Equals(Path.GetFullPath(target), Path.GetFullPath(src), StringComparison.OrdinalIgnoreCase)) continue;
-                    target = Unique(target);
-                    if (Directory.Exists(src))
-                    {
-                        if (move && SameVolume(src, dest)) Directory.Move(src, target);
-                        else { CopyDir(src, target); if (move) Directory.Delete(src, true); }
-                    }
-                    else if (move) File.Move(src, target);
-                    else File.Copy(src, target);
-                    last = target;
-                }
-            });
-            App.Toast.Show(move ? "Movido" : "Copiado", dest, last);
+            var done = await Task.Run(() => CopyMove(fs, dest, move));
+            App.Toast.Show(move ? "Movido" : "Copiado", dest, done.LastOrDefault());
         }
         catch (Exception ex) { App.Toast.Show("Não deu certo", ex.Message, error: true); Log.Write(ex.ToString()); }
+    }
+
+    /// Copia ou move para a pasta; nome repetido ganha número. Devolve os caminhos novos.
+    public static List<string> CopyMove(string[] fs, string dest, bool move)
+    {
+        var done = new List<string>();
+        foreach (var f in fs)
+        {
+            var src = f.TrimEnd('\\');
+            var target = Path.Combine(dest, Path.GetFileName(src));
+            if (string.Equals(Path.GetFullPath(target), Path.GetFullPath(src), StringComparison.OrdinalIgnoreCase)) continue;
+            target = Unique(target);
+            if (Directory.Exists(src))
+            {
+                if (move && SameVolume(src, dest)) Directory.Move(src, target);
+                else { CopyDir(src, target); if (move) Directory.Delete(src, true); }
+            }
+            else if (move) File.Move(src, target);
+            else File.Copy(src, target);
+            done.Add(target);
+        }
+        return done;
     }
 
     static string Unique(string p)

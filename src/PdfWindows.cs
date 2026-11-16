@@ -48,6 +48,7 @@ sealed class PdfPagesWindow : Window
 
     public static P? Ask(string src)
     {
+        if (Form.Headless != null) return null; // linha de comando: os valores vêm por --p
         var w = new PdfPagesWindow(src);
         return w.ShowDialog() == true ? w.result : null;
     }
@@ -219,6 +220,7 @@ sealed class PdfRedactWindow : Window
 
     public static P? Ask(string src)
     {
+        if (Form.Headless != null) return null; // linha de comando: os valores vêm por --p
         var w = new PdfRedactWindow(src);
         return w.ShowDialog() == true ? w.result : null;
     }

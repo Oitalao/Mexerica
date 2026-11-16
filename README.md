@@ -62,7 +62,7 @@ A roda só oferece o que faz sentido para aquele arquivo: vídeo sem som não of
 - Metadados: ver tudo, editar título, autor e outros campos, apagar localização ou tudo
 - Vídeo: cortar trecho, recortar a imagem, velocidade, dividir, tirar um quadro ou todos, extrair o áudio e as legendas, girar, mudar a resolução, tirar o som, juntar
 - Áudio: cortar trecho, normalizar o volume, bipe por cima de trechos, mono e estéreo, velocidade, dividir, juntar
-- PDF: organizar páginas (reordenar, girar, apagar), dividir, juntar e tarjar de verdade (o texto escondido some)
+- PDF: organizar páginas (reordenar, girar, apagar), dividir (as partes ficam ao lado do original, numa pasta ou num ZIP), juntar e tarjar de verdade (o texto escondido some)
 - PDF também: juntar arquivos de tipos diferentes (Word, planilha, imagem e PDF) num PDF só, na ordem e com o nome que você escolher; OCR que deixa o PDF escaneado pesquisável, mesmo com página de lado ou de cabeça para baixo; numerar páginas e carimbar "Doc. 01"; caber num limite de envio (comprime e, se preciso, divide em partes); PDF/A; senha
 - Renomear vários arquivos de uma vez por modelo ("Doc. {n} - {nome}"), com prévia e desfazer
 - Legendas: atrasar ou adiantar o tempo; fontes: folha de amostra; compactados: extrair e testar a integridade
@@ -84,7 +84,9 @@ As Configurações abrem com clique duplo no ícone do Mexerica perto do relógi
 | **Direto do navegador** | Converter uma imagem ou um arquivo de um site sem baixar antes | Arraste a imagem ou o link do site, aperte **Espaço** e solte na opção. O arquivo fica em Downloads |
 | **Idioma** | Português, inglês, espanhol, francês, alemão, italiano, japonês, coreano, chinês, russo, polonês, hindi e árabe | Configurações → Idioma |
 | **Atualizações** | Aviso perto do relógio quando sai versão nova; um clique atualiza. O arquivo baixado é conferido (SHA-256) antes de instalar | Configurações → Atualizações (procurar agora ou desligar o aviso) |
-| **Linha de comando** | Converter pelo Prompt ou em scripts | Veja [Linha de comando](#linha-de-comando) |
+| **Verificar integridade do programa** | Confere se as ferramentas (FFmpeg, Ghostscript, qpdf, ExifTool, LibreOffice), o menu do botão direito e a pasta de dados estão bem | Botão direito no ícone → **Verificar integridade do programa…** |
+| **Linha de comando** | Tudo o que a roda faz, pelo Prompt ou em scripts | Veja [Linha de comando](#linha-de-comando) |
+| **IAs de linha de comando** | Se o Claude Code ou o Codex estiverem instalados, o Mexerica deixa para eles um guia de uso do comando `mexerica`, atualizado a cada versão, para que usem o Mexerica em vez de instalar outros programas | Automático; desinstalar o Mexerica apaga o guia |
 
 Atalhos (.lnk) são seguidos até o arquivo de verdade, e arquivo vazio é avisado antes de tentar.
 
@@ -100,14 +102,18 @@ Requisitos: Windows 10 (versão 2004 ou mais nova) ou Windows 11, 64 bits. Não 
 
 ## Linha de comando
 
-Na instalação, marque **Usar o comando "mexerica" no Prompt de Comando e no PowerShell** para poder chamar `mexerica` de qualquer pasta:
+O instalador põe o comando `mexerica` no Prompt de Comando e no PowerShell; ele faz tudo o que a roda faz e funciona em qualquer pasta:
 
 ```powershell
 mexerica converter *.heic --para jpg                      # converte tudo para JPG, ao lado dos originais
 mexerica converter video.mov --para mp4 -o D:\Saida      # escolhe a pasta de saída
 mexerica opcoes planilha.xlsx                             # lista o que dá para fazer com o arquivo
 mexerica ferramenta Comprimir foto.jpg --p modo=pct --p pct=50
+mexerica ajuda Dividir contrato.pdf                       # mostra os ajustes da ferramenta e os valores padrão
+mexerica ferramenta Dividir contrato.pdf --p saida=zip    # partes num ZIP (ou saida=pasta; o padrão é ao lado do original)
+mexerica acao Renomear *.pdf --p "modelo=Doc. {n} - {nome}"
 mexerica vigiar D:\Fotos --para webp --subpastas          # converte o que chegar até apertar Ctrl+C
+mexerica vigiar D:\Envio --acao comprimir --mb 4          # comprime o que passar de 4 MB
 mexerica doctor                                            # confere ffmpeg, Ghostscript, menu do botão direito e outras dependências
 ```
 

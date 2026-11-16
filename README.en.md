@@ -64,7 +64,7 @@ The wheel only offers what makes sense for that file: a video without sound does
 - Metadata: see everything, edit title, author and other fields, remove the location or everything
 - Video: cut a section, crop the picture, speed, split, take one frame or all of them, extract the audio and subtitles, rotate, change the resolution, remove the sound, join
 - Audio: cut a section, normalize the volume, beep over sections, mono and stereo, speed, split, join
-- PDF: organize pages (reorder, rotate, delete), split, join and redact for real (the hidden text is removed)
+- PDF: organize pages (reorder, rotate, delete), split (the parts go next to the original, in a folder or in a ZIP), join and redact for real (the hidden text is removed)
 - PDF also: join files of different types (Word, spreadsheet, image and PDF) into one PDF, in the order and with the name you choose; OCR that makes a scanned PDF searchable, even with pages sideways or upside down; page numbers and a "Doc. 01" stamp; fit an upload limit (compresses and, if needed, splits into parts); PDF/A; password
 - Rename many files at once from a pattern ("Doc. {n} - {name}"), with a preview and undo
 - Subtitles: shift the timing earlier or later; fonts: sample sheet; archives: extract and test integrity
@@ -86,7 +86,9 @@ Settings opens with a double click on the Mexerica icon near the clock, or by op
 | **Straight from the browser** | Convert an image or a file from a website without downloading it first | Drag the image or the link from the website, press **Space** and drop it on the option. The file ends up in Downloads |
 | **Language** | Portuguese, English, Spanish, French, German, Italian, Japanese, Korean, Chinese, Russian, Polish, Hindi and Arabic. Mexerica opens in Portuguese | **Configurações** (Settings) → **Idioma** (Language) |
 | **Updates** | A notice near the clock when a new version comes out; one click updates. The downloaded file is checked (SHA-256) before installing | Settings → Updates (check now or turn off the notice) |
-| **Command line** | Convert from the Command Prompt or in scripts | See [Command line](#command-line) |
+| **Check program integrity** | Checks that the tools (FFmpeg, Ghostscript, qpdf, ExifTool, LibreOffice), the right-click menu and the data folder are working | Right click the icon → **Check program integrity…** |
+| **Command line** | Everything the wheel can do, from the Command Prompt or in scripts | See [Command line](#command-line) |
+| **Command-line AIs** | If Claude Code or Codex are installed, Mexerica provides them with an up-to-date guide to the `mexerica` command, so they use Mexerica instead of installing other programs | Automatic; uninstalling Mexerica removes the guide |
 
 Shortcuts (.lnk) are followed to the real file, and an empty file is reported before trying.
 
@@ -102,14 +104,18 @@ Requirements: Windows 10 (version 2004 or newer) or Windows 11, 64 bit. Nothing 
 
 ## Command line
 
-During installation, check **Usar o comando "mexerica" no Prompt de Comando e no PowerShell** (Use the "mexerica" command in the Command Prompt and in PowerShell) so you can call `mexerica` from any folder:
+The installer adds `mexerica` to the Command Prompt and PowerShell; it does everything the wheel can do and works from any folder:
 
 ```powershell
 mexerica converter *.heic --para jpg                      # converts everything to JPG, next to the originals
 mexerica converter video.mov --para mp4 -o D:\Saida      # chooses the output folder
 mexerica opcoes planilha.xlsx                             # lists what can be done with the file
 mexerica ferramenta Comprimir foto.jpg --p modo=pct --p pct=50
+mexerica ajuda Dividir contrato.pdf                       # shows the tool settings and their default values
+mexerica ferramenta Dividir contrato.pdf --p saida=zip    # parts in a ZIP (or saida=pasta; default is next to the original)
+mexerica acao Renomear *.pdf --p "modelo=Doc. {n} - {nome}"
 mexerica vigiar D:\Fotos --para webp --subpastas          # converts whatever arrives until you press Ctrl+C
+mexerica vigiar D:\Envio --acao comprimir --mb 4          # compresses files larger than 4 MB
 mexerica doctor                                            # checks ffmpeg, Ghostscript, the right-click menu and other dependencies
 ```
 

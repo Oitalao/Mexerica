@@ -17,6 +17,9 @@ sealed class Form : Window
     readonly P values = new();
     readonly List<(FrameworkElement row, string key, string[] vals)> conds = new();
     readonly List<Func<string?>> checks = new();
+    /// Campos para a ajuda da linha de comando: chave, rótulo, tipo, padrão, valores aceitos e quando aparece.
+    public readonly List<(string key, string label, string kind, string def, string vals, string? when)> Fields = new();
+    static string? When((string key, string[] vals)? s) => s is { } w ? $"{w.key}={string.Join("|", w.vals)}" : null;
 
     public Form(string title, string[] files, string? note = null)
     {
@@ -77,6 +80,7 @@ sealed class Form : Window
     public Form Choice(string key, string label, (string value, string label)[] options, string def, (string key, string[] vals)? showIf = null)
     {
         values[key] = def;
+        Fields.Add((key, label, "escolha", def, string.Join(" | ", options.Select(o => $"{o.value} ({o.label})")), When(showIf)));
         var cb = Ui.Combo(options, def, v => { values[key] = v; Refresh(); });
         var row = Ui.Row(label, cb); row.Tag = key;
         Add(row, showIf);
@@ -86,6 +90,7 @@ sealed class Form : Window
     public Form Number(string key, string label, double def, double min, double max, string suffix = "", (string key, string[] vals)? showIf = null, bool decimals = false)
     {
         values[key] = def.ToString(CultureInfo.InvariantCulture);
+        Fields.Add((key, label, "número", values[key], $"{min.ToString(CultureInfo.InvariantCulture)} a {max.ToString(CultureInfo.InvariantCulture)}{(suffix.Length > 0 ? " " + suffix : "")}", When(showIf)));
         var tb = Ui.Text(def.ToString(decimals ? "0.##" : "0", CultureInfo.GetCultureInfo("pt-BR")), 90);
         tb.TextChanged += (_, _) => values[key] = tb.Text.Trim().Replace(',', '.');
         var sp = new StackPanel { Orientation = Orientation.Horizontal };
@@ -106,6 +111,7 @@ sealed class Form : Window
     public Form Text(string key, string label, string def, (string key, string[] vals)? showIf = null, Func<string, string?>? validate = null, double width = 200)
     {
         values[key] = def;
+        Fields.Add((key, label, "texto", def, "", When(showIf)));
         var tb = Ui.Text(def, width);
         tb.TextChanged += (_, _) => values[key] = tb.Text;
         var row = Ui.Row(label, tb); row.Tag = key;
@@ -117,6 +123,7 @@ sealed class Form : Window
     public Form Color(string key, string label, string def, (string key, string[] vals)? showIf = null)
     {
         values[key] = def;
+        Fields.Add((key, label, "cor", def, "#RRGGBB", When(showIf)));
         var sw = new Border { Width = 26, Height = 22, CornerRadius = new CornerRadius(4), BorderBrush = Ui.Line, BorderThickness = new Thickness(1), Margin = new Thickness(6, 0, 0, 0) };
         void Paint() { try { sw.Background = new SolidColorBrush((System.Windows.Media.Color)ColorConverter.ConvertFromString(values.S(key))); } catch { } }
         var tb = Ui.Text(def, 90);
@@ -139,6 +146,7 @@ sealed class Form : Window
     public Form Check(string key, string label, bool def)
     {
         values[key] = def ? "1" : "0";
+        Fields.Add((key, label, "sim/não", values[key], "1 | 0", null));
         body.Children.Add(Ui.Check(label, def, v => values[key] = v ? "1" : "0"));
         return this;
     }
@@ -149,6 +157,7 @@ sealed class Form : Window
         var order = Enumerable.Range(0, files.Length).ToList();
         void Save() => values[key] = string.Join(",", order);
         Save();
+        Fields.Add((key, label, "ordem", values[key], "na linha de comando vale a ordem dos arquivos", null));
         var list = new ListBox
         {
             Height = Math.Min(220, 26 * files.Length + 8), Background = Ui.Panel, Foreground = Ui.Fg, BorderBrush = Ui.Line,
@@ -234,8 +243,24 @@ sealed class Form : Window
     /// Só no modo de capturas de tela (MEXERICA_TESTE_UI): desenha a janela em arquivo em vez de abrir.
     public static Action<Window>? Capture;
 
+    /// Linha de comando: Run não abre a janela; guarda o formulário aqui e devolve os valores padrão.
+    /// As janelas próprias (editor, cortar trecho, organizar páginas…) devolvem null nesse modo.
+    public static List<Form>? Headless;
+
+    /// Linha de comando: aplica os valores dados por cima dos padrões e roda as mesmas conferências do botão Fazer.
+    public string? Validate(P given)
+    {
+        foreach (var (k, v) in given) values[k] = v;
+        Refresh();
+        foreach (var c in checks) if (c() is { } err) return err;
+        return null;
+    }
+
+    public P Values => values;
+
     public P? Run()
     {
+        if (Headless != null) { Headless.Add(this); return values; }
         if (Capture != null) { Capture(this); return null; }
         return ShowDialog() == true ? values : null;
     }

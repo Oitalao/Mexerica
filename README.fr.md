@@ -64,7 +64,7 @@ La roue ne propose que ce qui a du sens pour ce fichier : une vidéo sans son ne
 - Métadonnées : tout voir, modifier le titre, l'auteur et d'autres champs, effacer la localisation ou tout
 - Vidéo : couper un passage, recadrer l'image, vitesse, découper, extraire une image ou toutes, extraire l'audio et les sous-titres, pivoter, changer la résolution, enlever le son, assembler
 - Audio : couper un passage, normaliser le volume, bip sur des passages, mono et stéréo, vitesse, découper, assembler
-- PDF : organiser les pages (réordonner, pivoter, supprimer), découper, assembler et caviarder pour de vrai (le texte caché disparaît)
+- PDF : organiser les pages (réordonner, pivoter, supprimer), découper (les parties vont à côté de l’original, dans un dossier ou dans un ZIP), assembler et caviarder pour de vrai (le texte caché disparaît)
 - PDF aussi : assembler des fichiers de types différents (Word, tableur, image et PDF) en un seul PDF, dans l'ordre et sous le nom de votre choix ; OCR qui rend un PDF scanné consultable, même avec des pages de travers ou à l'envers ; numéroter les pages et tamponner « Doc. 01 » ; tenir dans une limite d'envoi (compresse et, si besoin, découpe en parties) ; PDF/A ; mot de passe
 - Renommer plusieurs fichiers d'un coup selon un modèle (« Doc. {n} - {nom} »), avec aperçu et annulation
 - Sous-titres : retarder ou avancer le minutage ; polices : planche d'exemple ; archives : extraire et tester l'intégrité
@@ -86,7 +86,9 @@ Les Paramètres s'ouvrent par un double clic sur l'icône de Mexerica près de l
 | **Directement depuis le navigateur** | Convertir une image ou un fichier d'un site sans le télécharger avant | Faites glisser l'image ou le lien du site, appuyez sur **Espace** et déposez sur l'option. Le fichier va dans Téléchargements |
 | **Langue** | Portugais, anglais, espagnol, français, allemand, italien, japonais, coréen, chinois, russe, polonais, hindi et arabe. Mexerica s'ouvre en portugais | **Configurações** (Paramètres) → **Idioma** (Langue) |
 | **Mises à jour** | Avis près de l'horloge quand une nouvelle version sort ; un clic suffit pour mettre à jour. Le fichier téléchargé est vérifié (SHA-256) avant l'installation | Paramètres → Mises à jour (vérifier maintenant ou désactiver l'avis) |
-| **Ligne de commande** | Convertir depuis l'Invite de commandes ou dans des scripts | Voir [Ligne de commande](#ligne-de-commande) |
+| **Vérifier l’intégrité du programme** | Vérifie que les outils (FFmpeg, Ghostscript, qpdf, ExifTool, LibreOffice), le menu du clic droit et le dossier de données fonctionnent correctement | Clic droit sur l'icône → **Vérifier l’intégrité du programme…** |
+| **Ligne de commande** | Tout ce que fait la roue, depuis l’Invite de commandes ou dans des scripts | Voir [Ligne de commande](#ligne-de-commande) |
+| **IA en ligne de commande** | Si Claude Code ou Codex sont installés, Mexerica leur fournit un guide d’utilisation de la commande `mexerica`, mis à jour à chaque version, pour qu’ils utilisent Mexerica au lieu d’installer d’autres programmes | Automatique ; désinstaller Mexerica supprime le guide |
 
 Les raccourcis (.lnk) sont suivis jusqu'au vrai fichier, et un fichier vide est signalé avant d'essayer.
 
@@ -102,14 +104,18 @@ Configuration requise : Windows 10 (version 2004 ou plus récente) ou Windows 11
 
 ## Ligne de commande
 
-Pendant l'installation, cochez **Usar o comando "mexerica" no Prompt de Comando e no PowerShell** (Utiliser la commande "mexerica" dans l'Invite de commandes et dans PowerShell) pour pouvoir appeler `mexerica` depuis n'importe quel dossier :
+L’installateur ajoute `mexerica` à l’Invite de commandes et à PowerShell ; la commande fait tout ce que permet la roue et fonctionne depuis n’importe quel dossier :
 
 ```powershell
 mexerica converter *.heic --para jpg                      # convertit tout en JPG, à côté des originaux
 mexerica converter video.mov --para mp4 -o D:\Saida      # choisit le dossier de sortie
 mexerica opcoes planilha.xlsx                             # liste ce qu'on peut faire avec le fichier
 mexerica ferramenta Comprimir foto.jpg --p modo=pct --p pct=50
+mexerica ajuda Dividir contrato.pdf                       # affiche les réglages de l’outil et leurs valeurs par défaut
+mexerica ferramenta Dividir contrato.pdf --p saida=zip    # parties dans un ZIP (ou saida=pasta ; par défaut, à côté de l’original)
+mexerica acao Renomear *.pdf --p "modelo=Doc. {n} - {nome}"
 mexerica vigiar D:\Fotos --para webp --subpastas          # convertit ce qui arrive jusqu'à Ctrl+C
+mexerica vigiar D:\Envio --acao comprimir --mb 4          # compresse les fichiers de plus de 4 Mo
 mexerica doctor                                            # vérifie ffmpeg, Ghostscript, le menu du clic droit et d'autres dépendances
 ```
 

@@ -64,7 +64,7 @@ Mexerica 把 Mac 上 [Tangerine](https://tangerineformac.com) 的想法搬到了
 - 元数据：查看全部，编辑标题、作者和其他字段，删除位置信息或全部删除
 - 视频：剪取片段、裁剪画面、速度、分割、导出一帧或所有帧、提取音频和字幕、旋转、改变分辨率、去掉声音、合并
 - 音频：剪取片段、音量标准化、在片段上加哔声、单声道和立体声、速度、分割、合并
-- PDF：整理页面（重新排序、旋转、删除）、分割、合并，以及真正的遮盖（被遮的文字会彻底消失）
+- PDF：整理页面（重新排序、旋转、删除）、分割（各部分保存在原文件旁、文件夹或 ZIP 中）、合并，以及真正的遮盖（被遮的文字会彻底消失）
 - PDF 还能：把不同类型的文件（Word、表格、图片和 PDF）按你选的顺序和名称合并成一个 PDF；OCR 让扫描的 PDF 可以搜索，横放或倒置的页面也能识别；添加页码和"Doc. 01"印章；压到上传大小限制以内（先压缩，必要时拆分）；PDF/A；密码
 - 按模板一次重命名多个文件（"Doc. {n} - {名称}"），可预览、可撤销
 - 字幕：推迟或提前时间；字体：样张；压缩包：解压和检查完整性
@@ -86,7 +86,9 @@ Mexerica 把 Mac 上 [Tangerine](https://tangerineformac.com) 的想法搬到了
 | **直接从浏览器** | 不必先下载，就能转换网站上的图片或文件 | 拖动网站上的图片或链接，按 **空格键**，松开在选项上。文件会保存在下载文件夹 |
 | **语言** | 葡萄牙语、英语、西班牙语、法语、德语、意大利语、日语、韩语、中文、俄语、波兰语、印地语和阿拉伯语。Mexerica 启动时是葡萄牙语 | **Configurações**（设置）→ **Idioma**（语言） |
 | **更新** | 有新版本时，时钟附近会出现提醒；点一下就能更新。下载的文件在安装前会经过校验（SHA-256） | 设置 → 更新（立即检查或关闭提醒） |
-| **命令行** | 在命令提示符或脚本中转换 | 见[命令行](#命令行) |
+| **检查程序完整性** | 检查工具（FFmpeg、Ghostscript、qpdf、ExifTool、LibreOffice）、右键菜单和数据文件夹是否正常 | 右键点击图标 → **检查程序完整性…** |
+| **命令行** | 通过命令提示符或脚本完成轮盘能做的所有操作 | 见[命令行](#命令行) |
+| **命令行 AI** | 如果已安装 Claude Code 或 Codex，Mexerica 会为它们提供随版本更新的 `mexerica` 命令使用指南，让它们使用 Mexerica，而不必安装其他程序 | 自动；卸载 Mexerica 时会删除该指南 |
 
 快捷方式（.lnk）会被追踪到真正的文件，空文件会在处理前提示。
 
@@ -102,14 +104,18 @@ Mexerica 把 Mac 上 [Tangerine](https://tangerineformac.com) 的想法搬到了
 
 ## 命令行
 
-安装时勾选 **Usar o comando "mexerica" no Prompt de Comando e no PowerShell**（在命令提示符和 PowerShell 中使用“mexerica”命令），就能在任何文件夹中调用 `mexerica`：
+安装程序会将 `mexerica` 添加到命令提示符和 PowerShell 中；它能完成轮盘的所有操作，并可在任何文件夹中运行：
 
 ```powershell
 mexerica converter *.heic --para jpg                      # 全部转成 JPG，保存在原文件旁边
 mexerica converter video.mov --para mp4 -o D:\Saida      # 指定输出文件夹
 mexerica opcoes planilha.xlsx                             # 列出这个文件可以做的事
 mexerica ferramenta Comprimir foto.jpg --p modo=pct --p pct=50
+mexerica ajuda Dividir contrato.pdf                       # 显示工具的设置及默认值
+mexerica ferramenta Dividir contrato.pdf --p saida=zip    # 将各部分存入 ZIP（或 saida=pasta；默认保存在原文件旁）
+mexerica acao Renomear *.pdf --p "modelo=Doc. {n} - {nome}"
 mexerica vigiar D:\Fotos --para webp --subpastas          # 转换新到的文件，直到按下 Ctrl+C
+mexerica vigiar D:\Envio --acao comprimir --mb 4          # 压缩超过 4 MB 的文件
 mexerica doctor                                            # 检查 ffmpeg、Ghostscript、右键菜单等依赖
 ```
 

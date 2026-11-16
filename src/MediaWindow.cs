@@ -33,6 +33,7 @@ sealed class MediaWindow : Window
 
     public static P? Ask(string src, MediaMode mode)
     {
+        if (Form.Headless != null) return null; // linha de comando: os valores vêm por --p
         var w = new MediaWindow(src, mode);
         return w.ShowDialog() == true ? w.result : null;
     }

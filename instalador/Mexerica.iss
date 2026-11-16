@@ -50,7 +50,6 @@ pt.FinishedLabel=O [name] foi instalado.%n%nEle fica perto do relógio e já apa
 [Tasks]
 Name: "iniciar"; Description: "Abrir o Mexerica quando o computador ligar (recomendado)"
 Name: "atalho"; Description: "Criar um atalho na área de trabalho"; Flags: unchecked
-Name: "comando"; Description: "Usar o comando ""mexerica"" no Prompt de Comando e no PowerShell"; Flags: unchecked
 
 [InstallDelete]
 ; Restos de versões anteriores (a pasta é sempre a mesma e só do Mexerica).
@@ -66,7 +65,7 @@ Name: "{autodesktop}\{#Nome}"; Filename: "{app}\{#Exe}"; Tasks: atalho
 [Registry]
 Root: HKCU; Subkey: "Software\Microsoft\Windows\CurrentVersion\Run"; ValueType: string; ValueName: "Mexerica"; ValueData: """{app}\{#Exe}"" --silencioso"; Tasks: iniciar; Flags: uninsdeletevalue
 Root: HKCU; Subkey: "Software\Mexerica"; ValueType: dword; ValueName: "AutoInicioEscolhido"; ValueData: 1; Flags: uninsdeletekey
-Root: HKCU; Subkey: "Environment"; ValueType: expandsz; ValueName: "Path"; ValueData: "{olddata};{app}\cli"; Tasks: comando; Check: PrecisaPath(ExpandConstant('{app}\cli'))
+Root: HKCU; Subkey: "Environment"; ValueType: expandsz; ValueName: "Path"; ValueData: "{olddata};{app}\cli"; Check: PrecisaPath(ExpandConstant('{app}\cli'))
 
 [Run]
 Filename: "{app}\{#Exe}"; Parameters: "--boas-vindas"; Description: "Abrir o Mexerica agora"; Flags: postinstall nowait skipifsilent
@@ -77,10 +76,21 @@ Filename: "{app}\{#Exe}"; Parameters: "--silencioso"; Flags: nowait skipifnotsil
 Filename: "{app}\{#Exe}"; Parameters: "--remover-menu"; Flags: runhidden waituntilterminated; RunOnceId: "RemoverMenu"
 
 [UninstallDelete]
+; Instrução para as IAs (Claude Code, Codex) que o Mexerica escreve ao abrir (Skill.cs).
+Type: filesandordirs; Name: "{%USERPROFILE}\.claude\skills\mexerica"
+Type: filesandordirs; Name: "{code:CodexHome}\skills\mexerica"
 Type: filesandordirs; Name: "{localappdata}\Mexerica"
 Type: filesandordirs; Name: "{app}"
 
 [Code]
+// Pasta do Codex: CODEX_HOME, se definida; senão %USERPROFILE%\.codex.
+function CodexHome(Param: String): String;
+begin
+  Result := GetEnv('CODEX_HOME');
+  if Result = '' then Result := ExpandConstant('{%USERPROFILE}\.codex');
+end;
+
+
 // A pasta do Mexerica ainda não está no PATH do usuário?
 function PrecisaPath(Dir: String): Boolean;
 var

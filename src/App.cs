@@ -96,7 +96,7 @@ static class App
         foreach (var (name, ask) in new (string, Func<string[], P?>)[]
         {
             ("juntar", Dialogs.MergeName), ("limite", Dialogs.SizeLimit), ("carimbar", Dialogs.Stamp),
-            ("senha", Dialogs.PdfProtect), ("renomear", Dialogs.Rename),
+            ("senha", Dialogs.PdfProtect), ("renomear", Dialogs.Rename), ("dividir", fs => Dialogs.SplitPdf(fs.Take(1).ToArray())),
         })
         { shot = name; ask(docs); }
         Form.Capture = null;
@@ -166,6 +166,8 @@ static class App
         new System.Windows.Interop.WindowInteropHelper(wheel).EnsureHandle();
 
         var ui = Application.Current.Dispatcher;
+        // Instrução para as IAs de linha de comando: reescrita quando a versão muda (as janelas de ajuste exigem a thread da tela).
+        ui.BeginInvoke(Skill.Install, DispatcherPriority.ApplicationIdle);
         hooks = new InputHooks { WheelOpen = () => wheel.Active, OnKey = OnKey, OnHotkey = OnHotkey, OnScroll = OnScroll };
         hooks.Escape += () => ui.BeginInvoke(wheel.Disarm);
         hooks.MouseUp += () => ui.BeginInvoke(() =>
@@ -435,8 +437,9 @@ static class App
             // Ferramentas que entregam várias partes (limite de envio) devolvem a primeira; as irmãs vêm junto.
             var name = Path.GetFileNameWithoutExtension(path);
             int at = name.LastIndexOf(" - parte 1 de ", StringComparison.Ordinal);
+            // O que vem depois do total ("(p. 1-3)" do Dividir) muda de parte para parte.
             if (at > 0 && File.Exists(path))
-                foreach (var sib in Directory.GetFiles(Path.GetDirectoryName(path)!, name[..at] + " - parte * de " + name[(at + 14)..] + Path.GetExtension(path)))
+                foreach (var sib in Directory.GetFiles(Path.GetDirectoryName(path)!, name[..at] + " - parte * de " + new string(name[(at + 14)..].TakeWhile(char.IsDigit).ToArray()) + "*" + Path.GetExtension(path)))
                     if (File.GetCreationTime(sib) >= started && !made.Contains(sib, StringComparer.OrdinalIgnoreCase)) made.Add(sib);
         }
         if (made.Count == 0) return null;
@@ -658,9 +661,16 @@ static class App
         recent.Click += (_, _) => HistoryWindow.ShowOne();
         var log = new WF.ToolStripMenuItem(Tr.T("Abrir registro de erros"));
         log.Click += (_, _) => { var f = Path.Combine(Paths.Data, "log.txt"); if (File.Exists(f)) System.Diagnostics.Process.Start("notepad.exe", f); else Toast.Show("Nenhum erro registrado", "O registro está vazio."); };
+        // O mesmo que "mexerica doctor" na linha de comando.
+        var check = new WF.ToolStripMenuItem(Tr.T("Verificar integridade do programa…"));
+        check.Click += (_, _) =>
+        {
+            var text = Cli.DoctorText(out int n);
+            MessageBox.Show(text, Tr.T("Mexerica: integridade do programa"), MessageBoxButton.OK, n > 0 ? MessageBoxImage.Warning : MessageBoxImage.Information);
+        };
         var quit = new WF.ToolStripMenuItem(Tr.T("Sair"));
         quit.Click += (_, _) => Quit();
-        menu.Items.AddRange(new WF.ToolStripItem[] { updateItem, help, testFolder, recent, settings, pauseItem, auto, new WF.ToolStripSeparator(), log, quit });
+        menu.Items.AddRange(new WF.ToolStripItem[] { updateItem, help, testFolder, recent, settings, pauseItem, auto, new WF.ToolStripSeparator(), check, log, quit });
         tray = new WF.NotifyIcon { Icon = MakeIcon(), Text = Config.Now.Paused ? Tr.T("Mexerica (pausado)") : "Mexerica", Visible = true, ContextMenuStrip = menu };
         // Clique simples abre o mesmo menu do botão direito (sem mensagem no canto da tela).
         // Espera o tempo do clique duplo: clique duplo abre as Configurações e não deve piscar o menu antes.

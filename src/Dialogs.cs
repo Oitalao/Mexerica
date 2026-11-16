@@ -199,6 +199,7 @@ static class Dialogs
         f.Number("cada", "Páginas por arquivo", 2, 1, 100000, "", ("modo", new[] { "cada" }));
         f.Text("intervalos", "Intervalos", "1-3, 4-6", ("modo", new[] { "intervalos" }),
             v => Pdf.ParseRanges(v, pages > 0 ? pages : int.MaxValue).Count == 0 ? "Escreva os intervalos assim: 1-3, 4, 5-9" : null);
+        f.Choice("saida", "Onde salvar", new[] { ("lado", "Ao lado do original"), ("pasta", "Pasta"), ("zip", "ZIP") }, "lado");
         return f.Run();
     }
 

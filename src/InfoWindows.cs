@@ -16,6 +16,7 @@ sealed class MetaWindow : Window
 
     public static P? Ask(string[] fs)
     {
+        if (Form.Headless != null) return null; // linha de comando: os valores vêm por --p
         List<(string group, string tag, string value)> data;
         try { data = Meta.Read(fs[0]); }
         catch (Exception ex) { App.Toast.Show("Não consegui ler os metadados", ex.Message, error: true); return null; }

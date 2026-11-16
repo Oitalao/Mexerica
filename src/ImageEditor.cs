@@ -52,6 +52,7 @@ sealed class ImageEditor : Window
 
     public static P? Ask(string src, bool cropOnly)
     {
+        if (Form.Headless != null) return null; // linha de comando: os valores vêm por --p
         ImageEditor w;
         try { w = new ImageEditor(src, cropOnly); }
         catch (Exception ex) { App.Toast.Show("Não consegui abrir a imagem", ex.Message, error: true); return null; }
@@ -61,6 +62,7 @@ sealed class ImageEditor : Window
     /// Recorte de vídeo: tira um quadro e recorta em cima dele.
     public static P? AskVideoCrop(string video)
     {
+        if (Form.Headless != null) return null; // linha de comando: os valores vêm por --p
         var tmp = Paths.Temp();
         try
         {

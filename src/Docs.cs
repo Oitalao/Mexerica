@@ -340,7 +340,7 @@ static class Pdf
         return dst;
     }
 
-    /// modo: paginas (uma por arquivo), cada (a cada N páginas), intervalos ("1-3,4,5-9").
+    /// modo: paginas (uma por arquivo), cada (a cada N páginas), intervalos ("1-3,4,5-9"); saida: lado, pasta ou zip.
     public static async Task<string> Split(string src, P p)
     {
         int n = Pages(src);
@@ -360,21 +360,33 @@ static class Pdf
                 for (int i = 1; i <= n; i++) groups.Add((i, i));
                 break;
         }
-        var dir = Paths.OutDir(src, "partes");
-        Directory.CreateDirectory(dir);
+        // saida: lado (as partes ficam ao lado do original), pasta ("nome (partes)") ou zip (um ZIP só com as partes).
+        var saida = p.S("saida", "lado");
+        bool zip = saida == "zip";
+        var tmp = zip ? Paths.Temp() : saida == "pasta" ? Paths.OutDir(src, "partes") : null;
+        if (tmp != null) Directory.CreateDirectory(tmp);
         var b = Path.GetFileNameWithoutExtension(src);
+        var made = new List<string>();
         try
         {
             for (int i = 0; i < groups.Count; i++)
             {
                 Job.Part(i, groups.Count);
                 var (x, y) = groups[i];
-                var name = x == y ? $"{b} p{x:000}.pdf" : $"{b} p{x:000}-{y:000}.pdf";
-                await Qpdf.Run(new[] { src, "--pages", ".", $"{x}-{y}", "--", Path.Combine(dir, name) });
+                // " - parte 1 de N" deixa o Desfazer achar as irmãs (App.UndoFor).
+                var name = $"{b} - parte {i + 1} de {groups.Count} (" + (x == y ? $"p. {x}" : $"p. {x}-{y}") + ")";
+                var dst = tmp != null ? Path.Combine(tmp, name + ".pdf") : Paths.Out(src, "pdf", name: name);
+                await Qpdf.Run(new[] { src, "--pages", ".", $"{x}-{y}", "--", dst });
+                made.Add(dst);
             }
+            if (tmp == null) return made[0];
+            if (!zip) return tmp;
+            var z = Paths.Out(src, "zip", "partes");
+            try { ZipFile.CreateFromDirectory(tmp, z); } catch { Paths.TryDelete(z); throw; }
+            return z;
         }
-        catch { Paths.TryDelete(dir); throw; }
-        return dir;
+        catch { foreach (var m in made) Paths.TryDelete(m); if (tmp != null) Paths.TryDelete(tmp); throw; }
+        finally { if (zip) Paths.TryDelete(tmp!); }
     }
 
     public static List<(int a, int b)> ParseRanges(string s, int max)
