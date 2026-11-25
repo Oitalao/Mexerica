@@ -23,7 +23,10 @@ sealed class PostScriptFormats : Module
         var device = outExt switch { "pdf" => "pdfwrite", "png" => "pngalpha", "eps" => "eps2write", "ps" => "ps2write", _ => throw new Exception("Destino PostScript não suportado") };
         try
         {
-            await Gs.Run(new[] { "-dSAFER", "-dNOPAUSE", "-dBATCH", "-sDEVICE=" + device, "-r150", "-sOutputFile=" + target, src });
+            var args = new List<string> { "-dSAFER", "-dNOPAUSE", "-dBATCH", "-sDEVICE=" + device, "-r150" };
+            if (Modules.Ext(src) is "eps" or "ai") args.Add("-dEPSCrop");
+            args.AddRange(new[] { "-sOutputFile=" + target, src });
+            await Gs.Run(args);
             if (temp != null)
             {
                 var files = Directory.GetFiles(temp, "pagina-*." + outExt);

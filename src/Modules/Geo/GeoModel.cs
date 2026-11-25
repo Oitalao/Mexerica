@@ -6,6 +6,7 @@ using System.IO;
 // KML, KMZ, GPX, Shapefile and CSV convert to each other through this one shape. See docs/ENGINES.md, "Geospatial".
 
 using System.Globalization;
+using System.Numerics;
 
 namespace Filee.Engines.Geo;
 
@@ -196,12 +197,15 @@ internal static class GeoText
     {
         if (text.Length is 0 or > 24)
             return text.Length == 0 ? null : text;
+        if (text[0] == '+') return text;
         // "007" and "+1" are identifiers or phone numbers, not numbers.
         var digits = text[0] == '-' ? text[1..] : text;
         if (digits.Length == 0 || digits.Length > 1 && digits[0] == '0' && digits[1] != '.')
             return text;
         if (long.TryParse(text, NumberStyles.AllowLeadingSign, CultureInfo.InvariantCulture, out var whole))
             return whole;
+        if (BigInteger.TryParse(text, NumberStyles.AllowLeadingSign, CultureInfo.InvariantCulture, out var big))
+            return big;
         if ((char.IsAsciiDigit(digits[0]) || digits[0] == '.') && double.TryParse(text, NumberStyles.Float, CultureInfo.InvariantCulture, out var real) && double.IsFinite(real))
             return real;
         return text switch

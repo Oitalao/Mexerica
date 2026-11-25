@@ -24,6 +24,16 @@ sealed class EmailModule : Module
         if (Office.Ok) yield return new("pdf", "mensagem");
     }
 
+    public override IEnumerable<Target> TargetsFor(string inExt, string path)
+    {
+        try
+        {
+            var mail = inExt == "msg" ? OutlookMessage.Load(path) : MimeMessage.Load(path);
+            return PartsWithAttachments(mail).Any() ? TargetsFor(inExt) : TargetsFor(inExt).Where(t => t.Ext != "zip");
+        }
+        catch { return []; }
+    }
+
     public override Task<string?> Convert(string src, string outExt, P p) => Task.Run<string?>(async () =>
     {
         Job.Check();
@@ -64,8 +74,8 @@ sealed class EmailModule : Module
         if (m.Cc.Count > 0) yield return ("Cc", m.Cc.ToString());
         if (m.Headers.Contains(HeaderId.Date)) yield return ("Data", m.Date.ToString("dd/MM/yyyy HH:mm zzz"));
         if (!string.IsNullOrWhiteSpace(m.Subject)) yield return ("Assunto", m.Subject);
-        var attachments = m.BodyParts.OfType<MimePart>().Where(p => p.IsAttachment || p.FileName != null && p.ContentId == null)
-            .Select(p => p.FileName ?? "anexo").ToList();
+        var attachments = PartsWithAttachments(m)
+            .Select(p => p.ContentDisposition?.FileName ?? (p as MimePart)?.FileName ?? (p is MessagePart ? "anexo.eml" : "anexo")).ToList();
         if (attachments.Count > 0) yield return ("Anexos", string.Join(", ", attachments));
     }
 
@@ -95,14 +105,14 @@ sealed class EmailModule : Module
 
     static void Attachments(MimeMessage m, string output)
     {
-        var parts = m.BodyParts.Where(x => x is MimePart p && (p.IsAttachment || p.FileName != null && p.ContentId == null) || x is MessagePart).ToList();
+        var parts = PartsWithAttachments(m).ToList();
         if (parts.Count == 0) throw new Exception("Este e-mail não tem anexos");
         using var zip = ZipFile.Open(output, ZipArchiveMode.Create);
         var used = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
         foreach (var part in parts)
         {
             Job.Check();
-            var raw = part.ContentDisposition?.FileName ?? (part as MimePart)?.FileName ?? "anexo";
+            var raw = part.ContentDisposition?.FileName ?? (part as MimePart)?.FileName ?? (part is MessagePart ? "anexo.eml" : "anexo");
             var name = Path.GetFileName(raw.Replace('\\', '/'));
             name = new string(name.Select(c => Path.GetInvalidFileNameChars().Contains(c) || char.IsControl(c) ? '_' : c).ToArray()).Trim(' ', '.');
             if (name.Length == 0) name = "anexo";
@@ -114,4 +124,7 @@ sealed class EmailModule : Module
             else if (part is MessagePart message) message.Message?.WriteTo(stream);
         }
     }
+
+    static IEnumerable<MimeEntity> PartsWithAttachments(MimeMessage m) =>
+        m.BodyParts.Where(x => x is MimePart p && (p.IsAttachment || p.FileName != null && p.ContentId == null) || x is MessagePart);
 }

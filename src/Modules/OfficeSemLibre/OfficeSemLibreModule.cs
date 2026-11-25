@@ -24,7 +24,9 @@ sealed class OfficeSemLibreModule : Module
     public override IEnumerable<string> Inputs => RenderInputs.Concat(OoxmlConverter.Variants.Keys).Append("pdf").Distinct();
     public override bool Available => File.Exists(Path.Combine(AppContext.BaseDirectory, "tools", "rhwp", "rhwp.exe"));
     // Planilha → CSV/TSV fica sempre com o gravador próprio: o do LibreOffice grava sem BOM e com o número como aparece.
-    public override bool Overrides(string inExt, string outExt) => !Office.Ok || Sheets.Contains(inExt) && outExt is "csv" or "tsv";
+    public override bool Overrides(string inExt, string outExt) => !Office.Ok
+        || Sheets.Contains(inExt) && outExt is "csv" or "tsv"
+        || inExt is "csv" or "tsv" && outExt is "xlsx" or "ods" or "pdf";
 
     public override IEnumerable<Target> TargetsFor(string inExt)
     {
@@ -218,13 +220,20 @@ internal static class TextEncoding
 {
     internal static string Decode(byte[] bytes)
     {
-        if (bytes is [0xFF, 0xFE, ..] or [0xFE, 0xFF, ..])
+        if (bytes is [0xFF, 0xFE, ..] or [0xFE, 0xFF, ..] or [0x00, 0x00, 0xFE, 0xFF, ..])
             return new StreamReader(new MemoryStream(bytes), detectEncodingFromByteOrderMarks: true).ReadToEnd();
         try { return new UTF8Encoding(false, true).GetString(bytes).TrimStart('\uFEFF'); }
         catch (DecoderFallbackException)
         {
             Encoding.RegisterProvider(CodePagesEncodingProvider.Instance);
-            return Encoding.GetEncoding(949).GetString(bytes);
+            try
+            {
+                var korean = Encoding.GetEncoding(949, EncoderFallback.ExceptionFallback, DecoderFallback.ExceptionFallback).GetString(bytes);
+                var nonAscii = korean.Count(c => c > 127);
+                if (nonAscii > 0 && korean.Count(c => c is >= '\uAC00' and <= '\uD7A3') * 2 > nonAscii) return korean;
+            }
+            catch (DecoderFallbackException) { }
+            return Encoding.GetEncoding(1252).GetString(bytes);
         }
     }
 }

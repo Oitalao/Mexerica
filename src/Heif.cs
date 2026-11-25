@@ -11,7 +11,7 @@ namespace Mexerica;
 /// Estrutura: ftyp + meta (hdlr, pitm, iloc, iinf, iprp com hvcC, ispe e colr) + mdat.
 static class Heif
 {
-    public static void Wrap(string mp4, string dst, int width, int height)
+    public static void Wrap(string mp4, string dst, int width, int height, int cleanWidth, int cleanHeight)
     {
         var src = File.ReadAllBytes(mp4);
         var moov = TopLevel(src, "moov") ?? throw new Exception("MP4 sem cabeçalho");
@@ -26,9 +26,11 @@ static class Heif
         var ispe = Full("ispe", 0, 0, U32((uint)width), U32((uint)height));
         // sRGB (primárias BT.709, transferência sRGB), matriz BT.601 em faixa limitada: o que o ffmpeg gerou
         var colr = Box("colr", Ascii("nclx"), U16(1), U16(13), U16(6), new byte[] { 0x00 });
-        var ipco = Box("ipco", hvcC, ispe, colr);
-        // item 1 → propriedades 1 (hvcC, essencial), 2 (ispe), 3 (colr)
-        var ipma = Full("ipma", 0, 0, U32(1), U16(1), new byte[] { 3, 0x81, 0x02, 0x03 });
+        // Clean aperture keeps every source pixel when the encoder needs padding on the right/bottom.
+        var clap = Box("clap", U32((uint)cleanWidth), U32(1), U32((uint)cleanHeight), U32(1),
+            U32(unchecked((uint)(cleanWidth - width))), U32(2), U32(unchecked((uint)(cleanHeight - height))), U32(2));
+        var ipco = Box("ipco", hvcC, ispe, colr, clap);
+        var ipma = Full("ipma", 0, 0, U32(1), U16(1), new byte[] { 4, 0x81, 0x02, 0x03, 0x84 });
         var iprp = Box("iprp", ipco, ipma);
 
         // O iloc aponta para os dados dentro do mdat: o tamanho do meta não depende do valor do deslocamento.

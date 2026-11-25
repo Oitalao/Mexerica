@@ -6,6 +6,8 @@
 
 <p align="center">Converti e modifica file senza aprire nessun programma: trascina il file, premi <b>Spazio</b> e rilascialo sull'opzione.</p>
 
+<p align="center"><a href="https://oitalao.github.io/Mexerica/en/">oitalao.github.io/Mexerica</a></p>
+
 <p align="center">
   <img src="assets/telas/roda-converter.png" width="260" alt="Ruota Convertire">
   <img src="assets/telas/roda-ferramentas.png" width="260" alt="Ruota Strumenti">
@@ -62,9 +64,10 @@ La ruota offre solo quello che ha senso per quel file: un video senza audio non 
 - Sfondo e margine per le immagini, collage di più foto, immagini in PDF, scala di grigi, lettura di QR Code
 - Rimozione dello sfondo di una foto con IA (modello locale, isnet-general-use; nulla esce dal computer)
 - Metadati: vedere tutto, modificare titolo, autore e altri campi, cancellare la posizione o tutto
-- Video: tagliare un tratto, ritagliare l'immagine, velocità, dividere, estrarre un fotogramma o tutti, estrarre l'audio e i sottotitoli, ruotare, cambiare la risoluzione, togliere l'audio, unire
+- Editor video con timeline: più video e foto, dividere, eliminare parti, riordinare trascinando, rifinire dai bordi, velocità e volume di ogni parte, annullare ed esportare in 9:16, 1:1, 16:9 o nel formato originale
+- Video: ritagliare l'immagine, velocità, dividere, estrarre un fotogramma o tutti, estrarre l'audio e i sottotitoli, ruotare, cambiare la risoluzione, togliere l'audio, unire
 - Audio: tagliare un tratto, normalizzare il volume, bip sopra alcuni tratti, mono e stereo, velocità, dividere, unire
-- PDF: organizzare le pagine (riordinare, ruotare, eliminare), dividere (le parti finiscono accanto all’originale, in una cartella o in uno ZIP), unire e oscurare davvero (il testo nascosto sparisce)
+- PDF: organizzare le pagine (riordinare, ruotare, eliminare), dividere (le parti finiscono accanto all’originale, in una cartella o in uno ZIP), unire e oscurare davvero (il testo nascosto sparisce e il resto della pagina rimane ricercabile)
 - PDF anche: unire file di tipi diversi (Word, foglio di calcolo, immagine e PDF) in un solo PDF, nell'ordine e con il nome che scegli; OCR che rende ricercabile un PDF scansionato, anche con pagine di lato o capovolte; numerare le pagine e timbrare "Doc. 01"; stare in un limite di invio (comprime e, se serve, divide in parti); PDF/A; password
 - Rinominare molti file insieme con un modello ("Doc. {n} - {nome}"), con anteprima e annulla
 - Sottotitoli: ritardare o anticipare i tempi; font: foglio di esempio; archivi: estrarre e verificare l'integrità

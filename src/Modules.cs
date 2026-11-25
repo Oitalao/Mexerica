@@ -82,8 +82,7 @@ static class Modules
     public static List<(Module M, Target T)> TargetsFor(string[] files)
     {
         List<(Module, Target)>? common = null;
-        // Muitos arquivos: olha no máximo 20 de perto (o resto pela extensão), para a roda abrir rápido.
-        foreach (var (f, i) in files.Select((f, i) => (f, i)))
+        foreach (var f in files)
         {
             var e = Ext(f);
             var here = new List<(Module, Target)>();
@@ -91,8 +90,8 @@ static class Modules
             {
                 if (!m.Available || !m.Inputs.Contains(e, StringComparer.OrdinalIgnoreCase)) continue;
                 IEnumerable<Target> ts;
-                try { ts = i < 20 && !Listing ? m.TargetsFor(e, f) : m.TargetsFor(e); }
-                catch (Exception ex) { Log.Write($"{m.Name} destinos: {ex.Message}"); ts = m.TargetsFor(e); }
+                try { ts = (Listing ? m.TargetsFor(e) : m.TargetsFor(e, f)).ToList(); }
+                catch (Exception ex) { Log.Write($"{m.Name} destinos: {ex.Message}"); continue; }
                 foreach (var t in ts)
                     if (!string.Equals(t.Ext, e, StringComparison.OrdinalIgnoreCase) && !here.Any(h => h.Item2.Ext.Equals(t.Ext, StringComparison.OrdinalIgnoreCase)))
                         here.Add((m, t));

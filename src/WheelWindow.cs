@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Threading.Tasks;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Input;
@@ -35,6 +36,8 @@ sealed class WheelWindow : Window
     int sel = -1;
     bool keySel;      // escolha feita pelas setas: vale até o mouse andar de verdade
     bool downloading; // arrasto do navegador: baixando o arquivo antes de mostrar as opções
+    int downloadRequest;
+    internal Func<string, Task<string>> Download = WebDrop.Download;
     Point lastPick;
 
     public bool IsArmed { get; private set; }
@@ -195,6 +198,8 @@ sealed class WheelWindow : Window
     public void Disarm()
     {
         if (!IsArmed) return;
+        downloadRequest++;
+        downloading = false;
         IsArmed = false; IsKeyboard = false; files = null; sel = -1;
         Hide();
     }
@@ -265,6 +270,7 @@ sealed class WheelWindow : Window
     /// Link arrastado do navegador: baixa para Downloads e, quando chegar, mostra as opções do arquivo.
     async void StartDownload(string url)
     {
+        int request = ++downloadRequest;
         downloading = true;
         allOps = new(); face = 0; Layout();
         title.Text = Tr.T("Baixando…"); title.Foreground = new SolidColorBrush(accent[mode]);
@@ -272,17 +278,17 @@ sealed class WheelWindow : Window
         Appear();
         try
         {
-            var path = await WebDrop.Download(url);
-            if (!IsArmed || !downloading) return;
+            var path = await Download(url);
+            if (!IsArmed || request != downloadRequest) return;
             files = new[] { path };
             Rebuild();
         }
         catch (Exception ex)
         {
             Log.Write("download: " + ex);
-            if (IsArmed) { title.Text = Tr.T("Não baixou"); subtitle.Text = Tr.T(App.Friendly(ex)); }
+            if (IsArmed && request == downloadRequest) { title.Text = Tr.T("Não baixou"); subtitle.Text = Tr.T(App.Friendly(ex)); }
         }
-        finally { downloading = false; }
+        finally { if (request == downloadRequest) downloading = false; }
     }
 
     void OnOver(object s, DragEventArgs e)

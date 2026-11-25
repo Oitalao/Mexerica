@@ -10,7 +10,11 @@ namespace Mexerica;
 
 static class Paths
 {
-    public static readonly string Data = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "Mexerica");
+    public static readonly string Data = Environment.GetEnvironmentVariable("MEXERICA_TESTE_DADOS") is { Length: > 0 } testData
+        ? Path.GetFullPath(testData)
+        : !string.IsNullOrEmpty(Environment.GetEnvironmentVariable("MEXERICA_TESTE_UI"))
+            ? Path.Combine(AppContext.BaseDirectory, "capturas", "dados")
+            : Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "Mexerica");
 
     /// Caminho de saída ao lado do original, sem sobrescrever nada.
     public static string Out(string src, string ext, string? suffix = null, string? name = null)
@@ -18,13 +22,14 @@ static class Paths
         var dir = Dir(src);
         var b = Path.GetFileNameWithoutExtension(src.TrimEnd('\\'));
         if (b.EndsWith(".tar", StringComparison.OrdinalIgnoreCase)) b = b[..^4];
-        if (suffix != null) b += $" ({suffix})";
+        if (suffix != null) b += $" ({SafeName(suffix)})";
         if (CleanName(name) is { } n) b = n;
         lock (reserved)
         {
             var p = Path.Combine(dir, $"{b}.{ext}");
             for (int i = 1; Taken(p); i++) p = Path.Combine(dir, $"{b} ({i}).{ext}");
             reserved.Add(p);
+            Job.Current?.Companions.Enqueue(p);
             return p;
         }
     }
@@ -33,15 +38,26 @@ static class Paths
     public static string? CleanName(string? name)
     {
         if (string.IsNullOrWhiteSpace(name)) return null;
-        var n = string.Concat(name.Trim().Where(c => !Path.GetInvalidFileNameChars().Contains(c))).Trim().TrimEnd('.');
+        var n = SafeName(name);
         var e = Path.GetExtension(n);
         if (e.Length is > 1 and <= 5 && e.Skip(1).All(char.IsLetterOrDigit)) n = Path.GetFileNameWithoutExtension(n);
         return n.Length == 0 ? null : n;
     }
 
+    internal static string SafeName(string name)
+    {
+        var n = string.Concat(name.Trim().Where(c => !Path.GetInvalidFileNameChars().Contains(c))).TrimEnd(' ', '.');
+        var device = n.Split('.')[0].TrimEnd().ToUpperInvariant();
+        if (device is "CON" or "PRN" or "AUX" or "NUL" or "CONIN$" or "CONOUT$"
+            || (device.Length == 4 && (device.StartsWith("COM") || device.StartsWith("LPT")) && "123456789¹²³".Contains(device[3]))) n = "_" + n;
+        return n;
+    }
+
     // Nomes já entregues a trabalhos em andamento: com vários arquivos ao mesmo tempo,
     // dois deles não podem escolher o mesmo nome antes de o primeiro gravar.
     static readonly HashSet<string> reserved = new(StringComparer.OrdinalIgnoreCase);
+    static readonly System.Collections.Concurrent.ConcurrentDictionary<string, string> sources = new(StringComparer.OrdinalIgnoreCase);
+    internal static void RedirectSource(string temporary, string original) => sources[temporary] = original;
     static bool Taken(string p) => File.Exists(p) || Directory.Exists(p) || reserved.Contains(p);
 
     /// Esquece os nomes reservados (quando nenhum trabalho está rodando).
@@ -58,12 +74,13 @@ static class Paths
         var dir = Dir(src);
         var b = Path.GetFileNameWithoutExtension(src.TrimEnd('\\'));
         if (b.EndsWith(".tar", StringComparison.OrdinalIgnoreCase)) b = b[..^4];
-        if (suffix != null) b += $" ({suffix})";
+        if (suffix != null) b += $" ({SafeName(suffix)})";
         lock (reserved)
         {
             var p = Path.Combine(dir, b);
             for (int i = 1; Taken(p); i++) p = Path.Combine(dir, $"{b} ({i})");
             reserved.Add(p);
+            Job.Current?.Companions.Enqueue(p);
             return p;
         }
     }
@@ -71,6 +88,7 @@ static class Paths
     /// Pasta de saída: a escolhida nas configurações ou a do original.
     static string Dir(string src)
     {
+        if (sources.TryGetValue(src, out var original)) src = original;
         var o = Config.Now.OutputDir;
         if (o.Length > 0 && Directory.Exists(o) && Writable(o)) return o;
         var d = Path.GetDirectoryName(src.TrimEnd('\\'))!;
@@ -109,6 +127,8 @@ static class Paths
 
     public static string Downloads()
     {
+        if (Environment.GetEnvironmentVariable("MEXERICA_TESTE_DADOS") is { Length: > 0 } isolated)
+            return Path.Combine(Path.GetFullPath(isolated), "Downloads");
         try { if (SHGetKnownFolderPath(new Guid("374DE290-123F-4565-9164-39C4925E467B"), 0, IntPtr.Zero, out var p) == 0 && Directory.Exists(p)) return p; } catch { }
         return Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.UserProfile), "Downloads");
     }
@@ -141,6 +161,8 @@ static class Paths
     public static void TryDelete(string p)
     {
         try { if (Directory.Exists(p)) Directory.Delete(p, true); else if (File.Exists(p)) File.Delete(p); } catch { }
+        foreach (var key in sources.Keys.Where(k => k.Equals(p, StringComparison.OrdinalIgnoreCase) || k.StartsWith(p.TrimEnd('\\') + "\\", StringComparison.OrdinalIgnoreCase)))
+            sources.TryRemove(key, out _);
     }
 
     public static string? FindTool(string exe)

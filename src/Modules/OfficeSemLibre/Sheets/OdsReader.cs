@@ -46,6 +46,7 @@ internal sealed class OdsReader
     private readonly Dictionary<string, int> _frozenRows = [];
     private readonly NumberFormatter _formatter = new();
     private XElement? _defaultCellStyle;
+    private bool _unsupportedFormula;
 
     /// <summary>Reads every visible sheet of <paramref name="path"/>.</summary>
     public static Workbook Read(string path)
@@ -64,9 +65,12 @@ internal sealed class OdsReader
         foreach (var table in spreadsheet.Elements(Table + "table"))
         {
             var tableStyle = reader.Find("table", (string?)table.Attribute(Table + "style-name"));
-            if ((string?)tableStyle?.Element(Style + "table-properties")?.Attribute(Table + "display") != "false")
-                book.Sheets.Add(reader.ReadTable(table));
+            var sheet = reader.ReadTable(table);
+            sheet.Hidden = (string?)tableStyle?.Element(Style + "table-properties")?.Attribute(Table + "display") == "false";
+            book.Sheets.Add(sheet);
         }
+        if (reader._unsupportedFormula)
+            Mexerica.Job.Warn("Algumas fórmulas não são compatíveis com o formato de destino; seus valores salvos foram mantidos.");
         return book;
     }
 
@@ -322,7 +326,7 @@ internal sealed class OdsReader
                 headerRows += count;
 
             var cells = Cells(row, columns);
-            var hasText = cells.Any(run => run.Cell is { Text.Length: > 0 } || run.ColumnSpan > 1 || run.RowSpan > 1);
+            var hasText = cells.Any(run => run.Cell is { Text.Length: > 0 } or { Formula: not null } || run.ColumnSpan > 1 || run.RowSpan > 1);
             var copies = hasText ? count : cells.Any(run => run.Cell is not null) && count <= MaxStyledRepeat ? count : 0;
             for (var copy = 0; copy < copies; copy++)
             {
@@ -331,7 +335,9 @@ internal sealed class OdsReader
                     for (var i = 0; i < run.Count; i++)
                     {
                         if (run.Cell is not null)
-                            sheet.Set(r + copy, run.Column + i, run.Cell);
+                            sheet.Set(r + copy, run.Column + i, run.Cell.Formula is { } formula
+                                ? run.Cell with { Formula = FormulaSyntax.Shift(formula, copy, i) }
+                                : run.Cell);
                         if (run.ColumnSpan > 1 || run.RowSpan > 1)
                             sheet.Merges.Add(new CellRange(r + copy, run.Column + i, r + copy + run.RowSpan - 1, run.Column + i + run.ColumnSpan - 1));
                     }
@@ -414,7 +420,17 @@ internal sealed class OdsReader
             {
                 var styleName = (string?)element.Attribute(Table + "style-name") ?? rowDefault ?? columns.FirstOrDefault(s => s.Start <= c && c < s.Start + s.Count)?.DefaultStyle;
                 var cell = Cell(element, styleName);
-                if (cell is { HasContent: false } || cell is { Text.Length: 0 } && count > MaxStyledRepeat)
+                if ((string?)element.Attribute(Table + "formula") is { } formula)
+                {
+                    var expression = FormulaSyntax.FromOds(formula);
+                    _unsupportedFormula |= expression is null;
+                    cell = cell with
+                    {
+                        Formula = expression,
+                        IsError = cell.Text is "#NULL!" or "#DIV/0!" or "#VALUE!" or "#REF!" or "#NAME?" or "#NUM!" or "#N/A" or "#SPILL!" or "#CALC!" or "#GETTING_DATA",
+                    };
+                }
+                if (cell is { HasContent: false } || cell is { Text.Length: 0, Formula: null } && count > MaxStyledRepeat)
                     cell = null;
                 var columnSpan = Repeat(element, "number-columns-spanned");
                 var rowSpan = Repeat(element, "number-rows-spanned");

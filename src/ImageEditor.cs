@@ -113,7 +113,7 @@ sealed class ImageEditor : Window
         var tools = new WrapPanel();
         void AddTool(Tool t, string label)
         {
-            var b = new ToggleButton { Content = label, Margin = new Thickness(0, 0, 6, 6), Padding = new Thickness(10, 5, 10, 5), Background = Ui.Panel, Foreground = Ui.Fg, BorderBrush = Ui.Line, Cursor = Cursors.Hand, Template = Ui.FlatToggle() };
+            var b = new ToggleButton { Content = Tr.T(label), Margin = new Thickness(0, 0, 6, 6), Padding = new Thickness(10, 5, 10, 5), Background = Ui.Panel, Foreground = Ui.Fg, BorderBrush = Ui.Line, Cursor = Cursors.Hand, Template = Ui.FlatToggle() };
             b.Click += (_, _) => SetTool(t);
             toolButtons[t] = b; tools.Children.Add(b);
         }
@@ -218,9 +218,9 @@ sealed class ImageEditor : Window
     FrameworkElement Slider(string label, double min, double max, double value, Action<double> set, bool preview = true)
     {
         var st = new StackPanel { Margin = new Thickness(0, 4, 0, 4) };
-        var t = new TextBlock { Text = $"{label}: {value:0}" };
+        var t = new TextBlock { Text = $"{Tr.T(label)}: {value:0}" };
         var s = new Slider { Minimum = min, Maximum = max, Value = value, IsSnapToTickEnabled = true, TickFrequency = 1 };
-        s.ValueChanged += (_, e) => { set(e.NewValue); t.Text = $"{label}: {e.NewValue:0}"; if (preview) { adjustTimer.Stop(); adjustTimer.Start(); } };
+        s.ValueChanged += (_, e) => { set(e.NewValue); t.Text = $"{Tr.T(label)}: {e.NewValue:0}"; if (preview) { adjustTimer.Stop(); adjustTimer.Start(); } };
         st.Children.Add(t); st.Children.Add(s);
         return st;
     }

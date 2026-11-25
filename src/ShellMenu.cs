@@ -169,7 +169,8 @@ static class ShellMenu
             .GroupBy(o => o.Label).Select(g => g.First())
             .OrderBy(o => o.Label is "ZIP" or "TAR.GZ" ? 1 : 0).ToList(); // compactar por último
 
-    static string Text(Op op) => text.TryGetValue(op.Label, out var t) ? t : op.Sub.Length > 0 ? $"{Tr.T(op.Label)} ({Tr.T(op.Sub)})" : Tr.T(op.Label);
+    static string Text(Op op) => op.Label == "Editar" && op.Sub == "cortar, juntar…" ? "Editar o vídeo (cortar, juntar, velocidade)"
+        : text.TryGetValue(op.Label, out var t) ? t : op.Sub.Length > 0 ? $"{Tr.T(op.Label)} ({Tr.T(op.Sub)})" : Tr.T(op.Label);
 
     [DllImport("shell32.dll")] static extern void SHChangeNotify(int eventId, uint flags, IntPtr a, IntPtr b);
     static void Refresh() { try { SHChangeNotify(0x08000000 /*ASSOCCHANGED*/, 0, IntPtr.Zero, IntPtr.Zero); } catch { } }

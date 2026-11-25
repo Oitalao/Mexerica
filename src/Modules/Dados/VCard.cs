@@ -31,7 +31,7 @@ internal sealed class Contact
 
     public bool IsEmpty =>
         FullName.Length == 0 && GivenName.Length == 0 && FamilyName.Length == 0 && Organization.Length == 0
-        && Emails.Count == 0 && Phones.Count == 0;
+        && Emails.Count == 0 && Phones.Count == 0 && Addresses.Count == 0;
 }
 
 internal static partial class VCard
@@ -382,7 +382,7 @@ internal static partial class VCard
             }
             catch (DecoderFallbackException)
             {
-                return Encoding.GetEncoding(949).GetString(bytes);
+                return Filee.Engines.Subtitles.SubtitleEncoding.Decode(bytes);
             }
         }
 
@@ -466,7 +466,8 @@ internal static partial class VCard
             Finish(contact);
             if (contact.FullName.Length == 0)
                 contact.FullName = contact.Organization.Length > 0 ? contact.Organization
-                    : contact.Emails.Count > 0 ? contact.Emails[0].Value : contact.Phones[0].Value;
+                    : contact.Emails.Count > 0 ? contact.Emails[0].Value
+                    : contact.Phones.Count > 0 ? contact.Phones[0].Value : contact.Addresses[0].Value;
             contacts.Add(contact);
         }
         if (contacts.Count == 0)
@@ -483,9 +484,9 @@ internal static partial class VCard
         });
 
     /// <summary>The vCard field a CSV column holds, by its header (English, Korean or Chinese), or null.</summary>
-    /// <summary>A linha de cabeçalho parece de contatos: tem e-mail, telefone ou endereço.</summary>
+    /// <summary>A linha de cabeçalho parece de contatos: tem nome, empresa, e-mail, telefone ou endereço.</summary>
     public static bool LooksLikeContacts(IEnumerable<string> header) =>
-        header.Select(h => Field(h)).Any(f => f is "EMAIL" or "TEL" or "ADR");
+        header.Select(h => Field(h)).Any(f => f is "FN" or "GIVEN" or "FAMILY" or "ORG" or "EMAIL" or "TEL" or "ADR");
 
     private static string? Field(string header)
     {

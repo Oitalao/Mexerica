@@ -45,6 +45,7 @@ sealed class CadModule : Module
             {
                 var scene = CadSceneBuilder.Build(drawing, Job.Token);
                 if (scene.Items.Count == 0) throw new Exception("O desenho não tem objetos visíveis que possam ser renderizados.");
+                if (scene.Truncated) Job.Warn("O desenho excede o limite de objetos; a imagem ou o PDF contém apenas parte dele.");
                 Job.Check();
                 Job.Progress(0.7);
                 if (outExt == "pdf")

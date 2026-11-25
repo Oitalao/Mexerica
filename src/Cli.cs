@@ -22,6 +22,7 @@ static class Cli
 
     public static int Run(string[] args)
     {
+        Catalog.Legacy = true;
         var h = GetStdHandle(-11);
         if (h != IntPtr.Zero && h != new IntPtr(-1))
             Out = new StreamWriter(Console.OpenStandardOutput(), new System.Text.UTF8Encoding(false)) { AutoFlush = true };
@@ -132,13 +133,15 @@ Código de saída: 0 = tudo certo, 1 = algum arquivo falhou, 2 = erro nos parâm
         var files = new List<string>();
         var opts = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
         var p = new P();
+        bool literal = false;
         for (int i = 0; i < a.Count; i++)
         {
             var x = a[i];
-            if (x == "--p" && i + 1 < a.Count) { var kv = a[++i].Split('=', 2); p[kv[0]] = kv.Length > 1 ? kv[1] : ""; }
-            else if (x is "--subpastas" or "--mover-originais") opts[x.TrimStart('-')] = "1";
-            else if (x.StartsWith("-") && i + 1 < a.Count) opts[x.TrimStart('-')] = a[++i];
-            else files.AddRange(Expand(x));
+            if (!literal && x == "--") literal = true;
+            else if (!literal && x == "--p" && i + 1 < a.Count) { var kv = a[++i].Split('=', 2); p[kv[0]] = kv.Length > 1 ? kv[1] : ""; }
+            else if (!literal && x is "--subpastas" or "--mover-originais") opts[x.TrimStart('-')] = "1";
+            else if (!literal && x.StartsWith("-") && i + 1 < a.Count) opts[x.TrimStart('-')] = a[++i];
+            else files.AddRange(Expand(x).Select(Robust.Resolve));
         }
         return (files, opts, p);
     }
@@ -178,6 +181,12 @@ Código de saída: 0 = tudo certo, 1 = algum arquivo falhou, 2 = erro nos parâm
         // Arquivos de tipos diferentes: cada um com a sua própria roda.
         foreach (var f in files)
         {
+            if (!File.Exists(f) && !Directory.Exists(f))
+            {
+                Out.WriteLine($"✗ {Path.GetFileName(f)}: O arquivo não existe mais (foi movido ou apagado?)");
+                fails++;
+                continue;
+            }
             var op = Find(Mode.Convert, new[] { f }, to.TrimStart('.'));
             if (op?.One == null)
             {
@@ -333,8 +342,9 @@ Código de saída: 0 = tudo certo, 1 = algum arquivo falhou, 2 = erro nos parâm
         bool media = k is Kind.Audio or Kind.Video;
         return label switch
         {
+            "Editar" when k == Kind.Video => "  sem --p: junta todos os arquivos inteiros, na ordem dada\n  --p \"trechos=0:00-0:10;0:30-0:45\"   (pedaços do primeiro arquivo que ficam; o resto sai)\n  --p projeto=<arquivo .json>   (linha do tempo salva: {\"Clips\":[{\"Src\":\"…\",\"In\":0,\"Out\":5,\"Speed\":1,\"Volume\":1,\"Photo\":false}]})\n  --p proporcao=original|9:16|1:1|16:9   --p ajuste=preencher|caber\n  --p velocidade=0.25 a 4   --p volume=0 a 200   (todos os pedaços)",
             "Editar" => "  --p recorte=x,y,largura,altura   (pixels da imagem)\n  --p tarjas=\"x,y,l,a,modo;...\"   (modo: preto | desfoque | pixel)\n  --p brilho= contraste= saturacao=   (-100 a 100)   --p nitidez=   (0 a 100)\n  --p giro=0|90|180|270",
-            "Recortar" => "  --p recorte=x,y,largura,altura   (pixels do vídeo)\n  --p inicio= --p fim=   (segundos, opcional)",
+            "Recortar" => "  --p recorte=x,y,largura,altura   (pixels do vídeo)",
             "Cortar" => "  --p inicio=segundos --p fim=segundos\n  --p modo=preciso (padrão, recodifica) | rapido (copia, corta no quadro-chave)",
             "Dividir" when media => "  --p modo=partes --p partes=2   (partes iguais, padrão)\n  --p modo=cada --p cada=60   (a cada tantos segundos)\n  --p modo=pontos --p \"pontos=1:30;3:00\"   (tempos de corte, segundos ou mm:ss)",
             "Quadro" => "  --p tempo=segundos   --p formato=jpg|png",
@@ -392,6 +402,7 @@ Código de saída: 0 = tudo certo, 1 = algum arquivo falhou, 2 = erro nos parâm
                 .Where(s => !string.Equals(s, o, StringComparison.OrdinalIgnoreCase) && File.GetLastWriteTime(s) >= started).OrderBy(s => int.TryParse(System.Text.RegularExpressions.Regex.Match(Path.GetFileName(s), @" - parte (\d+) de ").Groups[1].Value, out var k) ? k : 0))
                 Out.WriteLine("✓ " + sib);
         }
+        foreach (var warning in job.Warnings) Out.WriteLine("– " + warning);
         foreach (var e in errors) Out.WriteLine("✗ " + e);
         if (outputs.Count > 0) History.Add(op.Label, files, outputs);
         return errors.Count;
@@ -403,7 +414,9 @@ Código de saída: 0 = tudo certo, 1 = algum arquivo falhou, 2 = erro nos parâm
         var acao = (opts.GetValueOrDefault("acao") ?? opts.GetValueOrDefault("ação") ?? "converter").ToLowerInvariant();
         opts.TryGetValue("para", out var to);
         if (files.Count != 1 || !Directory.Exists(files[0]) || acao is not ("converter" or "comprimir" or "ambos") || (acao != "comprimir" && to == null)) { Help(); return 2; }
-        static double Num(string? s, double def) => s != null && double.TryParse(s.Replace(',', '.'), NumberStyles.Float, CultureInfo.InvariantCulture, out var d) ? d : def;
+        static double Num(string? s, double def) => s == null ? def :
+            double.TryParse(s.Replace(',', '.'), NumberStyles.Float, CultureInfo.InvariantCulture, out var d) && double.IsFinite(d) && d >= 0
+                ? d : throw new ArgumentException("Tamanho inválido: use um número maior ou igual a zero.");
         var w = new WatchFolder
         {
             Folder = files[0], Action = acao, Target = (to ?? "PDF").TrimStart('.').ToUpperInvariant(),

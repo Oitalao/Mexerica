@@ -71,10 +71,20 @@ static class History
         {
             lock (file)
             {
-                if (items != null) return items;
-                try { items = File.Exists(file) ? JsonSerializer.Deserialize<List<Recent>>(File.ReadAllText(file)) ?? new() : new(); }
+                if (items != null) return items.ToList();
+                try
+                {
+                    items = File.Exists(file) ? JsonSerializer.Deserialize<List<Recent>>(File.ReadAllText(file)) ?? new() : new();
+                    items = items.Where(r => r != null && r.Outputs != null && r.Outputs.Any(o => !string.IsNullOrWhiteSpace(o))).Take(300).ToList();
+                    foreach (var r in items)
+                    {
+                        r.Op ??= "";
+                        r.Inputs = (r.Inputs ?? Array.Empty<string>()).Where(i => !string.IsNullOrWhiteSpace(i)).ToArray();
+                        r.Outputs = r.Outputs.Where(o => !string.IsNullOrWhiteSpace(o)).ToArray();
+                    }
+                }
                 catch (Exception ex) { Log.Write("recentes: " + ex.Message); items = new(); }
-                return items;
+                return items.ToList();
             }
         }
     }
@@ -85,15 +95,16 @@ static class History
         if (outs.Length == 0) return;
         lock (file)
         {
-            Items.Insert(0, new Recent { When = DateTime.Now, Op = op, Inputs = inputs, Outputs = outs });
+            _ = Items;
+            items!.Insert(0, new Recent { When = DateTime.Now, Op = op, Inputs = inputs, Outputs = outs });
             if (items!.Count > 300) items.RemoveRange(300, items.Count - 300);
             Save();
         }
         Application.Current?.Dispatcher.BeginInvoke(() => Changed?.Invoke());
     }
 
-    public static void Remove(Recent r) { lock (file) { Items.Remove(r); Save(); } Changed?.Invoke(); }
-    public static void Clear() { lock (file) { Items.Clear(); Save(); } Changed?.Invoke(); }
+    public static void Remove(Recent r) { lock (file) { _ = Items; items!.Remove(r); Save(); } Changed?.Invoke(); }
+    public static void Clear() { lock (file) { _ = Items; items!.Clear(); Save(); } Changed?.Invoke(); }
 
     static void Save()
     {

@@ -20,8 +20,8 @@ sealed class WelcomeWindow : Window
 
         var st = new StackPanel { Margin = new Thickness(26, 20, 26, 20) };
         st.Children.Add(new TextBlock { Text = "O Mexerica está pronto", FontSize = 22, FontWeight = FontWeights.SemiBold, Foreground = Ui.Fg });
-        st.Children.Add(Para("Ele converte e ajeita arquivos (fotos, vídeos, músicas, PDFs, documentos) sem abrir programa nenhum. " +
-                             "O resultado aparece ao lado do arquivo original; o original nunca é alterado."));
+        st.Children.Add(Para(Tr.T("Ele converte e ajeita arquivos (fotos, vídeos, músicas, PDFs, documentos) sem abrir programa nenhum. ") +
+                             Tr.T("O resultado aparece ao lado do arquivo original; o original nunca é alterado.")));
 
         var c = Config.Now;
         st.Children.Add(Ui.H("Três jeitos de usar"));
@@ -30,13 +30,13 @@ sealed class WelcomeWindow : Window
             (ModernMenu ? " No Windows 11, ele fica em \"Mostrar mais opções\" (ou aperte Shift junto com o botão direito)." : "")));
         st.Children.Add(Step("2", "Arrastar",
             $"Comece a arrastar um arquivo e, sem soltar o mouse, aperte {Config.KeyName(c.OpenKey)}. Aparece uma roda: solte o arquivo em cima do que você quer."));
-        var hk = Array.Find(Config.Hotkeys, h => h.id == c.Hotkey).name;
+        var hk = Tr.T(Array.Find(Config.Hotkeys, h => h.id == c.Hotkey).name);
         if (!string.IsNullOrEmpty(c.Hotkey))
             st.Children.Add(Step("3", "Teclado", $"Selecione arquivos no Explorador ou na área de trabalho e aperte {hk}."));
 
         st.Children.Add(Ui.H("Onde ele fica"));
-        st.Children.Add(Para("O Mexerica fica quietinho perto do relógio (ícone da mexerica; se não aparecer, clique na setinha ^). " +
-                             "Por ali dá para pausar, mudar teclas e qualidade, ou sair. Ele já abre sozinho quando o computador liga."));
+        st.Children.Add(Para(Tr.T("O Mexerica fica quietinho perto do relógio (ícone da mexerica; se não aparecer, clique na setinha ^). ") +
+                             Tr.T("Por ali dá para pausar, mudar teclas e qualidade, ou sair. Ele já abre sozinho quando o computador liga.")));
 
         var ok = Ui.Button("Entendi", true);
         ok.Click += (_, _) => Close();

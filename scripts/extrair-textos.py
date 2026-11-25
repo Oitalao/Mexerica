@@ -9,10 +9,10 @@ STRING = re.compile(r'(?P<prefix>\$?)(?<!@)"(?P<body>(?:\\.|[^"\\])*)"')
 VISIBLE = re.compile(
     r'\b(?:Title|Text|Content|Header|ToolTip|Sub|Label)\s*=|'
     r'\b(?:Ui\.(?:H|Row|Stack|Check|Button|Combo)|Toast\.(?:Show|Track|Status)|MessageBox\.Show|Tr\.Box|'
-    r'new (?:Target|Op|\w*Exception|ToolStripMenuItem|TextBlock|Button|CheckBox)|Line\(|Hint\(|Friendly\(|Tr\.T\()'
+    r'new (?:Target|Op|\w*Exception|ToolStripMenuItem|TextBlock|Button|CheckBox)|Line\(|Hint\(|Friendly\(|Tr\.T\(|Tool\("\\u|IconButton\("\\u|Toggle\()'
 )
 PORTUGUESE = re.compile(r'[A-Za-zÀ-ÿ]{2}')
-SKIP = re.compile(r'^(?:https?://|[A-Za-z]:\\|--|[0-9 .,%:+*/()\\-]+$)')
+SKIP = re.compile(r'^(?:https?://|[A-Za-z]:\\|--|\||MEXERICA_TESTE_|#RRGGBB$|%\d*d\.|[0-9 .,%:+*/()\\-]+$)')
 
 
 def template(body):
@@ -45,12 +45,15 @@ def extract():
              'InfoWindows.cs', 'FloatWindow.cs', 'LibreOfficeSetup.cs', 'Teste.cs'}
     for path in (ROOT / 'src').rglob('*.cs'):
         if 'obj' in path.parts or 'bin' in path.parts: continue
+        if path.name == 'AppRegression.cs': continue  # testes sem tela, nada aparece ao usuário
         text = path.read_text(encoding='utf-8-sig')
         # Motores adaptados do Filee: as mensagens internas são em inglês e viram um aviso genérico em App.Friendly.
         if 'namespace Filee' in text: continue
         for line in text.splitlines():
+            if line.lstrip().startswith(('//', '/*', '*')): continue
             if path.name not in broad and not VISIBLE.search(line): continue
             for match in STRING.finditer(line):
+                if re.search(r'(?:==|!=|GetEnvironmentVariable\()\s*$', line[:match.start()]): continue
                 source = template(match['body'])
                 if PORTUGUESE.search(source) and not SKIP.search(source) and '\\' not in source and not source.startswith(('.', '-', '/', '<')): found.add(source)
     return sorted(found, key=str.casefold)

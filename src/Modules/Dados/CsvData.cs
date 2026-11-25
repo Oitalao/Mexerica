@@ -31,11 +31,17 @@ internal static partial class CsvData
         if (rows.Count == 0)
             return [];
         var headers = UniqueHeaders(rows[0]);
+        var usedHeaders = headers.ToHashSet(StringComparer.Ordinal);
         var records = new List<object?>();
         foreach (var row in rows.Skip(1))
         {
             while (headers.Count < row.Count)
-                headers.Add($"column{headers.Count + 1}");
+            {
+                var name = $"column{headers.Count + 1}";
+                var unique = name;
+                for (var n = 2; !usedHeaders.Add(unique); n++) unique = $"{name}_{n}";
+                headers.Add(unique);
+            }
             var record = new DataMap();
             for (var c = 0; c < headers.Count; c++)
                 record[headers[c]] = Typed(c < row.Count ? row[c] : "");
@@ -133,9 +139,10 @@ internal static partial class CsvData
 
             void Add(string column, object? value)
             {
+                if (!cells.TryAdd(column, DataTree.Text(value)))
+                    throw NotATable($"Row {r + 1} has more than one value for column {column}");
                 if (known.Add(column))
                     columns.Add(column);
-                cells[column] = DataTree.Text(value);
             }
         }
         return [columns, .. flat.Select(cells => columns.Select(c => cells.GetValueOrDefault(c, "")).ToList())];

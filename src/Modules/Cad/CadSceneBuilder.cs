@@ -23,7 +23,7 @@ internal sealed partial class CadSceneBuilder
     private const int MaxDepth = 16;
 
     /// <summary>Largest MINSERT array expanded (rows × columns).</summary>
-    private const int MaxArrayItems = 10_000;
+    private const int MaxArrayItems = MaxPrimitives;
 
     /// <summary>Line weight used for "Default" (AutoCAD's LWDEFAULT is 0.25 mm; a thinner line reads better on screen).</summary>
     private const double DefaultLineWeightMm = 0.18;
@@ -232,9 +232,9 @@ internal sealed partial class CadSceneBuilder
         var basePoint = block.BlockEntity?.BasePoint ?? default;
         var columns = Math.Max(1, (int)insert.ColumnCount);
         var rows = Math.Max(1, (int)insert.RowCount);
-        if ((long)columns * rows > MaxArrayItems)
+        var truncatedArray = (long)columns * rows > MaxArrayItems;
+        if (truncatedArray)
         {
-            _scene.Truncated = true;
             columns = Math.Min(columns, MaxArrayItems);
             rows = Math.Max(1, Math.Min(rows, MaxArrayItems / columns));
         }
@@ -256,6 +256,7 @@ internal sealed partial class CadSceneBuilder
                 DrawEntities(block.Entities, inherited with { Transform = cell });
             }
         }
+        if (truncatedArray) _scene.Truncated = true;
 
         // Attributes belong to the reference, not the block: they are positioned in the parent's coordinates, but
         // like the block's contents they take over the insert's layer when on layer "0" and its BYBLOCK properties.

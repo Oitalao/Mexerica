@@ -35,8 +35,15 @@ internal static class EbookFiles
     public static string NewFolder(string root, string name) => Directory.CreateDirectory(Path.Combine(root, name + Guid.NewGuid().ToString("N"))).FullName;
     public static void CheckDrm(ZipArchive zip)
     {
-        if (zip.GetEntry("META-INF/encryption.xml") != null || zip.GetEntry("META-INF/rights.xml") != null)
-            throw new Exception(DrmMessage);
+        if (zip.GetEntry("META-INF/rights.xml") != null) throw new Exception(DrmMessage);
+        if (zip.GetEntry("META-INF/encryption.xml") is { } entry)
+        {
+            using var stream = entry.Open();
+            var encrypted = XDocument.Load(stream).Descendants().Where(e => e.Name.LocalName == "EncryptedData").ToList();
+            if (encrypted.Count == 0 || encrypted.Any(e => e.Descendants().FirstOrDefault(m => m.Name.LocalName == "EncryptionMethod")?.Attribute("Algorithm")?.Value
+                is not ("http://www.idpf.org/2008/embedding" or "http://ns.adobe.com/pdf/enc#RC")))
+                throw new Exception(DrmMessage);
+        }
     }
 }
 
@@ -79,7 +86,8 @@ sealed class EbookModule : Module
         var temp = Paths.Temp();
         try
         {
-            var (title, body) = ReadBook(src, ext, temp);
+            var (metadata, body) = ReadBook(src, ext, temp);
+            var title = metadata.Title ?? Path.GetFileNameWithoutExtension(src);
             Job.Progress(.5);
             var dst = Paths.Out(src, to == "kepub" ? "kepub.epub" : to);
             switch (to)
@@ -87,13 +95,13 @@ sealed class EbookModule : Module
                 case "html": File.WriteAllText(dst, Page(title, body), new UTF8Encoding(false)); break;
                 case "txt": File.WriteAllText(dst, TextDocs.HtmlToText(body), new UTF8Encoding(true)); break;
                 case "md": File.WriteAllText(dst, TextDocs.HtmlToMd(Page(title, body)), new UTF8Encoding(false)); break;
-                case "fb2": WriteFb2(dst, title, body); break;
+                case "fb2": WriteFb2(dst, title, body, metadata); break;
                 case "htmlz": WriteZipped(dst, "index.html", Page(title, body)); break;
                 case "txtz": WriteZipped(dst, "book.txt", TextDocs.HtmlToText(body)); break;
-                case "epub": WriteEpub(dst, title, body); break;
+                case "epub": WriteEpub(dst, title, body, metadata); break;
                 case "kepub":
                     var epub = Path.Combine(temp, "book.epub");
-                    WriteEpub(epub, title, body);
+                    WriteEpub(epub, title, body, metadata);
                     Kepub.FromEpub(epub, dst, Job.Token);
                     break;
                 default: throw new Exception("Destino de e-book não suportado");
@@ -104,34 +112,62 @@ sealed class EbookModule : Module
         finally { Paths.TryDelete(temp); }
     }
 
-    static (string Title, string Body) ReadBook(string src, string ext, string temp)
+    static (BookMetadata Metadata, string Body) ReadBook(string src, string ext, string temp)
     {
         var title = Path.GetFileNameWithoutExtension(src);
+        var metadata = new BookMetadata { Title = title };
         if (ext is "epub" or "kepub")
         {
             using var zip = ZipFile.OpenRead(src); EbookFiles.CheckDrm(zip);
             var html = TextDocs.EpubHtml(src);
-            return (title, Body(html));
+            metadata.Title = new HtmlParser().ParseDocument(html).QuerySelector("title")?.TextContent ?? title;
+            ZipArchiveEntry Entry(string name) => zip.GetEntry(name) ?? zip.Entries.First(e => e.FullName.Equals(name, StringComparison.OrdinalIgnoreCase));
+            using var container = Entry("META-INF/container.xml").Open();
+            var packagePath = XDocument.Load(container).Descendants().First(e => e.Name.LocalName == "rootfile").Attribute("full-path")!.Value;
+            using var package = Entry(packagePath).Open();
+            var info = XDocument.Load(package);
+            metadata.Authors.AddRange(info.Descendants().Where(e => e.Name.LocalName == "creator").Select(e => e.Value));
+            metadata.Language = info.Descendants().FirstOrDefault(e => e.Name.LocalName == "language")?.Value;
+            metadata.Publisher = info.Descendants().FirstOrDefault(e => e.Name.LocalName == "publisher")?.Value;
+            metadata.Description = info.Descendants().FirstOrDefault(e => e.Name.LocalName == "description")?.Value;
+            return (metadata, Body(html));
         }
         if (ext is "mobi" or "azw" or "azw3" or "prc")
         {
             var book = MobiReader.ReadBook(src, temp, Job.Token);
-            return (book.Metadata.Title ?? title, string.Join("\n", book.Chapters.Select(c => EmbedImages(Body(File.ReadAllText(c)), Path.GetDirectoryName(c)!))));
+            return (book.Metadata, string.Join("\n", book.Chapters.Select(c => EmbedImages(Body(File.ReadAllText(c)), Path.GetDirectoryName(c)!))));
         }
         if (ext == "fb2")
         {
             var xml = XDocument.Load(src);
             title = xml.Descendants().FirstOrDefault(e => e.Name.LocalName == "book-title")?.Value ?? title;
+            metadata.Title = title;
+            var info = xml.Descendants().FirstOrDefault(e => e.Name.LocalName == "title-info");
+            if (info != null)
+            {
+                foreach (var author in info.Elements().Where(e => e.Name.LocalName == "author"))
+                {
+                    var name = string.Join(" ", author.Elements().Where(e => e.Name.LocalName is "first-name" or "middle-name" or "last-name").Select(e => e.Value).Where(s => s.Length > 0));
+                    if (name.Length == 0) name = author.Elements().FirstOrDefault(e => e.Name.LocalName == "nickname")?.Value ?? "";
+                    if (name.Length > 0) metadata.Authors.Add(name);
+                }
+                metadata.Language = info.Elements().FirstOrDefault(e => e.Name.LocalName == "lang")?.Value;
+                metadata.Description = info.Elements().FirstOrDefault(e => e.Name.LocalName == "annotation")?.Value;
+            }
+            metadata.Publisher = xml.Descendants().FirstOrDefault(e => e.Name.LocalName == "publisher")?.Value;
             var images = xml.Descendants().Where(e => e.Name.LocalName == "binary" && e.Attribute("id") != null)
                 .ToDictionary(e => e.Attribute("id")!.Value, e => "data:" + (e.Attribute("content-type")?.Value ?? "image/jpeg") + ";base64," + Regex.Replace(e.Value, "\\s", ""));
             var bodies = xml.Descendants().Where(e => e.Name.LocalName == "body").SelectMany(e => e.Elements()).Select(e => Fb2Html(e, images));
-            return (title, string.Join("\n", bodies));
+            return (metadata, string.Join("\n", bodies));
         }
         using var zipText = ZipFile.OpenRead(src);
         var entry = zipText.Entries.FirstOrDefault(e => ext == "htmlz" ? e.Name.EndsWith(".html", StringComparison.OrdinalIgnoreCase) || e.Name.EndsWith(".htm", StringComparison.OrdinalIgnoreCase) : e.Name.EndsWith(".txt", StringComparison.OrdinalIgnoreCase)) ?? throw new Exception("O e-book não contém texto");
-        using var reader = new StreamReader(entry.Open(), Encoding.UTF8, true);
+        using var stream = entry.Open();
+        if (ext == "htmlz")
+            return (metadata, EmbedImages(new HtmlParser().ParseDocument(stream).Body?.InnerHtml ?? "", "", zipText, entry.FullName));
+        using var reader = new StreamReader(stream, Encoding.UTF8, true);
         var content = reader.ReadToEnd();
-        return (title, ext == "htmlz" ? EmbedImages(Body(content), "", zipText, entry.FullName) : "<pre>" + WebUtility.HtmlEncode(content) + "</pre>");
+        return (metadata, "<pre>" + WebUtility.HtmlEncode(content) + "</pre>");
     }
 
     static string Fb2Html(XElement e, Dictionary<string, string> images)
@@ -155,15 +191,15 @@ sealed class EbookModule : Module
     static string EmbedImages(string body, string root, ZipArchive? zip = null, string? entry = null) => Regex.Replace(body,
         "(<img[^>]*\\bsrc=[\"'])([^\"']+)([\"'])", m =>
         {
-            var relative = WebUtility.UrlDecode(m.Groups[2].Value);
+            var relative = Uri.UnescapeDataString(m.Groups[2].Value);
             if (relative.StartsWith("data:")) return m.Value;
             if (relative.Contains(":") || relative.StartsWith('/')) return m.Value;
             byte[] bytes;
             if (zip != null)
             {
                 var baseDir = Path.GetDirectoryName(entry)?.Replace('\\', '/') ?? "";
-                var path = (baseDir.Length == 0 ? "" : baseDir + "/") + relative;
-                var item = zip.GetEntry(path);
+                var path = Kepub.Resolve(baseDir.Length == 0 ? "" : baseDir + "/", relative);
+                var item = path == null ? null : zip.GetEntry(path);
                 if (item == null) return m.Value;
                 using var stream = item.Open(); using var ms = new MemoryStream(); stream.CopyTo(ms); bytes = ms.ToArray();
             }
@@ -184,22 +220,47 @@ sealed class EbookModule : Module
         writer.Write(content);
     }
 
-    static void WriteFb2(string dst, string title, string body)
+    static void WriteFb2(string dst, string title, string body, BookMetadata metadata)
     {
-        var text = TextDocs.HtmlToText(body).Split(new[] { "\r\n", "\n" }, StringSplitOptions.RemoveEmptyEntries);
         XNamespace ns = "http://www.gribuser.ru/xml/fictionbook/2.0";
         XNamespace link = "http://www.w3.org/1999/xlink";
-        var pictures = Regex.Matches(body, "data:(image/(?:png|jpeg|gif));base64,([A-Za-z0-9+/=]+)").Cast<Match>().ToList();
+        var html = new HtmlParser().ParseDocument(body);
+        var pictures = new List<Match>();
+        var marker = "MEXERICA" + Guid.NewGuid().ToString("N") + "IMAGEM";
+        foreach (var image in html.QuerySelectorAll("img"))
+        {
+            var picture = Regex.Match(image.GetAttribute("src") ?? "", "^data:(image/(?:png|jpeg|gif));base64,([A-Za-z0-9+/=]+)$");
+            if (!picture.Success) continue;
+            image.Parent?.ReplaceChild(html.CreateTextNode(marker + pictures.Count + marker), image);
+            pictures.Add(picture);
+        }
+        var text = TextDocs.HtmlToText(html.DocumentElement.OuterHtml).Split(new[] { "\r\n", "\n" }, StringSplitOptions.RemoveEmptyEntries);
+        var references = new Regex(Regex.Escape(marker) + @"(\d+)" + Regex.Escape(marker));
+        IEnumerable<XNode> Content(string paragraph)
+        {
+            int start = 0;
+            foreach (Match match in references.Matches(paragraph))
+            {
+                if (match.Index > start) yield return new XText(paragraph[start..match.Index]);
+                yield return new XElement(ns + "image", new XAttribute(link + "href", "#picture" + match.Groups[1].Value));
+                start = match.Index + match.Length;
+            }
+            if (start < paragraph.Length) yield return new XText(paragraph[start..]);
+        }
         var fb = new XDocument(new XElement(ns + "FictionBook",
-            new XElement(ns + "description", new XElement(ns + "title-info", new XElement(ns + "book-title", title))),
+            new XElement(ns + "description", new XElement(ns + "title-info",
+                metadata.Authors.Select(a => new XElement(ns + "author", new XElement(ns + "nickname", a))),
+                new XElement(ns + "book-title", title),
+                metadata.Description == null ? null : new XElement(ns + "annotation", new XElement(ns + "p", metadata.Description)),
+                metadata.Language == null ? null : new XElement(ns + "lang", metadata.Language)),
+                metadata.Publisher == null ? null : new XElement(ns + "publish-info", new XElement(ns + "publisher", metadata.Publisher))),
             new XElement(ns + "body", new XElement(ns + "section", new XElement(ns + "title", new XElement(ns + "p", title)),
-                text.Select(p => new XElement(ns + "p", p)),
-                pictures.Select((_, i) => new XElement(ns + "p", new XElement(ns + "image", new XAttribute(link + "href", "#picture" + i)))))),
+                text.Select(p => new XElement(ns + "p", Content(p))))),
             pictures.Select((m, i) => new XElement(ns + "binary", new XAttribute("id", "picture" + i), new XAttribute("content-type", m.Groups[1].Value), m.Groups[2].Value))));
         fb.Save(dst);
     }
 
-    static void WriteEpub(string dst, string title, string body)
+    static void WriteEpub(string dst, string title, string body, BookMetadata? metadata = null)
     {
         var images = new List<(string Name, byte[] Data, string Mime)>();
         body = Regex.Replace(body, "data:(image/(?:png|jpeg|gif|webp));base64,([A-Za-z0-9+/=]+)", m =>
@@ -215,7 +276,10 @@ sealed class EbookModule : Module
         Add("mimetype", "application/epub+zip", CompressionLevel.NoCompression);
         Add("META-INF/container.xml", "<?xml version=\"1.0\"?><container xmlns=\"urn:oasis:names:tc:opendocument:xmlns:container\" version=\"1.0\"><rootfiles><rootfile full-path=\"content.opf\" media-type=\"application/oebps-package+xml\"/></rootfiles></container>");
         var manifest = string.Join("", images.Select((im, i) => "<item id=\"img" + i + "\" href=\"" + im.Name + "\" media-type=\"" + im.Mime + "\"/>"));
-        Add("content.opf", "<?xml version=\"1.0\"?><package xmlns=\"http://www.idpf.org/2007/opf\" version=\"3.0\" unique-identifier=\"id\"><metadata xmlns:dc=\"http://purl.org/dc/elements/1.1/\"><dc:identifier id=\"id\">urn:uuid:" + Guid.NewGuid() + "</dc:identifier><dc:title>" + WebUtility.HtmlEncode(title) + "</dc:title><dc:language>pt-BR</dc:language></metadata><manifest><item id=\"chapter\" href=\"chapter.xhtml\" media-type=\"application/xhtml+xml\"/>" + manifest + "</manifest><spine><itemref idref=\"chapter\"/></spine></package>");
+        var extra = string.Join("", (metadata?.Authors ?? []).Select(a => "<dc:creator>" + WebUtility.HtmlEncode(a) + "</dc:creator>"));
+        if (metadata?.Publisher is { } publisher) extra += "<dc:publisher>" + WebUtility.HtmlEncode(publisher) + "</dc:publisher>";
+        if (metadata?.Description is { } description) extra += "<dc:description>" + WebUtility.HtmlEncode(description) + "</dc:description>";
+        Add("content.opf", "<?xml version=\"1.0\"?><package xmlns=\"http://www.idpf.org/2007/opf\" version=\"3.0\" unique-identifier=\"id\"><metadata xmlns:dc=\"http://purl.org/dc/elements/1.1/\"><dc:identifier id=\"id\">urn:uuid:" + Guid.NewGuid() + "</dc:identifier><dc:title>" + WebUtility.HtmlEncode(title) + "</dc:title><dc:language>" + WebUtility.HtmlEncode(metadata?.Language ?? "pt-BR") + "</dc:language>" + extra + "</metadata><manifest><item id=\"chapter\" href=\"chapter.xhtml\" media-type=\"application/xhtml+xml\"/>" + manifest + "</manifest><spine><itemref idref=\"chapter\"/></spine></package>");
         var parsed = new HtmlParser().ParseDocument(Page(title, body));
         XNamespace ns = "http://www.w3.org/1999/xhtml";
         XNode? Node(INode n) => n is IElement child ? Element(child) : n is IText text ? new XText(text.Data) : null;

@@ -133,7 +133,7 @@ static class Tr
             if (!patterns.TryGetValue(language, out templates!))
             {
                 templates = new();
-                foreach (var pair in words.Where(p => p.Key.Contains("{0}")))
+                foreach (var pair in words.Where(p => p.Key.Contains("{0}")).OrderByDescending(p => Regex.Replace(p.Key, @"\{\d+\}", "").Length))
                 {
                     var parts = Regex.Split(pair.Key, @"\{\d+\}");
                     var pattern = "^" + string.Join("(.*?)", parts.Select(Regex.Escape)) + "$";

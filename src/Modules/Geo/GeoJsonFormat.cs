@@ -8,6 +8,7 @@ using System.IO;
 
 using System.Buffers;
 using System.Globalization;
+using System.Numerics;
 using System.Text;
 using System.Text.Encodings.Web;
 using System.Text.Json;
@@ -106,7 +107,9 @@ internal static class GeoJsonFormat
     private static object? Value(JsonElement element) => element.ValueKind switch
     {
         JsonValueKind.String => element.GetString(),
-        JsonValueKind.Number => element.TryGetInt64(out var whole) ? whole : double.IsFinite(element.GetDouble()) ? element.GetDouble() : element.GetRawText(),
+        JsonValueKind.Number => element.TryGetInt64(out var whole) ? whole
+            : BigInteger.TryParse(element.GetRawText(), NumberStyles.Integer, CultureInfo.InvariantCulture, out var big) ? big
+            : double.IsFinite(element.GetDouble()) ? element.GetDouble() : element.GetRawText(),
         JsonValueKind.True => true,
         JsonValueKind.False => false,
         JsonValueKind.Null or JsonValueKind.Undefined => null,
@@ -261,6 +264,9 @@ internal static class GeoJsonFormat
                 break;
             case long whole:
                 writer.WriteNumberValue(whole);
+                break;
+            case BigInteger big:
+                writer.WriteRawValue(big.ToString(CultureInfo.InvariantCulture));
                 break;
             case double real when double.IsFinite(real):
                 writer.WriteNumberValue(real);

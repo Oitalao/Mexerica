@@ -65,7 +65,8 @@ sealed class ArchiveModule : Module
 
     static async Task<string?> ConvertArchive(string src, string ext)
     {
-        var stage = Paths.Temp();
+        var temp = Paths.Temp();
+        var stage = Directory.CreateDirectory(Path.Combine(temp, "arquivos")).FullName;
         string? dst = null;
         try
         {
@@ -78,7 +79,7 @@ sealed class ArchiveModule : Module
                 await Proc.Run(Exe, ["a", "-t" + type, "-y", dst, ".\\*"], cwd: stage);
             else
             {
-                var tar = ext == "tar" ? dst : Path.Combine(stage, "conteudo.tar");
+                var tar = ext == "tar" ? dst : Path.Combine(temp, "conteudo.tar");
                 await Proc.Run(Exe, ["a", "-ttar", "-y", tar, ".\\*"], cwd: stage);
                 if (ext != "tar")
                 {
@@ -90,10 +91,10 @@ sealed class ArchiveModule : Module
             return dst;
         }
         catch { if (dst != null) Paths.TryDelete(dst); throw; }
-        finally { Paths.TryDelete(stage); }
+        finally { Paths.TryDelete(temp); }
     }
 
-    static async Task Unpack(string src, string stage)
+    internal static async Task Unpack(string src, string stage)
     {
         try
         {
@@ -107,12 +108,17 @@ sealed class ArchiveModule : Module
             // Compressores de um arquivo só (.tar.Z, .tar.lzma, .gz…) entregam um .tar: abre também essa camada.
             if (ext is "tar.zst" or "tar.lz" or "tar.xz" or "tar.bz2" or "tar.gz" or "tgz" or "txz" or "tbz2" or "deb" or "rpm" or "z" or "lzma" or "zst" or "lz" or "gz" or "xz" or "bz2")
             {
-                for (var layer = 0; layer < 3; layer++)
+                var entries = Directory.GetFileSystemEntries(stage);
+                if (entries.Length == 1 && File.Exists(entries[0]) && Path.GetExtension(entries[0]).ToLowerInvariant() is ".tar" or ".cpio")
                 {
-                    var entries = Directory.GetFileSystemEntries(stage);
-                    if (entries.Length != 1 || !File.Exists(entries[0]) || Path.GetExtension(entries[0]).ToLowerInvariant() is not (".tar" or ".cpio")) break;
-                    await Proc.Run(Exe, ["x", "-y", "-o" + stage, "--", entries[0]]);
-                    File.Delete(entries[0]);
+                    var wrapper = Paths.Temp();
+                    try
+                    {
+                        var archive = Path.Combine(wrapper, Path.GetFileName(entries[0]));
+                        File.Move(entries[0], archive);
+                        await Proc.Run(Exe, ["x", "-y", "-o" + stage, "--", archive]);
+                    }
+                    finally { Paths.TryDelete(wrapper); }
                 }
             }
             if (!Directory.EnumerateFileSystemEntries(stage).Any()) throw new Exception("O compactado não contém arquivos.");

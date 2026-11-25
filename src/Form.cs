@@ -19,7 +19,7 @@ sealed class Form : Window
     readonly List<Func<string?>> checks = new();
     /// Campos para a ajuda da linha de comando: chave, rótulo, tipo, padrão, valores aceitos e quando aparece.
     public readonly List<(string key, string label, string kind, string def, string vals, string? when)> Fields = new();
-    static string? When((string key, string[] vals)? s) => s is { } w ? $"{w.key}={string.Join("|", w.vals)}" : null;
+    static string? When((string key, string[] vals)? s) => s is { } w ? w.key + "=" + string.Join("|", w.vals) : null;
 
     public Form(string title, string[] files, string? note = null)
     {
@@ -84,13 +84,16 @@ sealed class Form : Window
         var cb = Ui.Combo(options, def, v => { values[key] = v; Refresh(); });
         var row = Ui.Row(label, cb); row.Tag = key;
         Add(row, showIf);
+        checks.Add(() => row.Visibility != Visibility.Visible || options.Any(o => o.value == values.S(key))
+            ? null : $"{label}: escolha uma das opções da lista.");
         return this;
     }
 
     public Form Number(string key, string label, double def, double min, double max, string suffix = "", (string key, string[] vals)? showIf = null, bool decimals = false)
     {
         values[key] = def.ToString(CultureInfo.InvariantCulture);
-        Fields.Add((key, label, "número", values[key], $"{min.ToString(CultureInfo.InvariantCulture)} a {max.ToString(CultureInfo.InvariantCulture)}{(suffix.Length > 0 ? " " + suffix : "")}", When(showIf)));
+        var range = $"{min.ToString(CultureInfo.InvariantCulture)} a {max.ToString(CultureInfo.InvariantCulture)}";
+        Fields.Add((key, label, "número", values[key], range + (suffix.Length > 0 ? " " + suffix : ""), When(showIf)));
         var tb = Ui.Text(def.ToString(decimals ? "0.##" : "0", CultureInfo.GetCultureInfo("pt-BR")), 90);
         tb.TextChanged += (_, _) => values[key] = tb.Text.Trim().Replace(',', '.');
         var sp = new StackPanel { Orientation = Orientation.Horizontal };
@@ -101,7 +104,7 @@ sealed class Form : Window
         checks.Add(() =>
         {
             if (row.Visibility != Visibility.Visible) return null;
-            if (!double.TryParse(values.S(key), NumberStyles.Float, CultureInfo.InvariantCulture, out var d) || d < min || d > max)
+            if (!double.TryParse(values.S(key), NumberStyles.Float, CultureInfo.InvariantCulture, out var d) || !double.IsFinite(d) || d < min || d > max)
                 return $"{label}: use um número entre {min.ToString(CultureInfo.GetCultureInfo("pt-BR"))} e {max.ToString(CultureInfo.GetCultureInfo("pt-BR"))}.";
             return null;
         });
@@ -140,6 +143,12 @@ sealed class Form : Window
         Paint();
         var row = Ui.Row(label, sp); row.Tag = key;
         Add(row, showIf);
+        checks.Add(() =>
+        {
+            if (row.Visibility != Visibility.Visible) return null;
+            try { _ = (System.Windows.Media.Color)ColorConverter.ConvertFromString(values.S(key)); return null; }
+            catch { return $"{label}: use uma cor válida, como #FFFFFF."; }
+        });
         return this;
     }
 
@@ -246,6 +255,7 @@ sealed class Form : Window
     /// Linha de comando: Run não abre a janela; guarda o formulário aqui e devolve os valores padrão.
     /// As janelas próprias (editor, cortar trecho, organizar páginas…) devolvem null nesse modo.
     public static List<Form>? Headless;
+    internal static Func<Form, P?>? TestAnswer;
 
     /// Linha de comando: aplica os valores dados por cima dos padrões e roda as mesmas conferências do botão Fazer.
     public string? Validate(P given)
@@ -260,6 +270,7 @@ sealed class Form : Window
 
     public P? Run()
     {
+        if (TestAnswer != null) return TestAnswer(this);
         if (Headless != null) { Headless.Add(this); return values; }
         if (Capture != null) { Capture(this); return null; }
         return ShowDialog() == true ? values : null;

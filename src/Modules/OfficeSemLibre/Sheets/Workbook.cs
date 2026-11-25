@@ -17,6 +17,7 @@ internal sealed class Worksheet(string name)
     public const double StandardColumnWidth = 8.43;
 
     public string Name { get; } = name;
+    public bool Hidden { get; set; }
 
     /// <summary>Cells by 0-based row, then 0-based column. Only cells with a value or visible formatting.</summary>
     public SortedDictionary<int, SortedDictionary<int, SheetCell>> Rows { get; } = [];
@@ -181,5 +182,9 @@ internal sealed record SheetCell(string Text, CellStyle Style, bool IsNumber = f
     /// <summary>A TRUE / FALSE cell (<see cref="Value"/> is 1 or 0).</summary>
     public bool IsBoolean { get; init; }
 
-    public bool HasContent => Text.Length > 0 || Style.Fill is not null || Style.HasBorders;
+    /// <summary>Excel A1 expression, without the leading equals sign; the other fields hold its cached result.</summary>
+    public string? Formula { get; init; }
+    public bool IsError { get; init; }
+
+    public bool HasContent => Formula is not null || Text.Length > 0 || Style.Fill is not null || Style.HasBorders;
 }

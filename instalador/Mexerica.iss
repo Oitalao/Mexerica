@@ -265,8 +265,12 @@ begin
   begin
     // Até a 1.1.0 o PATH apontava para a pasta do programa, e o PowerShell abria o Mexerica.exe sem esperar.
     TirarDoPath(ExpandConstant('{app}'));
-    if Marcado(IdxLO) then InstalarLibreOffice();
-    if Marcado(IdxMidia) then InstalarPacoteMidia();
+    // Instalação silenciosa (atualização automática): ninguém viu a página dos complementares, então não baixa nada.
+    if not WizardSilent then
+    begin
+      if Marcado(IdxLO) then InstalarLibreOffice();
+      if Marcado(IdxMidia) then InstalarPacoteMidia();
+    end;
   end;
 end;
 

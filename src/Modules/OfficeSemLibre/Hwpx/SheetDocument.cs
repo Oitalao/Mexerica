@@ -27,7 +27,7 @@ internal static class SheetDocument
     public static HDocument Build(Workbook book)
     {
         var document = new HDocument();
-        var sheets = book.Sheets.Where(s => s.UsedRange() is not null).ToList();
+        var sheets = book.Sheets.Where(s => !s.Hidden && s.UsedRange() is not null).ToList();
         foreach (var sheet in sheets)
             document.Sections.Add(Section(sheet, withTitle: sheets.Count > 1));
         if (document.Sections.Count == 0)

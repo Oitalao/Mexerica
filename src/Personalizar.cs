@@ -95,12 +95,15 @@ static class Presets
 
     static string Image(string src, Preset p)
     {
-        using var img = new MagickImage(src);
-        img.AutoOrient();
-        if (p.MaxSide > 0 && Math.Max(img.Width, img.Height) > p.MaxSide) img.Resize(new MagickGeometry((uint)p.MaxSide, (uint)p.MaxSide));
-        if (p.StripMetadata) img.Strip();
+        using var frames = Images.LoadFrames(src, p.Format);
+        foreach (var img in frames)
+        {
+            if (p.MaxSide > 0 && Math.Max(img.Width, img.Height) > p.MaxSide) img.Resize(new MagickGeometry((uint)p.MaxSide, (uint)p.MaxSide));
+            if (p.StripMetadata) img.Strip();
+            img.ResetPage();
+        }
         var dst = Out(src, p);
-        Images.Save(img, dst, p.Format, p.Quality > 0 ? (uint)Math.Clamp(p.Quality, 30, 100) : null);
+        Images.SaveFrames(frames, dst, p.Format, p.Quality > 0 ? (uint)Math.Clamp(p.Quality, 30, 100) : null);
         return dst;
     }
 
@@ -109,7 +112,7 @@ static class Presets
         int crf = p.Quality switch { 1 => 23, 2 => 27, _ => 20 };
         var dst = Out(src, p);
         var a = new List<string> { "-i", src, "-map", "0:v:0", "-map", "0:a?", "-sn" };
-        var vf = p.MaxSide > 0 ? $"scale=-2:'min({p.MaxSide},ih)'" : "scale=trunc(iw/2)*2:trunc(ih/2)*2";
+        var vf = p.MaxSide > 0 ? $"scale=-2:'max(2,trunc(min({p.MaxSide},ih)/2)*2)'" : "scale=trunc(iw/2)*2:trunc(ih/2)*2";
         if (p.Format == "webm") a.AddRange(new[] { "-vf", vf, "-c:v", "libvpx-vp9", "-crf", (crf + 10).ToString(), "-b:v", "0", "-c:a", "libopus", "-b:a", "128k" });
         else a.AddRange(new[] { "-vf", vf + ",format=yuv420p", "-c:v", "libx264", "-preset", "medium", "-crf", crf.ToString(), "-c:a", "aac", "-b:a", p.Quality == 2 ? "112k" : "160k", "-movflags", "+faststart" });
         a.Add(dst);
@@ -128,7 +131,7 @@ static class Presets
             "ogg" => new[] { "-c:a", "libvorbis", "-q:a", p.Quality switch { 1 => "4", 2 => "2", _ => "6" } },
             "opus" => new[] { "-c:a", "libopus", "-b:a", p.Quality switch { 1 => "96k", 2 => "64k", _ => "128k" } },
             "flac" => new[] { "-c:a", "flac" },
-            _ => new[] { "-c:a", "pcm_s16le" },
+            _ => new[] { "-c:a", Ff.PcmCodec(src, p.Format) },
         };
         a.AddRange(q);
         a.Add(dst);
@@ -144,11 +147,17 @@ sealed class CustomizeWindow : Window
     readonly ComboBox kindBox, modeBox;
     readonly StackPanel list = new(), presetList = new();
 
-    public static bool Ask(Window owner, Config c) => new CustomizeWindow(c) { Owner = owner }.ShowDialog() == true;
+    public static bool Ask(Window owner, Config c)
+    {
+        var window = new CustomizeWindow(c) { Owner = owner };
+        if (window.ShowDialog() != true) return false;
+        c.WheelOrder = window.c.WheelOrder; c.WheelHidden = window.c.WheelHidden; c.Presets = window.c.Presets;
+        return true;
+    }
 
     internal CustomizeWindow(Config cfg)
     {
-        c = cfg;
+        c = cfg.Clone();
         Title = "Mexerica: personalizar a roda";
         Width = 520; Height = Math.Min(560, SystemParameters.WorkArea.Height * 0.85); MinHeight = 360;
         WindowStartupLocation = WindowStartupLocation.CenterOwner;
@@ -303,7 +312,7 @@ sealed class PresetWindow : Window
                     ? Ui.Combo(new[] { ("0", "Original"), ("3840", "3840 px"), ("2560", "2560 px"), ("1920", "1920 px"), ("1600", "1600 px"), ("1280", "1280 px"), ("1080", "1080 px"), ("800", "800 px"), ("512", "512 px") }, p.MaxSide.ToString(), v => p.MaxSide = int.Parse(v))
                     : new TextBlock { Text = "—", Foreground = Ui.Dim };
         }
-        st.Children.Add(Ui.Row("Tipo de arquivo", Ui.Combo(new[] { ("Image", "Imagens"), ("Video", "Vídeo"), ("Audio", "Áudio") }, p.Group, v => { p.Group = v; if (v != "Image") p.Quality = 0; Rebuild(); })));
+        st.Children.Add(Ui.Row("Tipo de arquivo", Ui.Combo(new[] { ("Image", "Imagens"), ("Video", "Vídeo"), ("Audio", "Áudio") }, p.Group, v => { p.Group = v; p.MaxSide = 0; if (v != "Image") p.Quality = 0; Rebuild(); })));
         st.Children.Add(Ui.Row("Formato", fmtHost));
         st.Children.Add(Ui.Row("Qualidade", qHost));
         st.Children.Add(Ui.Row("Tamanho máximo", sizeHost));

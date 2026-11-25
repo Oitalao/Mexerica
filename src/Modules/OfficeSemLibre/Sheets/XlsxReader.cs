@@ -51,13 +51,26 @@ internal sealed class XlsxReader
         var result = new Workbook();
         foreach (var sheet in workbook.Element(S + "sheets")?.Elements(S + "sheet") ?? [])
         {
-            if ((string?)sheet.Attribute("state") is "hidden" or "veryHidden")
-                continue;
             var target = _package.Target(workbookPath, (string?)sheet.Attribute(R + "id"));
             if (target is null || _package.Part(target)?.Root is not { } xml || xml.Name != S + "worksheet")
                 continue; // chart sheets and dialog sheets have no cells
-            result.Sheets.Add(ReadSheet((string?)sheet.Attribute("name") ?? "Sheet", xml));
+            var read = ReadSheet((string?)sheet.Attribute("name") ?? "Sheet", xml);
+            read.Hidden = (string?)sheet.Attribute("state") is "hidden" or "veryHidden";
+            result.Sheets.Add(read);
         }
+        var exported = result.Sheets.Select(s => s.Name).ToHashSet(StringComparer.OrdinalIgnoreCase);
+        var definedNames = (workbook.Element(S + "definedNames")?.Elements(S + "definedName") ?? [])
+            .Select(n => (string?)n.Attribute("name") ?? "").ToHashSet(StringComparer.OrdinalIgnoreCase);
+        var unsupported = false;
+        foreach (var row in result.Sheets.SelectMany(s => s.Rows.Values))
+            foreach (var (column, cell) in row.ToArray())
+                if (cell.Formula is { } formula && !FormulaSyntax.CanExport(formula, exported, definedNames))
+                {
+                    row[column] = cell with { Formula = null };
+                    unsupported = true;
+                }
+        if (unsupported)
+            Mexerica.Job.Warn("Algumas fórmulas não são compatíveis com o formato de destino; seus valores salvos foram mantidos.");
         return result;
     }
 
@@ -193,6 +206,9 @@ internal sealed class XlsxReader
             }
         }
 
+        var sharedFormulas = xml.Descendants(S + "c")
+            .Where(c => c.Element(S + "f") is { Value.Length: > 0 } f && (string?)f.Attribute("t") == "shared")
+            .ToDictionary(c => (string?)c.Element(S + "f")?.Attribute("si") ?? "", c => c);
         var nextRow = 0;
         foreach (var row in xml.Element(S + "sheetData")?.Elements(S + "row") ?? [])
         {
@@ -210,6 +226,15 @@ internal sealed class XlsxReader
                 nextColumn = c + 1;
                 var (style, format) = Index(cell, "s") is var s && s < _cellFormats.Count ? _cellFormats[s] : (CellStyle.Default, "General");
                 var value = Value(cell, style, format);
+                if (cell.Element(S + "f") is { } formula)
+                {
+                    var expression = formula.Value;
+                    if (expression.Length == 0 && (string?)formula.Attribute("t") == "shared" &&
+                        sharedFormulas.TryGetValue((string?)formula.Attribute("si") ?? "", out var anchor) &&
+                        CellRange.TryParseCell((string?)anchor.Attribute("r") ?? "", out var ar, out var ac))
+                        expression = FormulaSyntax.Shift(anchor.Element(S + "f")!.Value, r - ar, c - ac);
+                    if (expression.Length > 0) value = value with { Formula = expression };
+                }
                 if (value.HasContent)
                     sheet.Set(r, c, value);
             }
@@ -241,8 +266,9 @@ internal sealed class XlsxReader
             case "inlineStr":
                 return new SheetCell(cell.Element(S + "is") is { } inline ? RichText(inline) : raw ?? "", style);
             case "str":
-            case "e":
                 return new SheetCell(raw ?? "", style);
+            case "e":
+                return new SheetCell(raw ?? "", style) { IsError = true };
             case "b":
                 var on = raw is "1" or "true";
                 return new SheetCell(on ? "TRUE" : "FALSE", style) { Value = on ? 1 : 0, IsBoolean = true };

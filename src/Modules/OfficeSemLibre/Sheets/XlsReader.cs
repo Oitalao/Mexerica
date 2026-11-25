@@ -33,8 +33,9 @@ internal static class XlsReader
             var index = 0;
             do
             {
-                if (reader.VisibleState is null or "visible")
-                    book.Sheets.Add(ReadSheet(reader, formatter, layouts?.ElementAtOrDefault(index)));
+                var sheet = ReadSheet(reader, formatter, layouts?.ElementAtOrDefault(index));
+                sheet.Hidden = reader.VisibleState is not (null or "visible");
+                book.Sheets.Add(sheet);
                 index++;
             }
             while (reader.NextResult());

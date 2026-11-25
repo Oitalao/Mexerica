@@ -29,9 +29,9 @@ static class WebDrop
             if (!d.GetDataPresent("FileGroupDescriptorW") || d.GetData("FileGroupDescriptorW") is not MemoryStream desc) return null;
             var name = FirstName(desc);
             if (string.IsNullOrWhiteSpace(name) || d.GetData("FileContents") is not MemoryStream content || content.Length == 0) return null;
-            var dest = Unique(Downloads(), Clean(name));
-            File.WriteAllBytes(dest, content.ToArray());
-            return dest;
+            using var file = CreateUnique(Downloads(), Clean(name));
+            content.Position = 0; content.CopyTo(file);
+            return file.Name;
         }
         catch (Exception ex) { Log.Write("arrasto do navegador: " + ex.Message); return null; }
     }
@@ -76,10 +76,15 @@ static class WebDrop
         if (string.IsNullOrWhiteSpace(name)) name = "download";
         name = Clean(name);
         if (Path.GetExtension(name).Length == 0) name += ExtFor(resp.Content.Headers.ContentType?.MediaType);
-        var dest = Unique(Downloads(), name);
-        await using (var fs = File.Create(dest))
+        string? dest = null;
+        try
+        {
+            await using var fs = CreateUnique(Downloads(), name);
+            dest = fs.Name;
             await resp.Content.CopyToAsync(fs);
-        return dest;
+            return dest;
+        }
+        catch { if (dest != null) Paths.TryDelete(dest); throw; }
     }
 
     static string ExtFor(string? mime) => mime switch
@@ -100,7 +105,8 @@ static class WebDrop
 
     static string Clean(string name)
     {
-        foreach (var c in Path.GetInvalidFileNameChars()) name = name.Replace(c, '_');
+        name = Paths.SafeName(name);
+        if (name.Length == 0) name = "download";
         return name.Length > 150 ? name[..120] + Path.GetExtension(name) : name;
     }
 
@@ -111,10 +117,14 @@ static class WebDrop
         return d;
     }
 
-    static string Unique(string dir, string name)
+    static FileStream CreateUnique(string dir, string name)
     {
-        var p = Path.Combine(dir, name);
-        for (int i = 2; File.Exists(p); i++) p = Path.Combine(dir, $"{Path.GetFileNameWithoutExtension(name)} {i}{Path.GetExtension(name)}");
-        return p;
+        for (int i = 1; ; i++)
+        {
+            var p = Path.Combine(dir, i == 1 ? name : $"{Path.GetFileNameWithoutExtension(name)} {i}{Path.GetExtension(name)}");
+            try { return new FileStream(p, FileMode.CreateNew, FileAccess.Write, FileShare.None); }
+            catch (IOException) when (File.Exists(p) || Directory.Exists(p)) { }
+            catch (UnauthorizedAccessException) when (Directory.Exists(p)) { }
+        }
     }
 }

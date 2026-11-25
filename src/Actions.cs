@@ -63,6 +63,10 @@ static class Actions
     /// Renomeia em duas etapas (primeiro para nomes provisórios), para que trocar nomes entre si não esbarre.
     public static List<(string from, string to)> Apply(List<(string from, string to)> plan)
     {
+        var sources = plan.Select(x => Path.GetFullPath(x.from)).ToList();
+        if (sources.Any(parent => Directory.Exists(parent) && sources.Any(child =>
+            child.StartsWith(Path.TrimEndingDirectorySeparator(parent) + Path.DirectorySeparatorChar, StringComparison.OrdinalIgnoreCase))))
+            throw new IOException("Renomeie a pasta e os arquivos dentro dela em etapas separadas.");
         var tmp = new List<(string tmp, string from, string to)>();
         try
         {
@@ -116,38 +120,88 @@ static class Actions
     /// Copia ou move para a pasta; nome repetido ganha número. Devolve os caminhos novos.
     public static List<string> CopyMove(string[] fs, string dest, bool move)
     {
+        dest = Path.GetFullPath(dest);
+        foreach (var f in fs.Where(Directory.Exists)) EnsureOutside(f, dest);
         var done = new List<string>();
         foreach (var f in fs)
         {
-            var src = f.TrimEnd('\\');
+            var src = Path.TrimEndingDirectorySeparator(Path.GetFullPath(f));
             var target = Path.Combine(dest, Path.GetFileName(src));
             if (string.Equals(Path.GetFullPath(target), Path.GetFullPath(src), StringComparison.OrdinalIgnoreCase)) continue;
-            target = Unique(target);
+            target = Unique(target, Directory.Exists(src));
             if (Directory.Exists(src))
             {
                 if (move && SameVolume(src, dest)) Directory.Move(src, target);
-                else { CopyDir(src, target); if (move) Directory.Delete(src, true); }
+                else
+                {
+                    var staged = Path.Combine(dest, ".mexerica-" + Guid.NewGuid().ToString("N"));
+                    try { CopyDir(src, staged); Directory.Move(staged, target); }
+                    finally { DeletePartial(staged); }
+                    if (move) DeletePartial(src);
+                }
             }
-            else if (move) File.Move(src, target);
-            else File.Copy(src, target);
+            else if (move && SameVolume(src, dest)) File.Move(src, target);
+            else
+            {
+                var staged = Path.Combine(dest, ".mexerica-" + Guid.NewGuid().ToString("N"));
+                try { File.Copy(src, staged); File.Move(staged, target); }
+                finally { DeletePartial(staged); }
+                if (move) DeletePartial(src);
+            }
             done.Add(target);
         }
         return done;
     }
 
-    static string Unique(string p)
+    static string Unique(string p, bool directory)
     {
         if (!File.Exists(p) && !Directory.Exists(p)) return p;
         var dir = Path.GetDirectoryName(p)!; var b = Path.GetFileNameWithoutExtension(p); var e = Path.GetExtension(p);
-        if (Directory.Exists(p)) { b = Path.GetFileName(p); e = ""; }
-        for (int i = 2; ; i++) { var q = Path.Combine(dir, $"{b} {i}{e}"); if (!File.Exists(q) && !Directory.Exists(q)) return q; }
+        if (directory) { b = Path.GetFileName(p); e = ""; }
+        for (int i = 1; ; i++) { var q = Path.Combine(dir, $"{b} ({i}){e}"); if (!File.Exists(q) && !Directory.Exists(q)) return q; }
     }
 
     static bool SameVolume(string a, string b) =>
         string.Equals(Path.GetPathRoot(Path.GetFullPath(a)), Path.GetPathRoot(Path.GetFullPath(b)), StringComparison.OrdinalIgnoreCase);
 
+    static void DeletePartial(string path)
+    {
+        if (Directory.Exists(path))
+        {
+            // File.Copy carries the read-only attribute too; it must not prevent rollback.
+            foreach (var file in Directory.EnumerateFiles(path, "*", SearchOption.AllDirectories))
+                File.SetAttributes(file, File.GetAttributes(file) & ~FileAttributes.ReadOnly);
+            Directory.Delete(path, true);
+        }
+        else if (File.Exists(path))
+        {
+            File.SetAttributes(path, File.GetAttributes(path) & ~FileAttributes.ReadOnly);
+            File.Delete(path);
+        }
+    }
+
+    static void EnsureOutside(string src, string dst)
+    {
+        var source = PhysicalDirectory(src);
+        var destination = PhysicalDirectory(dst);
+        if (destination.Equals(source, StringComparison.OrdinalIgnoreCase) ||
+            destination.StartsWith(Path.TrimEndingDirectorySeparator(source) + Path.DirectorySeparatorChar, StringComparison.OrdinalIgnoreCase))
+            throw new IOException("A pasta de destino não pode ficar dentro da pasta de origem.");
+    }
+
+    static string PhysicalDirectory(string path)
+    {
+        var info = new DirectoryInfo(Path.GetFullPath(path));
+        if (info.Parent is null) return info.FullName;
+        var parent = PhysicalDirectory(info.Parent.FullName);
+        return info.Exists && info.Attributes.HasFlag(FileAttributes.ReparsePoint)
+            ? info.ResolveLinkTarget(true)?.FullName ?? Path.Combine(parent, info.Name)
+            : Path.Combine(parent, info.Name);
+    }
+
     static void CopyDir(string src, string dst)
     {
+        EnsureOutside(src, dst);
         Directory.CreateDirectory(dst);
         foreach (var f in Directory.GetFiles(src)) File.Copy(f, Path.Combine(dst, Path.GetFileName(f)));
         foreach (var d in Directory.GetDirectories(src)) CopyDir(d, Path.Combine(dst, Path.GetFileName(d)));

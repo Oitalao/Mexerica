@@ -6,6 +6,8 @@
 
 <p align="center">Konwertuj i edytuj pliki bez otwierania żadnego programu: przeciągnij plik, naciśnij <b>Spację</b> i upuść go na wybranej opcji.</p>
 
+<p align="center"><a href="https://oitalao.github.io/Mexerica/en/">oitalao.github.io/Mexerica</a></p>
+
 <p align="center">
   <img src="assets/telas/roda-converter.png" width="260" alt="Koło Konwertuj">
   <img src="assets/telas/roda-ferramentas.png" width="260" alt="Koło Narzędzia">
@@ -62,9 +64,10 @@ Koło pokazuje tylko to, co ma sens dla danego pliku: wideo bez dźwięku nie pr
 - Tło i margines dla obrazów, kolaż z kilku zdjęć, obrazy do PDF, odcienie szarości, odczyt kodów QR
 - Usuwanie tła ze zdjęcia za pomocą AI (lokalny model isnet-general-use; nic nie opuszcza komputera)
 - Metadane: zobaczyć wszystko, edytować tytuł, autora i inne pola, usunąć lokalizację albo wszystko
-- Wideo: wyciąć fragment, przyciąć obraz, prędkość, podzielić, zapisać jedną klatkę lub wszystkie, wyodrębnić dźwięk i napisy, obrócić, zmienić rozdzielczość, usunąć dźwięk, połączyć
+- Edytor wideo z osią czasu: wiele filmów i zdjęć, dzielenie, usuwanie fragmentów, zmiana kolejności przez przeciąganie, przycinanie krawędziami, prędkość i głośność każdego fragmentu, cofanie i eksport do formatu 9:16, 1:1, 16:9 lub oryginalnego
+- Wideo: przyciąć obraz, prędkość, podzielić, zapisać jedną klatkę lub wszystkie, wyodrębnić dźwięk i napisy, obrócić, zmienić rozdzielczość, usunąć dźwięk, połączyć
 - Dźwięk: wyciąć fragment, wyrównać głośność, zapiszczeć fragmenty, mono i stereo, prędkość, podzielić, połączyć
-- PDF: porządkowanie stron (zmiana kolejności, obracanie, usuwanie), dzielenie (części trafiają obok oryginału, do folderu lub do pliku ZIP), łączenie i prawdziwe zamazywanie (ukryty tekst znika)
+- PDF: porządkowanie stron (zmiana kolejności, obracanie, usuwanie), dzielenie (części trafiają obok oryginału, do folderu lub do pliku ZIP), łączenie i prawdziwe zamazywanie (ukryty tekst znika, a reszta strony pozostaje przeszukiwalna)
 - PDF także: łączenie plików różnych typów (Word, arkusz, obraz i PDF) w jeden PDF, w wybranej kolejności i pod wybraną nazwą; OCR, który pozwala przeszukiwać zeskanowany PDF, nawet ze stronami bokiem lub do góry nogami; numerowanie stron i stempel "Doc. 01"; zmieszczenie się w limicie wysyłki (kompresja i w razie potrzeby podział na części); PDF/A; hasło
 - Zmiana nazw wielu plików naraz według wzoru ("Doc. {n} - {nazwa}"), z podglądem i cofnięciem
 - Napisy: opóźnić lub przyspieszyć czas; czcionki: arkusz z próbką; archiwa: rozpakować i sprawdzić spójność

@@ -15,6 +15,17 @@ sealed class FontModule : Module
     public override IEnumerable<Target> TargetsFor(string inExt) => FontFile.Formats
         .Where(f => f != inExt).Select(f => new Target(f, "fonte", f.ToUpperInvariant()));
 
+    public override IEnumerable<Target> TargetsFor(string inExt, string path)
+    {
+        try
+        {
+            var font = FontFile.Load(File.ReadAllBytes(path), Job.Token);
+            return TargetsFor(inExt).Where(t => font["CFF2"] is null || t.Ext is not ("ttf" or "eot")).ToArray();
+        }
+        catch (OperationCanceledException) { throw; }
+        catch { return []; }
+    }
+
     public override Task<string?> Convert(string src, string outExt, P p) => Task.Run<string?>(() =>
     {
         Job.Check();
@@ -31,6 +42,9 @@ sealed class FontModule : Module
     public override IEnumerable<Op> Tools(string[] files)
     {
         if (files.Length == 0 || files.Any(f => !FontFile.Formats.Contains(Modules.Ext(f)))) return [];
+        try { if (files.Any(f => FontFile.Load(File.ReadAllBytes(f), Job.Token)["CFF2"] is not null)) return []; }
+        catch (OperationCanceledException) { throw; }
+        catch { return []; }
         return [new Op { Label = "Amostra", Sub = "fonte em PNG", One = (src, _) => Task.Run<string?>(() => Sample(src), Job.Token) }];
     }
 

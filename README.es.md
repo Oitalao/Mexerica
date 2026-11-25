@@ -6,6 +6,8 @@
 
 <p align="center">Convierte y edita archivos sin abrir ningún programa: arrastra el archivo, pulsa <b>Espacio</b> y suéltalo sobre la opción.</p>
 
+<p align="center"><a href="https://oitalao.github.io/Mexerica/en/">oitalao.github.io/Mexerica</a></p>
+
 <p align="center">
   <img src="assets/telas/roda-converter.png" width="260" alt="Rueda Convertir">
   <img src="assets/telas/roda-ferramentas.png" width="260" alt="Rueda Herramientas">
@@ -62,9 +64,10 @@ La rueda solo ofrece lo que tiene sentido para ese archivo: un video sin sonido 
 - Fondo y margen para imágenes, collage de varias fotos, imágenes a PDF, escala de grises, lectura de códigos QR
 - Quitar fondo de foto con IA (modelo local, isnet-general-use; nada sale de tu computadora)
 - Metadatos: ver todo, editar título, autor y otros campos, borrar la ubicación o todo
-- Video: cortar un tramo, recortar la imagen, velocidad, dividir, sacar un fotograma o todos, extraer el audio y los subtítulos, girar, cambiar la resolución, quitar el sonido, unir
+- Editor de video con línea de tiempo: varios videos y fotos, dividir, borrar partes, cambiar el orden arrastrando, recortar desde los bordes, velocidad y volumen de cada parte, deshacer y exportar en 9:16, 1:1, 16:9 o en el formato original
+- Video: recortar la imagen, velocidad, dividir, sacar un fotograma o todos, extraer el audio y los subtítulos, girar, cambiar la resolución, quitar el sonido, unir
 - Audio: cortar un tramo, normalizar el volumen, pitido sobre tramos, mono y estéreo, velocidad, dividir, unir
-- PDF: organizar páginas (reordenar, girar, borrar), dividir (las partes quedan junto al original, en una carpeta o en un ZIP), unir y tachar de verdad (el texto oculto desaparece)
+- PDF: organizar páginas (reordenar, girar, borrar), dividir (las partes quedan junto al original, en una carpeta o en un ZIP), unir y tachar de verdad (el texto oculto desaparece y el resto de la página sigue siendo buscable)
 - PDF también: unir archivos de tipos distintos (Word, hoja de cálculo, imagen y PDF) en un solo PDF, en el orden y con el nombre que elijas; OCR que vuelve buscable un PDF escaneado, incluso con páginas de lado o al revés; numerar páginas y sellar "Doc. 01"; ajustarse a un límite de envío (comprime y, si hace falta, divide en partes); PDF/A; contraseña
 - Renombrar muchos archivos a la vez con un modelo ("Doc. {n} - {nombre}"), con vista previa y deshacer
 - Subtítulos: atrasar o adelantar el tiempo; fuentes: hoja de muestra; comprimidos: extraer y comprobar la integridad

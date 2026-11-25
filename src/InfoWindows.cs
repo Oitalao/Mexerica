@@ -125,16 +125,18 @@ sealed class QrWindow : Window
         for (int i = 0; i < fs.Length; i++)
         {
             Job.Part(i, fs.Length);
-            foreach (var t in Images.ReadCodes(fs[i])) lines.Add(Path.GetFileName(fs[i]) + "\t" + t.Replace("\r", " ").Replace("\n", " ") + "\t" + t);
+            foreach (var t in Images.ReadCodes(fs[i])) lines.Add(Path.GetFileName(fs[i]) + "\t" + t.Replace("\r", " ").Replace("\n", " ").Replace("\t", " ") + "\t" + System.Text.Json.JsonSerializer.Serialize(t));
         }
         return string.Join("\n", lines);
     }
 
     public static void Show(string result)
     {
-        var items = result.Split('\n', StringSplitOptions.RemoveEmptyEntries).Select(l => l.Split('\t', 3)).Where(f => f.Length == 3).ToList();
+        var items = result.Split('\n', StringSplitOptions.RemoveEmptyEntries).Select(l => l.Split('\t', 3)).Where(f => f.Length == 3)
+            .Select(f => new[] { f[0], f[1], System.Text.Json.JsonSerializer.Deserialize<string>(f[2]) ?? "" }).ToList();
         if (items.Count == 0) { App.Toast.Show("Nenhum código encontrado", "Não achei QR nem código de barras na imagem."); return; }
-        new QrWindow(items).Show();
+        var window = new QrWindow(items);
+        if (Form.Capture != null) Form.Capture(window); else window.Show();
     }
 
     QrWindow(List<string[]> items)

@@ -206,8 +206,6 @@ internal static class XmlData
     /// <summary>Removes characters XML 1.0 cannot hold (most control characters).</summary>
     private static string Clean(string text)
     {
-        if (XmlConvert.VerifyXmlChars(text) is null)
-            return text;
         var sb = new StringBuilder(text.Length);
         for (var i = 0; i < text.Length; i++)
         {

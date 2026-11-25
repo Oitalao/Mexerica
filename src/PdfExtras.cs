@@ -28,7 +28,7 @@ static class PdfExtras
         string work = src, compressed = "";
         if (Gs.Ok)
         {
-            try { compressed = await Pdf.Compress(src, new P { ["modo"] = "mb", ["mb"] = p.S("mb", "5") }); work = compressed; }
+            try { compressed = await Pdf.Compress(src, new P { ["modo"] = "mb", ["mb"] = p.S("mb", "5"), ["_limite"] = "1" }); work = compressed; }
             catch (OperationCanceledException) { throw; }
             catch (Exception ex) { Log.Write("limite, comprimir: " + ex.Message); }
             if (work != src && new FileInfo(work).Length <= limit) return work;
@@ -42,7 +42,7 @@ static class PdfExtras
 
     /// Divide em partes que caibam no limite. Soma o tamanho de cada página sozinha (fica um pouco acima do real,
     /// porque fontes e imagens repetidas contam várias vezes), então as partes saem sempre dentro do limite;
-    /// confere cada parte e reparte se mesmo assim passar. Página que sozinha passa do limite vira uma parte só.
+    /// confere cada parte e reparte se mesmo assim passar. Páginas grandes são reduzidas individualmente.
     static async Task<string> SplitBySize(string work, string namedAfter, long limit)
     {
         int n = Pdf.Pages(work);
@@ -51,13 +51,20 @@ static class PdfExtras
         try
         {
             var size = new long[n + 1];
+            var fitted = new HashSet<int>();
             for (int i = 1; i <= n; i++)
             {
                 Job.Progress(0.6 * i / n);
                 var o = Path.Combine(tmp, $"p{i}.pdf");
                 await Qpdf.Run(new[] { "--empty", "--pages", work, $"{i}", "--", o });
                 size[i] = new FileInfo(o).Length;
-                File.Delete(o);
+                if (size[i] > limit)
+                {
+                    await FitPage(o, i, limit, tmp);
+                    size[i] = new FileInfo(o).Length;
+                    fitted.Add(i);
+                }
+                else File.Delete(o);
             }
             var groups = new List<(int a, int b)>();
             int start = 1; long sum = 0;
@@ -76,7 +83,7 @@ static class PdfExtras
             {
                 var (a, b) = queue.Dequeue();
                 var o = Path.Combine(tmp, $"g{k++}.pdf");
-                await Qpdf.Run(new[] { "--empty", "--pages", work, $"{a}-{b}", "--", o });
+                await JoinPages(a, b, o);
                 if (new FileInfo(o).Length > limit && b > a)
                 {
                     File.Delete(o);
@@ -86,6 +93,7 @@ static class PdfExtras
                     foreach (var r in rest) queue.Enqueue(r);
                     continue;
                 }
+                if (new FileInfo(o).Length > limit) await FitPage(o, a, limit, tmp);
                 final.Add((a, b, o));
             }
             final.Sort((x, y) => x.a.CompareTo(y.a));
@@ -94,7 +102,7 @@ static class PdfExtras
             {
                 Job.Check();
                 var o = Path.Combine(tmp, $"g{k++}.pdf");
-                await Qpdf.Run(new[] { "--empty", "--pages", work, $"{final[i].a}-{final[i + 1].b}", "--", o });
+                await JoinPages(final[i].a, final[i + 1].b, o);
                 if (new FileInfo(o).Length <= limit)
                 {
                     File.Delete(final[i].file); File.Delete(final[i + 1].file);
@@ -111,8 +119,59 @@ static class PdfExtras
                 parts.Add(dst);
             }
             return parts[0];
+
+            Task JoinPages(int a, int b, string output)
+            {
+                // Páginas comuns saem do PDF original (fontes e imagens compartilhadas uma vez só);
+                // só as que precisaram encolher vêm do arquivo próprio.
+                var args = new List<string> { "--empty", "--pages" };
+                for (int page = a; page <= b; page++)
+                {
+                    if (fitted.Contains(page)) { args.AddRange(new[] { Path.Combine(tmp, $"p{page}.pdf"), "1" }); continue; }
+                    int end = page;
+                    while (end + 1 <= b && !fitted.Contains(end + 1)) end++;
+                    args.AddRange(new[] { work, end > page ? $"{page}-{end}" : $"{page}" });
+                    page = end;
+                }
+                args.AddRange(new[] { "--", output });
+                return Qpdf.Run(args);
+            }
         }
         finally { Paths.TryDelete(tmp); }
+    }
+
+    static async Task FitPage(string page, int number, long limit, string tmp)
+    {
+        var png = Path.Combine(tmp, "limit.png");
+        var candidate = Path.Combine(tmp, "limit.pdf");
+        foreach (int dpi in new[] { 200, 150, 120 })
+        {
+            Job.Check();
+            await Gs.Run(new[] { "-sDEVICE=png16m", $"-r{dpi}", "-o", png, "-f", page });
+            foreach (uint quality in new uint[] { 85, 70, 55, 40 })
+            {
+                using var image = new ImageMagick.MagickImage(png);
+                image.Density = new ImageMagick.Density(dpi);
+                image.Settings.Compression = ImageMagick.CompressionMethod.JPEG;
+                image.Quality = quality;
+                image.Write(candidate, ImageMagick.MagickFormat.Pdf);
+                if (new FileInfo(candidate).Length > limit) continue;
+                File.Move(candidate, page, true);
+                // A página virou imagem: o OCR devolve o texto pesquisável, se ainda couber no limite.
+                try
+                {
+                    if (await Ocr(page, P.None) is { } searchable)
+                    {
+                        if (new FileInfo(searchable).Length <= limit) File.Move(searchable, page, true);
+                        else File.Delete(searchable);
+                    }
+                }
+                catch (OperationCanceledException) { throw; }
+                catch (Exception ex) { Log.Write($"limite, OCR da página {number}: {ex.Message}"); }
+                return;
+            }
+        }
+        throw new Exception($"A página {number} não cabe no limite sem perder legibilidade (mínimo de 120 DPI). Aumente o limite em MB.");
     }
 
     // ---------- OCR: texto pesquisável em PDF escaneado, pelo reconhecimento do próprio Windows ----------
@@ -122,23 +181,49 @@ static class PdfExtras
         var engine = OcrEngine() ?? throw new Exception("O reconhecimento de texto do Windows não está instalado para o português (Configurações → Hora e idioma → Idioma)");
         int n = Pdf.Pages(src);
         if (n == 0) throw new Exception("Esse PDF está danificado");
-        var hasText = new bool[n];
+        var regions = new List<XRect>[n];
+        var existing = new List<XRect>[n];
         using (var d = UglyToad.PdfPig.PdfDocument.Open(src))
             for (int i = 0; i < n; i++)
-                try { hasText[i] = d.GetPage(i + 1).Letters.Count(l => !string.IsNullOrWhiteSpace(l.Value)) >= 20; } catch { }
-        if (hasText.All(h => h)) throw new Exception("Esse PDF já tem texto pesquisável");
+            {
+                var page = d.GetPage(i + 1);
+                XRect Box(UglyToad.PdfPig.Core.PdfRectangle b)
+                {
+                    // PdfPig mantém os cantos orientados: em /Rotate=90, Left pode ser maior que Right.
+                    var corners = new[] { b.BottomLeft, b.BottomRight, b.TopLeft, b.TopRight };
+                    double left = Math.Clamp(corners.Min(c => c.X) / page.Width, 0, 1);
+                    double right = Math.Clamp(corners.Max(c => c.X) / page.Width, 0, 1);
+                    double top = Math.Clamp(1 - corners.Max(c => c.Y) / page.Height, 0, 1);
+                    double bottom = Math.Clamp(1 - corners.Min(c => c.Y) / page.Height, 0, 1);
+                    return new XRect(left, top, right - left, bottom - top);
+                }
+                existing[i] = page.GetWords().Select(w => Box(w.BoundingBox)).ToList();
+                regions[i] = new();
+                var letters = page.Letters.Where(l => !string.IsNullOrWhiteSpace(l.Value)).ToList();
+                foreach (var image in page.GetImages())
+                {
+                    var box = Box(image.BoundingBox);
+                    double area = box.Width * box.Height;
+                    if (image.IsImageMask || area < 0.05) continue;
+                    int count = letters.Count(l => box.Contains(Box(l.BoundingBox).Location));
+                    // Cabeçalhos digitais não tornam o corpo escaneado pesquisável.
+                    if (count < Math.Max(80, 300 * area)) regions[i].Add(box);
+                }
+                if (regions[i].Count == 0 && letters.Count < 20) regions[i].Add(new XRect(0, 0, 1, 1));
+            }
+        if (regions.All(r => r.Count == 0)) throw new Exception("Esse PDF já tem texto pesquisável");
 
         var winDoc = await Pdf.Open(src);
         var dst = Paths.Out(src, "pdf", "pesquisável");
         try
         {
-            using var doc = PdfReader.Open(src, PdfDocumentOpenMode.Modify);
-            var brush = new XSolidBrush(XColor.FromArgb(0, 0, 0, 0)); // invisível, mas selecionável e pesquisável
+            using var doc = await OpenForEdit(src);
+            var brush = XBrushes.Black;
             for (int i = 0; i < n; i++)
             {
                 Job.Check();
                 Job.Progress(i / (double)n);
-                if (hasText[i]) continue;
+                if (regions[i].Count == 0) continue;
                 using var winPage = winDoc.GetPage((uint)i);
                 // 300 DPI, com o lado maior dentro do que o OCR do Windows aceita (e do que vale a pena: ~A4 a 400 DPI).
                 double sw = winPage.Size.Width, sh = winPage.Size.Height;
@@ -161,6 +246,7 @@ static class PdfExtras
                 Windows.Media.Ocr.OcrResult? result = null;
                 int turn = 0, best = -1;
                 uint bw = dec.PixelWidth;
+                uint bh = dec.PixelHeight;
                 foreach (int t in new[] { 0, 90, 180, 270 })
                 {
                     var tf = new Windows.Graphics.Imaging.BitmapTransform { Rotation = Spin(t) };
@@ -188,6 +274,11 @@ static class PdfExtras
                     foreach (var word in line.Words)
                     {
                         var r = word.BoundingRect;
+                        // Testa no espaço da página exibida, antes dos giros usados para reconhecer.
+                        var corners = new[] { Original(r.X, r.Y), Original(r.X + r.Width, r.Y), Original(r.X, r.Y + r.Height), Original(r.X + r.Width, r.Y + r.Height) };
+                        var box = new XRect(corners.Min(c => c.X), corners.Min(c => c.Y), corners.Max(c => c.X) - corners.Min(c => c.X), corners.Max(c => c.Y) - corners.Min(c => c.Y));
+                        var center = new XPoint(box.X + box.Width / 2, box.Y + box.Height / 2);
+                        if (!regions[i].Any(region => region.Contains(center)) || existing[i].Any(e => e.IntersectsWith(box))) continue;
                         double h = r.Height * k, x = r.X * k, y = r.Y * k, ww = r.Width * k;
                         if (h < 1 || ww < 1 || string.IsNullOrWhiteSpace(word.Text)) continue;
                         var font = new XFont("Arial", h * 0.85);
@@ -199,6 +290,25 @@ static class PdfExtras
                         g.DrawString(word.Text, font, brush, 0, 0, XStringFormats.TopLeft);
                         g.Restore(st);
                     }
+                g.Dispose();
+                // Tr=3 torna a camada invisível também nos leitores que ignoram alfa em texto.
+                var content = page.Contents.Elements.GetDictionary(page.Contents.Elements.Count - 1)!;
+                var operators = PdfSharp.Pdf.Content.ContentReader.ReadContent(content.Stream.UnfilteredValue);
+                for (int j = operators.Count - 1; j >= 0; j--)
+                    if (operators[j] is PdfSharp.Pdf.Content.Objects.COperator op && op.Name == "BT")
+                    {
+                        var invisible = PdfSharp.Pdf.Content.ContentReader.ReadContent(System.Text.Encoding.ASCII.GetBytes("3 Tr\n"))[0];
+                        operators.Insert(j + 1, invisible);
+                    }
+                content.Elements.Remove("/Filter");
+                content.Stream.Value = operators.ToContent();
+                XPoint Original(double x, double y) => turn switch
+                {
+                    90 => new XPoint(y / bw, 1 - x / bh),
+                    180 => new XPoint(1 - x / bw, 1 - y / bh),
+                    270 => new XPoint(1 - y / bw, x / bh),
+                    _ => new XPoint(x / bw, y / bh),
+                };
             }
             doc.Save(dst);
             return dst;
@@ -260,19 +370,45 @@ static class PdfExtras
         try
         {
             var pt = new Windows.Globalization.Language("pt-BR");
-            if (Windows.Media.Ocr.OcrEngine.IsLanguageSupported(pt)) return Windows.Media.Ocr.OcrEngine.TryCreateFromLanguage(pt);
+            if (Windows.Media.Ocr.OcrEngine.IsLanguageSupported(pt) && Windows.Media.Ocr.OcrEngine.TryCreateFromLanguage(pt) is { } engine) return engine;
             return Windows.Media.Ocr.OcrEngine.TryCreateFromUserProfileLanguages();
         }
         catch { return null; }
     }
 
-    static readonly Lazy<bool> ocrOk = new(() => OcrEngine() != null);
-    public static bool OcrOk => ocrOk.Value;
+    public static bool OcrOk => OcrEngine() != null;
+
+    public static P? AskOcr(string[] files)
+    {
+        if (OcrOk || Form.Headless != null) return P.None;
+        if (Tr.Box("Instale o reconhecimento de texto em português em Configurações → Hora e idioma → Idioma → Português → Opções de idioma. Abrir as configurações agora?", "OCR",
+            System.Windows.MessageBoxButton.YesNo, System.Windows.MessageBoxImage.Information) == System.Windows.MessageBoxResult.Yes)
+            System.Diagnostics.Process.Start(new System.Diagnostics.ProcessStartInfo("ms-settings:regionlanguage") { UseShellExecute = true });
+        return null;
+    }
 
     // ---------- Numerar páginas e carimbar ("Doc. 01") ----------
 
     /// p: numerar (1/0), formato ("Página {n} de {total}"), carimbo ("Doc. {d}"), inicio, digitos, posicao, tamanho, arquivos (ordem).
-    public static Task<string?> Stamp(string src, P p) => Task.Run<string?>(() =>
+    static async Task<PdfDocument> OpenForEdit(string src)
+    {
+        try { return PdfReader.Open(src, PdfDocumentOpenMode.Modify); }
+        catch (PdfReaderException) when (Qpdf.Ok && !Qpdf.NeedsPassword(src))
+        {
+            // PDFsharp exige a senha de dono até quando abrir e modificar é permitido sem senha.
+            var tmp = Paths.Temp();
+            try
+            {
+                var plain = Path.Combine(tmp, "aberto.pdf");
+                await Qpdf.Decrypt(src, "", plain);
+                using var input = new MemoryStream(await File.ReadAllBytesAsync(plain));
+                return PdfReader.Open(input, PdfDocumentOpenMode.Modify);
+            }
+            finally { Paths.TryDelete(tmp); }
+        }
+    }
+
+    public static Task<string?> Stamp(string src, P p) => Task.Run<string?>(async () =>
     {
         bool number = p.S("numerar", "1") == "1";
         string stamp = p.S("carimbo").Trim();
@@ -287,7 +423,7 @@ static class PdfExtras
         var dst = Paths.Out(src, "pdf", "carimbado");
         try
         {
-            using var doc = PdfReader.Open(src, PdfDocumentOpenMode.Modify);
+            using var doc = await OpenForEdit(src);
             int total = doc.PageCount;
             var font = new XFont("Arial", size);
             var bold = new XFont("Arial", size, XFontStyleEx.Bold);
@@ -299,14 +435,33 @@ static class PdfExtras
                 using var g = XGraphics.FromPdfPage(page, XGraphicsPdfPageOptions.Append);
                 double W = g.PageSize.Width, H = g.PageSize.Height, m = 18;
                 var lines = new List<(string t, XFont f)>();
-                if (docText.Length > 0) lines.Add((docText, bold));
+                if (docText.Length > 0)
+                {
+                    string line = "";
+                    var elements = System.Globalization.StringInfo.GetTextElementEnumerator(docText);
+                    while (elements.MoveNext())
+                    {
+                        var element = elements.GetTextElement();
+                        if (line.Length > 0 && g.MeasureString(line + element, bold).Width > Math.Max(1, W - 2 * m - 10))
+                        {
+                            int space = line.LastIndexOf(' ');
+                            lines.Add((space > 0 ? line[..space] : line, bold));
+                            line = space > 0 ? line[(space + 1)..] : "";
+                        }
+                        line += element;
+                    }
+                    if (line.Length > 0) lines.Add((line, bold));
+                }
                 if (number) lines.Add((Tr.T(p.S("formato", "{n}").Replace("{n}", (i + 1).ToString()).Replace("{total}", total.ToString())), font));
                 double lh = size * 1.3, bw = lines.Max(l => g.MeasureString(l.t, l.f).Width) + 10, bh = lh * lines.Count + 6;
-                double x = pos[1] switch { 'e' => m, 'c' => (W - bw) / 2, _ => W - m - bw };
-                double y = pos[0] == 's' ? m : H - m - bh;
-                g.DrawRectangle(new XPen(XColor.FromArgb(160, 0, 0, 0), 0.6), new XSolidBrush(XColor.FromArgb(235, 255, 255, 255)), x, y, bw, bh);
+                double scale = Math.Min(1, Math.Min(Math.Max(1, W - 2 * m) / bw, Math.Max(1, H - 2 * m) / bh));
+                double x = pos[1] switch { 'e' => m, 'c' => (W - bw * scale) / 2, _ => W - m - bw * scale };
+                double y = pos[0] == 's' ? m : H - m - bh * scale;
+                g.TranslateTransform(x, y);
+                g.ScaleTransform(scale, scale);
+                g.DrawRectangle(new XPen(XColor.FromArgb(160, 0, 0, 0), 0.6), new XSolidBrush(XColor.FromArgb(235, 255, 255, 255)), 0, 0, bw, bh);
                 for (int j = 0; j < lines.Count; j++)
-                    g.DrawString(lines[j].t, lines[j].f, XBrushes.Black, new XRect(x, y + 3 + j * lh, bw, lh), XStringFormats.Center);
+                    g.DrawString(lines[j].t, lines[j].f, XBrushes.Black, new XRect(0, 3 + j * lh, bw, lh), XStringFormats.Center);
             }
             doc.Save(dst);
             return dst;

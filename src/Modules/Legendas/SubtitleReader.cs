@@ -20,7 +20,8 @@ internal static partial class SubtitleReader
     /// <exception cref="InvalidDataException">The file is not a subtitle file of that format or has no cues.</exception>
     public static SubtitleDocument Read(string format, byte[] bytes)
     {
-        if (format == "sub" && LooksBinary(bytes))
+        if (format == "sub" && LooksBinary(bytes) && bytes is not ([0xFF, 0xFE, ..] or [0xFE, 0xFF, ..])
+            && !(bytes.Length >= 4 && bytes[1] == 0 && bytes[3] == 0 && bytes[0] != 0))
             throw new InvalidDataException("This .sub file holds VobSub picture subtitles (from a DVD), not MicroDVD text. Picture subtitles can't be turned into text without OCR.");
         var text = SubtitleEncoding.Decode(bytes).Replace("\r\n", "\n").Replace('\r', '\n');
         var document = format switch

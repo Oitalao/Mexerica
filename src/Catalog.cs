@@ -91,6 +91,9 @@ static class Catalog
         _ => false,
     };
 
+    /// Linha de comando e modo de teste: mantém ferramentas antigas que a roda não mostra mais (Cortar vídeo).
+    public static bool Legacy;
+
     public static List<Op> For(Mode mode, string[] files)
     {
         files = Robust.Resolve(files);
@@ -200,12 +203,15 @@ static class Catalog
             return list;
         }
         var srcExts = files.Select(Norm).Distinct().ToList();
+        // Contêiner de vídeo só com som (MKV/MP4 de áudio): oferece só os destinos de áudio.
+        bool noPicture = k == Kind.Video && Ff.Ok && files.Take(20).Any(f => { try { return Ff.Read(f).Video == null; } catch { return false; } });
         foreach (var ext in exts)
         {
             if (srcExts.Count == 1 && srcExts[0] == ext) continue;
             if (k is Kind.Audio or Kind.Video && !Ff.Ok) continue;
             // Vídeo sem som não vira áudio (olha só os primeiros arquivos, para a roda abrir rápido).
             if (k == Kind.Video && ext is "mp3" or "m4a" && files.Take(20).Any(f => { try { return !Ff.HasAudio(f); } catch { return false; } })) continue;
+            if (noPicture && ext is not ("mp3" or "m4a")) continue;
             if (NeedsOffice(k, ext) && !Office.Ok) continue;
             var e = ext;
             list.Add(new Op { Label = e == "tgz" ? "TAR.GZ" : e.ToUpperInvariant(), Sub = subs.GetValueOrDefault(e, ""), One = (f, _) => ConvertOne(f, e) });
@@ -283,7 +289,9 @@ static class Catalog
         if (k == Kind.Video && Ff.Ok)
         {
             list.Add(T("Comprimir", "menor", (f, p) => Ff.CompressVideo(f, p).AsNullable(), fs => Dialogs.Compress(fs, "video")));
-            if (one) list.Add(T("Cortar", "trecho", (f, p) => Ff.Trim(f, p).AsNullable(), fs => MediaWindow.Ask(fs[0], MediaMode.Trim)));
+            // Editor com linha do tempo (cortar vários pedaços, juntar, reordenar, velocidade, volume, proporção).
+            list.Add(TA("Editar", "cortar, juntar…", VideoEdit.Render, VideoEditor.Ask));
+            if (one && Legacy) list.Add(T("Cortar", "trecho", (f, p) => Ff.Trim(f, p).AsNullable(), fs => MediaWindow.Ask(fs[0], MediaMode.Trim)));
             if (one) list.Add(T("Recortar", "enquadrar", (f, p) => Ff.Crop(f, p).AsNullable(), fs => ImageEditor.AskVideoCrop(fs[0])));
             list.Add(T("Velocidade", "acelerar", (f, p) => Ff.Speed(f, p).AsNullable(), Dialogs.Speed));
             if (one) list.Add(T("Dividir", "em partes", (f, p) => Ff.Split(f, p).AsNullable(), fs => MediaWindow.Ask(fs[0], MediaMode.Split)));
@@ -321,7 +329,7 @@ static class Catalog
                 list.Add(T("Carimbar", "Doc. 01, páginas", PdfExtras.Stamp, Dialogs.Stamp));
                 list.Add(T("Senha", "proteger", PdfExtras.Protect, Dialogs.PdfProtect));
             }
-            if (PdfExtras.OcrOk) list.Add(T("OCR", "texto pesquisável", PdfExtras.Ocr));
+            list.Add(T("OCR", "texto pesquisável", PdfExtras.Ocr, PdfExtras.AskOcr));
             if (Gs.Ok) list.Add(T("PDF/A", "arquivamento", PdfExtras.PdfA));
             if (Meta.Ok) list.Add(T("Metadados", "ver e editar", (f, p) => Meta.Apply(f, p).AsNullable(), fs => MetaWindow.Ask(fs)));
         }

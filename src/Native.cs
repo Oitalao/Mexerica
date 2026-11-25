@@ -14,7 +14,7 @@ static class Native
     [StructLayout(LayoutKind.Sequential)]
     public struct INPUT { public uint type; public MOUSEINPUT mi; }
     [StructLayout(LayoutKind.Sequential)]
-    public struct MOUSEINPUT { public int dx, dy; public uint mouseData, dwFlags, time; public IntPtr dwExtraInfo; public uint pad1, pad2; }
+    public struct MOUSEINPUT { public int dx, dy; public uint mouseData, dwFlags, time; public IntPtr dwExtraInfo; }
 
     public const int WH_KEYBOARD_LL = 13, WH_MOUSE_LL = 14;
     public const int GWL_EXSTYLE = -20;
@@ -83,6 +83,46 @@ static class Native
         var a = new INPUT { type = 0, mi = new MOUSEINPUT { dx = 1, dy = 0, dwFlags = 0x0001 } };
         var b = new INPUT { type = 0, mi = new MOUSEINPUT { dx = -1, dy = 0, dwFlags = 0x0001 } };
         SendInput(2, new[] { a, b }, Marshal.SizeOf<INPUT>());
+    }
+
+    [StructLayout(LayoutKind.Sequential, CharSet = CharSet.Unicode)]
+    struct TrustFile
+    {
+        public uint Size;
+        [MarshalAs(UnmanagedType.LPWStr)] public string Path;
+        public IntPtr Handle, Subject;
+    }
+    [StructLayout(LayoutKind.Sequential)]
+    struct TrustData
+    {
+        public uint Size;
+        public IntPtr Policy, Sip;
+        public uint Ui, Revocation, Choice;
+        public IntPtr File;
+        public uint Action;
+        public IntPtr State, Url;
+        public uint Flags, Context;
+        public IntPtr Signature;
+    }
+    [DllImport("wintrust.dll", ExactSpelling = true)]
+    static extern int WinVerifyTrust(IntPtr window, ref Guid action, ref TrustData data);
+
+    /// Valida conteúdo, cadeia e carimbo de tempo Authenticode sem abrir janelas nem consultar a rede.
+    internal static bool TrustedSignature(string path)
+    {
+        var file = new TrustFile { Size = (uint)Marshal.SizeOf<TrustFile>(), Path = path };
+        var pointer = Marshal.AllocHGlobal(Marshal.SizeOf<TrustFile>());
+        Marshal.StructureToPtr(file, pointer, false);
+        var data = new TrustData { Size = (uint)Marshal.SizeOf<TrustData>(), Ui = 2, Choice = 1, File = pointer, Action = 1, Flags = 0x1010 };
+        var action = new Guid("00AAC56B-CD44-11D0-8CC2-00C04FC295EE");
+        try { return WinVerifyTrust(new IntPtr(-1), ref action, ref data) == 0; }
+        finally
+        {
+            data.Action = 2;
+            WinVerifyTrust(new IntPtr(-1), ref action, ref data);
+            Marshal.DestroyStructure<TrustFile>(pointer);
+            Marshal.FreeHGlobal(pointer);
+        }
     }
 
     /// Tema claro dos aplicativos ligado no Windows.

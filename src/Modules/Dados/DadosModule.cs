@@ -19,19 +19,19 @@ sealed class DadosModule : Module
     public override IEnumerable<Target> TargetsFor(string inExt, string path)
     {
         var all = TargetsFor(inExt);
+        if (inExt == "vcf") return all;
         if (inExt is not ("csv" or "tsv")) return Tabular(inExt, path) ? all : all.Where(t => t.Ext is not ("csv" or "tsv"));
-        string head = "";
-        try { using var r = new StreamReader(path); head = (r.ReadLine() ?? "").ToLowerInvariant(); } catch { }
-        bool contacts = VCard.LooksLikeContacts(head.Split(inExt == "tsv" ? '\t' : head.Contains(';') && !head.Contains(',') ? ';' : ','));
+        IEnumerable<string> header = [];
+        try { header = CsvData.ReadRows(path).FirstOrDefault() ?? []; } catch { }
+        bool contacts = VCard.LooksLikeContacts(header);
         return contacts ? all : all.Where(t => t.Ext != "vcf");
     }
 
-    // JSON, YAML, TOML e XML só viram CSV/TSV quando os dados formam uma tabela. Arquivos grandes: deixa tentar.
+    // JSON, YAML, TOML e XML só viram CSV/TSV quando os dados formam uma tabela.
     static bool Tabular(string from, string path)
     {
         try
         {
-            if (new FileInfo(path).Length > 4 * 1024 * 1024) return true;
             var tree = from == "xml" ? XmlData.Read(path) : ReadText(SubtitleEncoding.Decode(File.ReadAllBytes(path)), from);
             return CsvData.Table(tree) != null;
         }

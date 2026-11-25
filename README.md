@@ -6,6 +6,8 @@
 
 <p align="center">Converta e edite arquivos sem abrir programa nenhum: arraste o arquivo, aperte <b>Espaço</b> e solte na opção.</p>
 
+<p align="center"><a href="https://oitalao.github.io/Mexerica/">oitalao.github.io/Mexerica</a></p>
+
 <p align="center">
   <img src="assets/telas/roda-converter.png" width="260" alt="Roda Converter">
   <img src="assets/telas/roda-ferramentas.png" width="260" alt="Roda Ferramentas">
@@ -60,9 +62,10 @@ A roda só oferece o que faz sentido para aquele arquivo: vídeo sem som não of
 - Fundo e margem para imagens, colagem de várias fotos, imagens em PDF, tons de cinza, leitura de QR Code
 - Remover fundo de foto com IA (modelo local, isnet-general-use; nada sai do computador)
 - Metadados: ver tudo, editar título, autor e outros campos, apagar localização ou tudo
-- Vídeo: cortar trecho, recortar a imagem, velocidade, dividir, tirar um quadro ou todos, extrair o áudio e as legendas, girar, mudar a resolução, tirar o som, juntar
+- Editor de vídeo com linha do tempo: vários vídeos e fotos, dividir, apagar pedaços, mudar a ordem arrastando, aparar pelas bordas, velocidade e volume de cada pedaço, desfazer, e exportar em 9:16, 1:1, 16:9 ou no formato original
+- Vídeo: recortar a imagem, velocidade, dividir, tirar um quadro ou todos, extrair o áudio e as legendas, girar, mudar a resolução, tirar o som, juntar
 - Áudio: cortar trecho, normalizar o volume, bipe por cima de trechos, mono e estéreo, velocidade, dividir, juntar
-- PDF: organizar páginas (reordenar, girar, apagar), dividir (as partes ficam ao lado do original, numa pasta ou num ZIP), juntar e tarjar de verdade (o texto escondido some)
+- PDF: organizar páginas (reordenar, girar, apagar), dividir (as partes ficam ao lado do original, numa pasta ou num ZIP), juntar e tarjar de verdade (o texto escondido some e o resto da página continua pesquisável)
 - PDF também: juntar arquivos de tipos diferentes (Word, planilha, imagem e PDF) num PDF só, na ordem e com o nome que você escolher; OCR que deixa o PDF escaneado pesquisável, mesmo com página de lado ou de cabeça para baixo; numerar páginas e carimbar "Doc. 01"; caber num limite de envio (comprime e, se preciso, divide em partes); PDF/A; senha
 - Renomear vários arquivos de uma vez por modelo ("Doc. {n} - {nome}"), com prévia e desfazer
 - Legendas: atrasar ou adiantar o tempo; fontes: folha de amostra; compactados: extrair e testar a integridade

@@ -23,7 +23,7 @@ sealed class HelpWindow : Window
     {
         var c = Config.Now;
         string open = Config.KeyName(c.OpenKey);
-        var hk = Config.Hotkeys.FirstOrDefault(h => h.id == c.Hotkey).name;
+        var hk = Tr.T(Config.Hotkeys.FirstOrDefault(h => h.id == c.Hotkey).name);
         Title = Tr.T("Mexerica: como usar");
         Width = 500; SizeToContent = SizeToContent.Height; ResizeMode = ResizeMode.NoResize;
         MaxHeight = Math.Max(400, SystemParameters.WorkArea.Height * 0.9);

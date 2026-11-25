@@ -25,7 +25,8 @@ internal static class OdsWriter
         "xmlns:text=\"urn:oasis:names:tc:opendocument:xmlns:text:1.0\" " +
         "xmlns:table=\"urn:oasis:names:tc:opendocument:xmlns:table:1.0\" " +
         "xmlns:fo=\"urn:oasis:names:tc:opendocument:xmlns:xsl-fo-compatible:1.0\" " +
-        "xmlns:number=\"urn:oasis:names:tc:opendocument:xmlns:datastyle:1.0\"";
+        "xmlns:number=\"urn:oasis:names:tc:opendocument:xmlns:datastyle:1.0\" " +
+        "xmlns:of=\"urn:oasis:names:tc:opendocument:xmlns:of:1.2\"";
 
     /// <summary>Columns written per sheet: LibreOffice before 7.4 stops at 1024 and warns about anything beyond.</summary>
     private const int SheetColumns = 1024;
@@ -42,6 +43,9 @@ internal static class OdsWriter
     public static void Write(Workbook book, string path)
     {
         var sheets = book.Sheets.Count > 0 ? book.Sheets : [new Worksheet("Sheet1")];
+        if (sheets.Any(sheet => sheet.Rows.Values.SelectMany(row => row.Values).Any(cell =>
+                cell.Formula is { } f && FormulaSyntax.ToOds(f) is null)))
+            Mexerica.Job.Warn("Algumas fórmulas não são compatíveis com o formato de destino; seus valores salvos foram mantidos.");
         var names = XlsxWriter.UniqueNames(sheets.Select(s => s.Name));
         var styles = new AutomaticStyles();
         var body = new StringBuilder();
@@ -74,7 +78,7 @@ internal static class OdsWriter
         var range = sheet.UsedRange();
         var right = range?.Right ?? 0;
         var bottom = range?.Bottom ?? 0;
-        sb.Append(CultureInfo.InvariantCulture, $"<table:table table:name=\"{Escape(name)}\" table:style-name=\"{styles.Table()}\">");
+        sb.Append(CultureInfo.InvariantCulture, $"<table:table table:name=\"{Escape(name)}\" table:style-name=\"{(sheet.Hidden ? "taHidden" : styles.Table())}\">");
 
         for (var c = 0; c <= right;)
         {
@@ -163,6 +167,8 @@ internal static class OdsWriter
             return;
         }
 
+        if (cell.Formula is { } formula && FormulaSyntax.ToOds(formula) is { } odsFormula)
+            sb.Append($" table:formula=\"{Escape(odsFormula)}\"");
         var number = cell.Value ?? (cell.IsNumber && double.TryParse(cell.Text, NumberStyles.Float, CultureInfo.InvariantCulture, out var parsed) ? parsed : null);
         string? dataStyle = null;
         if (cell.IsBoolean && number is { } flag)
@@ -405,6 +411,7 @@ internal static class OdsWriter
         public string Xml() =>
             _columns.ToString() + _rows +
             "<style:style style:name=\"ta1\" style:family=\"table\"><style:table-properties table:display=\"true\" style:writing-mode=\"lr-tb\"/></style:style>" +
+            "<style:style style:name=\"taHidden\" style:family=\"table\"><style:table-properties table:display=\"false\" style:writing-mode=\"lr-tb\"/></style:style>" +
             _data + _cells;
 
         /// <summary>An Excel border as an ODF border: widths LibreOffice uses when it imports the same Excel style.</summary>

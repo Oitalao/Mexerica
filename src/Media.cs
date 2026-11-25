@@ -49,7 +49,7 @@ static class Ff
         await Proc.Run(Exe ?? throw new Exception("ffmpeg não encontrado"), new[] { "-hide_banner", "-nostdin", "-y" }.Concat(args));
 
     // ---------- Leitura do arquivo (uma chamada ao ffprobe por arquivo, guardada) ----------
-    public sealed record Stream(int Index, string Type, string Codec, bool Cover, int W, int H, int Rate, int Channels = 0, string Layout = "");
+    public sealed record Stream(int Index, string Type, string Codec, bool Cover, int W, int H, int Rate, int Channels = 0, string Layout = "", int Bits = 0, string SampleFormat = "", string Fps = "", string PixelFormat = "", string TimeBase = "", int BFrames = 0, double Rotation = 0, double Sar = 1);
     public sealed record Info(double Duration, List<Stream> Streams)
     {
         public Stream? Video => Streams.FirstOrDefault(s => s.Type == "video" && !s.Cover);
@@ -67,7 +67,7 @@ static class Ff
         var info = new Info(0, new());
         try
         {
-            var t = Proc.RunOutput(Probe!, new[] { "-v", "error", "-show_entries", "format=duration:stream=index,codec_type,codec_name,width,height,sample_rate,channels,channel_layout:stream_disposition=attached_pic", "-of", "json", src });
+            var t = Proc.RunOutput(Probe!, new[] { "-v", "error", "-show_entries", "format=duration:stream=index,codec_type,codec_name,width,height,sample_rate,channels,channel_layout,bits_per_sample,bits_per_raw_sample,sample_fmt,avg_frame_rate,pix_fmt,time_base,has_b_frames,sample_aspect_ratio:stream_disposition=attached_pic:stream_side_data=rotation:stream_tags=rotate", "-of", "json", src });
             using var doc = System.Text.Json.JsonDocument.Parse(t);
             var root = doc.RootElement;
             double dur = 0;
@@ -80,8 +80,30 @@ static class Ff
                     string S(string k) => s.TryGetProperty(k, out var v) ? (v.ValueKind == System.Text.Json.JsonValueKind.String ? v.GetString() ?? "" : v.ToString()) : "";
                     int I(string k) => int.TryParse(S(k), out var v) ? v : 0;
                     bool cover = s.TryGetProperty("disposition", out var disp) && disp.TryGetProperty("attached_pic", out var ap) && ap.GetInt32() == 1;
-                    streams.Add(new Stream(I("index"), S("codec_type"), S("codec_name"), cover, I("width"), I("height"), I("sample_rate"), I("channels"), S("channel_layout")));
+                    double rotation = 0;
+                    if (s.TryGetProperty("tags", out var tags) && tags.TryGetProperty("rotate", out var rotate))
+                        double.TryParse(rotate.ToString(), NumberStyles.Float, Inv, out rotation);
+                    if (s.TryGetProperty("side_data_list", out var sideData))
+                        foreach (var side in sideData.EnumerateArray())
+                            if (side.TryGetProperty("rotation", out var r) && double.TryParse(r.ToString(), NumberStyles.Float, Inv, out var degrees)) { rotation = degrees; break; }
+                    var ratio = S("sample_aspect_ratio").Split(':');
+                    double sar = ratio.Length == 2 && double.TryParse(ratio[0], NumberStyles.Float, Inv, out var num) && double.TryParse(ratio[1], NumberStyles.Float, Inv, out var den) && num > 0 && den > 0 ? num / den : 1;
+                    streams.Add(new Stream(I("index"), S("codec_type"), S("codec_name"), cover, I("width"), I("height"), I("sample_rate"), I("channels"), S("channel_layout"), Math.Max(I("bits_per_sample"), I("bits_per_raw_sample")), S("sample_fmt"), S("avg_frame_rate"), S("pix_fmt"), S("time_base"), I("has_b_frames"), (rotation % 360 + 360) % 360, sar));
                 }
+            // ADTS não guarda duração: a estimativa por bitrate pode errar bastante em AAC de taxa variável.
+            if (Ext(src) == "aac" && streams.FirstOrDefault(s => s.Type == "audio") is { Codec: "aac" } aac)
+            {
+                var timeBase = aac.TimeBase.Split('/');
+                if (timeBase.Length == 2 && double.TryParse(timeBase[0], NumberStyles.Float, Inv, out var num) &&
+                    double.TryParse(timeBase[1], NumberStyles.Float, Inv, out var den) && num > 0 && den > 0)
+                {
+                    var packets = Proc.RunOutput(Probe!, new[] { "-v", "error", "-select_streams", "a:0", "-show_entries", "packet=duration", "-of", "csv=p=0", src });
+                    double ticks = 0;
+                    foreach (var packet in packets.Split(new[] { '\r', '\n' }, StringSplitOptions.RemoveEmptyEntries))
+                        if (long.TryParse(packet, out var n) && n > 0) ticks += n;
+                    if (ticks > 0) dur = ticks * num / den;
+                }
+            }
             info = new Info(dur, streams);
             if (probes.Count > 200) probes.Clear();
             probes[key] = info;
@@ -96,9 +118,10 @@ static class Ff
     public static bool HasVideo(string src) => Read(src).Video != null;
     /// Ajusta taxa e canais ao que cada codificador aceita: DSD chega a 352,8 kHz, DTS pode ser 3.1, TTA não declara a
     /// disposição dos canais. Formatos com perda não precisam de mais de 48 kHz; WMA e MP3 só têm dois canais.
-    public static string[] AudioFit(string src, string ext)
+    public static string[] AudioFit(string src, string ext) => AudioFit(Read(src).Audios.FirstOrDefault(), ext);
+
+    static string[] AudioFit(Stream? a, string ext)
     {
-        var a = Read(src).Audios.FirstOrDefault();
         if (a == null) return Array.Empty<string>();
         var args = new List<string>();
         if (ext is "mp3" or "m4a" or "aac" or "ogg" or "opus" or "wma" or "ac3" or "eac3" && a.Rate > 48000) args.AddRange(new[] { "-ar", "48000" });
@@ -110,23 +133,47 @@ static class Ff
     public static int SampleRate(string src) => Read(src).Audios.FirstOrDefault()?.Rate ?? 0;
     public static (int w, int h) Size(string src) => Read(src).Video is { } v ? (v.W, v.H) : (0, 0);
 
+    static (int w, int h) DisplaySize(Stream? v)
+    {
+        if (v == null) return (0, 0);
+        var radians = v.Rotation * Math.PI / 180;
+        var cos = Math.Abs(Math.Cos(radians));
+        var sin = Math.Abs(Math.Sin(radians));
+        return ((int)Math.Round(v.W * v.Sar * cos + v.H * sin), (int)Math.Round(v.W * v.Sar * sin + v.H * cos));
+    }
+
     static Config C => Config.Now;
 
-    public static string[] AudioOpts(string ext) => ext switch
+    public static string PcmCodec(string src, string ext)
+    {
+        var a = Read(src).Audios.FirstOrDefault();
+        var endian = ext is "aiff" or "aif" ? "be" : "le";
+        // Origem com perda (MP3, AAC, Vorbis…) decodifica em ponto flutuante, mas isso não é "profundidade" de verdade:
+        // WAV comum de 16 bits, o que todo programa abre. Só PCM/FLAC/ALAC/WavPack guardam bits que valem preservar.
+        bool lossless = a != null && (a.Codec.StartsWith("pcm_") || a.Codec is "flac" or "alac" or "wavpack" or "tta" or "ape" or "mlp" or "truehd");
+        if (!lossless) return "pcm_s16" + endian;
+        if (a!.Codec.StartsWith("pcm_f"))
+            return "pcm_f" + (a.SampleFormat.StartsWith("dbl") ? "64" : "32") + endian;
+        var bits = a?.Bits ?? 0;
+        if (bits == 0 && a?.SampleFormat is "s32" or "s32p") bits = 32;
+        return "pcm_s" + (bits > 24 ? "32" : bits > 16 ? "24" : "16") + endian;
+    }
+
+    public static string[] AudioOpts(string ext, string? src = null) => ext switch
     {
         "mp3" => new[] { "-c:a", "libmp3lame", "-q:a", C.Mp3Q },
         "m4a" => new[] { "-c:a", "aac", "-b:a", $"{C.AacK}k" },
-        "wav" => new[] { "-c:a", "pcm_s16le" },
+        "wav" => new[] { "-c:a", src == null ? "pcm_s16le" : PcmCodec(src, ext) },
         "flac" => new[] { "-c:a", "flac" },
         "ogg" => new[] { "-c:a", "libvorbis", "-q:a", C.AudioQuality switch { "media" => "4", "leve" => "2", _ => "6" } },
         "opus" => new[] { "-c:a", "libopus", "-b:a", C.AudioQuality switch { "media" => "96k", "leve" => "64k", _ => "128k" } },
-        "aiff" => new[] { "-c:a", "pcm_s16be" },
+        "aiff" => new[] { "-c:a", src == null ? "pcm_s16be" : PcmCodec(src, ext) },
         "wma" => new[] { "-c:a", "wmav2", "-b:a", $"{C.AacK}k" },
         _ => throw new Exception($"Formato {ext} não suportado"),
     };
 
     /// Codificação de vídeo por contêiner; vf = filtros extras (vão antes do ajuste de par).
-    public static string[] VideoOpts(string ext, string? vf = null, string? af = null, bool audio = true)
+    public static string[] VideoOpts(string ext, string? vf = null, string? af = null, bool audio = true, bool copyAudio = false, string? src = null)
     {
         string F(string baseVf) => vf == null ? baseVf : $"{vf},{baseVf}";
         var a = new List<string>();
@@ -156,10 +203,50 @@ static class Ff
                 if (ext is "mp4" or "m4v" or "mov") a.AddRange(new[] { "-movflags", "+faststart" });
                 break;
         }
+        if (src != null)
+        {
+            var video = Read(src).Video ?? throw new Exception("Esse arquivo não contém vídeo");
+            a.InsertRange(0, new[] { "-map", $"0:{video.Index}" });
+            if (audio) a.InsertRange(2, new[] { "-map", "0:a?" });
+        }
         if (af != null && audio) a.AddRange(new[] { "-af", af });
+        if (copyAudio && audio && af == null && src != null && Read(src).Audios.All(s => AudioFits(s.Codec, ext)))
+        {
+            var codecAt = a.IndexOf("-c:a");
+            if (codecAt >= 0) a[codecAt + 1] = "copy";
+            foreach (var key in new[] { "-b:a", "-q:a" })
+            {
+                var at = a.IndexOf(key);
+                if (at >= 0) a.RemoveRange(at, 2);
+            }
+        }
+        else if (audio && src != null)
+        {
+            var audioExt = ext switch { "wmv" => "wma", "avi" => "mp3", "webm" => "opus", _ => "m4a" };
+            var streams = Read(src).Audios;
+            for (int s = 0; s < streams.Count; s++)
+            {
+                var fit = AudioFit(streams[s], audioExt);
+                for (int i = 0; i < fit.Length; i += 2)
+                    a.AddRange(fit[i] == "-af"
+                        ? new[] { "-filter:a:" + s, af == null ? fit[i + 1] : af + "," + fit[i + 1] }
+                        : new[] { fit[i] + ":a:" + s, fit[i + 1] });
+            }
+        }
         if (!audio) a.Add("-an");
         return a.ToArray();
     }
+
+    static bool AudioFits(string codec, string ext) => ext switch
+    {
+        "mp4" or "m4v" => codec is "aac" or "mp3" or "alac" or "opus" or "ac3" or "eac3",
+        "mov" => codec is "aac" or "mp3" or "alac" or "ac3" or "eac3" or "pcm_s16le" or "pcm_s24le",
+        "webm" => codec is "opus" or "vorbis",
+        "mkv" => codec is "aac" or "mp3" or "mp2" or "alac" or "opus" or "vorbis" or "flac" or "ac3" or "eac3" or "dts" or "truehd" or "mlp" or "wavpack" or "tta" || codec.StartsWith("pcm_s", StringComparison.Ordinal) || codec.StartsWith("pcm_f", StringComparison.Ordinal),
+        "avi" => codec is "mp3" or "ac3" or "pcm_s16le",
+        "wmv" => codec is "wmav1" or "wmav2" or "wmapro" or "wmalossless",
+        _ => false,
+    };
 
     static string Ext(string src) => Path.GetExtension(src).TrimStart('.').ToLowerInvariant();
     static readonly string[] videoOut = { "mp4", "mov", "mkv", "webm", "avi", "wmv", "m4v" };
@@ -182,13 +269,17 @@ static class Ff
         {
             try
             {
-                await Run(new[] { "-i", src, "-map", $"0:{first.Index}", "-vn", "-map_metadata", "0", "-c:a", "copy", dst }, info.Duration);
+                var copy = new List<string> { "-i", src, "-map", $"0:{first.Index}", "-vn", "-map_metadata", "0", "-c:a", "copy" };
+                KeepCover(copy, src, ext);
+                copy.Add(dst);
+                await Run(copy, info.Duration);
                 return dst;
             }
             catch (Exception ex) when (ex is not OperationCanceledException) { Paths.TryDelete(dst); Log.Write($"cópia de áudio falhou, recodificando: {ex.Message}"); }
         }
         var a = new List<string> { "-i", src, "-vn", "-map_metadata", "0" };
-        a.AddRange(AudioOpts(ext)); a.AddRange(AudioFit(src, ext)); a.Add(dst);
+        a.AddRange(AudioOpts(ext, src)); a.AddRange(AudioFit(src, ext));
+        KeepCover(a, src, ext); a.Add(dst);
         await Guard(dst, Run(a, info.Duration));
         return dst;
     }
@@ -212,7 +303,8 @@ static class Ff
         bool audioCopy = info.Audios.All(s => ok.a.Contains(s.Codec));
         var a = new List<string> { "-i", src, "-map", $"0:{v.Index}" };
         foreach (var s in info.Audios) a.AddRange(new[] { "-map", $"0:{s.Index}" });
-        a.AddRange(new[] { "-map_metadata", "0", "-c:v", "copy", "-sn", "-dn" });
+        a.AddRange(new[] { "-map_metadata", "0", "-c:v", "copy", "-dn" });
+        MapSubtitles(a, ext, info);
         if (info.Audios.Count > 0)
         {
             if (audioCopy) a.AddRange(new[] { "-c:a", "copy" });
@@ -236,15 +328,46 @@ static class Ff
         var dst = Paths.Out(src, ext);
         var info = Read(src);
         if (await Remux(src, ext, dst, info)) return dst;
-        await Guard(dst, Run(new[] { "-i", src }.Concat(VideoOpts(ext, audio: info.Audios.Count > 0 && ext != "gif")).Append(dst), info.Duration));
+        var a = new List<string> { "-i", src };
+        a.AddRange(VideoOpts(ext, audio: info.Audios.Count > 0 && ext != "gif", copyAudio: true, src: src));
+        if (ext != "gif") MapSubtitles(a, ext, info);
+        a.Add(dst);
+        await Guard(dst, Run(a, info.Duration));
         return dst;
+    }
+
+    static void MapSubtitles(List<string> args, string ext, Info info)
+    {
+        if (ext is not ("mkv" or "mp4" or "mov" or "m4v" or "webm")) return;
+        int mapped = 0;
+        foreach (var s in info.Streams.Where(s => s.Type == "subtitle"))
+            if (ext == "mkv" || s.Codec is "subrip" or "ass" or "ssa" or "mov_text" or "webvtt" or "text" or "ttml")
+            {
+                args.AddRange(new[] { "-map", $"0:{s.Index}" });
+                var codec = ext == "mkv" ? (s.Codec is "mov_text" or "text" or "ttml" ? "srt" : "copy") : ext == "webm" ? "webvtt" : "mov_text";
+                args.AddRange(new[] { "-c:s:" + mapped++, codec });
+            }
     }
 
     public static async Task<string> Simple(string src, string ext, string suffix, params string[] opts)
     {
         var dst = Paths.Out(src, ext, suffix);
-        await Guard(dst, Run(new[] { "-i", src }.Concat(opts).Append(dst), Duration(src)));
+        var a = new List<string> { "-i", src }; a.AddRange(opts);
+        KeepCover(a, src, ext); a.Add(dst);
+        await Guard(dst, Run(a, Duration(src)));
         return dst;
+    }
+
+    internal static void KeepCover(List<string> args, string src, string ext)
+    {
+        if (ext is not ("mp3" or "m4a" or "flac")) return;
+        var info = Read(src);
+        if (info.Video != null) return;
+        var cover = info.Streams.FirstOrDefault(s => s.Cover && s.Codec is "mjpeg" or "png");
+        if (cover == null) return;
+        args.Remove("-vn");
+        if (!args.Contains("-map")) args.AddRange(new[] { "-map", "0:a:0" });
+        args.AddRange(new[] { "-map", $"0:{cover.Index}", "-c:v", "copy", "-disposition:v", "attached_pic" });
     }
 
     static long TargetBytes(string src, P p) => p.S("modo") switch
@@ -297,9 +420,14 @@ static class Ff
     public static Task<string> ResizeVideo(string src, P p)
     {
         var v = p.S("altura", "50%");
+        var display = DisplaySize(Read(src).Video);
+        if (v != "50%" && int.TryParse(v, out var maxHeight) && display.h is > 0 && display.h <= maxHeight)
+            throw new Exception("O vídeo já está nesse tamanho ou menor");
         var vf = v == "50%" ? "scale=trunc(iw/4)*2:trunc(ih/4)*2" : $"scale=-2:'min({v},ih)'";
+        if (Read(src).Video is { } video && Math.Abs(video.Sar - 1) > 0.001)
+            vf = $"scale={Math.Max(2, display.w / 2 * 2)}:{Math.Max(2, display.h / 2 * 2)},setsar=1," + vf;
         var ext = VOut(src);
-        return Simple(src, ext, v == "50%" ? "50%" : v + "p", VideoOpts(ext, vf, audio: HasAudio(src)));
+        return Simple(src, ext, v == "50%" ? "50%" : v + "p", VideoOpts(ext, vf, audio: HasAudio(src), copyAudio: true, src: src));
     }
 
     public static Task<string> RotateVideo(string src, P p)
@@ -307,13 +435,13 @@ static class Ff
         var how = p.S("giro", "90");
         var vf = how switch { "180" => "transpose=1,transpose=1", "270" => "transpose=2", "h" => "hflip", "v" => "vflip", _ => "transpose=1" };
         var ext = VOut(src);
-        return Simple(src, ext, how is "h" or "v" ? "espelhado" : "girado", VideoOpts(ext, vf, audio: HasAudio(src)));
+        return Simple(src, ext, how is "h" or "v" ? "espelhado" : "girado", VideoOpts(ext, vf, audio: HasAudio(src), copyAudio: true, src: src));
     }
 
     public static Task<string> Mute(string src)
     {
         var ext = VOut(src);
-        return Simple(src, ext, "sem áudio", "-map", "0:v", "-c", "copy", "-an");
+        return Simple(src, ext, "sem áudio", "-map", "0", "-map", "-0:a", "-c", "copy");
     }
 
     public static Task<string> StripMedia(string src)
@@ -329,7 +457,7 @@ static class Ff
         if (t < 0) t = Math.Min(1, dur / 2);
         var ext = p.S("formato", "jpg");
         var dst = Paths.Out(src, ext, "quadro " + t.ToString("0.#", CultureInfo.GetCultureInfo("pt-BR")) + "s");
-        var a = new List<string> { "-ss", t.ToString("0.###", Inv), "-i", src, "-frames:v", "1" };
+        var a = new List<string> { "-ss", (Math.Floor(t * 1_000_000) / 1_000_000).ToString("0.######", Inv), "-i", src, "-frames:v", "1" };
         if (ext == "jpg") a.AddRange(new[] { "-q:v", "2" });
         a.Add(dst);
         await Guard(dst, Run(a));
@@ -343,7 +471,7 @@ static class Ff
         if (r.Length != 4) throw new Exception("Recorte inválido");
         int x = (int)r[0] / 2 * 2, y = (int)r[1] / 2 * 2, w = (int)r[2] / 2 * 2, h = (int)r[3] / 2 * 2;
         var ext = VOut(src);
-        return await Simple(src, ext, "recortado", VideoOpts(ext, $"crop={w}:{h}:{x}:{y}", audio: HasAudio(src)));
+        return await Simple(src, ext, "recortado", VideoOpts(ext, $"crop={w}:{h}:{x}:{y}", audio: HasAudio(src), copyAudio: true, src: src));
     }
 
     public static async Task<string> Speed(string src, P p)
@@ -355,7 +483,7 @@ static class Ff
         if (!video)
         {
             var ext = AOut(src);
-            return await Simple(src, ext, label, new[] { "-vn", "-af", atempo }.Concat(AudioOpts(ext)).ToArray());
+            return await Simple(src, ext, label, new[] { "-vn", "-af", atempo }.Concat(AudioOpts(ext, src)).ToArray());
         }
         var vext = VOut(src);
         var vf = $"setpts=PTS/{f.ToString(Inv)}";
@@ -383,7 +511,8 @@ static class Ff
         var dst = Paths.Out(src, ext, "trecho");
         var a = new List<string> { "-ss", s.ToString("0.###", Inv), "-to", e.ToString("0.###", Inv), "-i", src, "-map_metadata", "0" };
         if (p.S("modo", "preciso") == "rapido") a.AddRange(new[] { "-c", "copy", "-avoid_negative_ts", "make_zero" });
-        else a.AddRange(video ? VideoOpts(ext, audio: HasAudio(src)) : new[] { "-vn" }.Concat(AudioOpts(ext)));
+        else a.AddRange(video ? VideoOpts(ext, audio: HasAudio(src), copyAudio: true, src: src) : new[] { "-vn" }.Concat(AudioOpts(ext, src)));
+        KeepCover(a, src, ext);
         a.Add(dst);
         await Guard(dst, Run(a, e - s));
         return dst;
@@ -411,87 +540,190 @@ static class Ff
                 break;
         }
         if (cuts.Count == 0) throw new Exception("Nenhum ponto de corte dentro do arquivo");
+        cuts = cuts.Distinct().OrderBy(t => t).ToList();
         var bounds = new List<double> { 0 }; bounds.AddRange(cuts); bounds.Add(dur);
         bool video = HasVideo(src);
         var ext = video ? VOut(src) : AOut(src);
         var dir = Paths.OutDir(src, "partes");
         Directory.CreateDirectory(dir);
         var b = Path.GetFileNameWithoutExtension(src);
+        var sampleRate = SampleRate(src);
+        long packetSamples = 0;
+        if (!video && sampleRate > 0)
+            foreach (var cut in cuts)
+            {
+                long samples = (long)Math.Round(cut * sampleRate);
+                long x = packetSamples, y = samples;
+                while (y != 0) (x, y) = (y, x % y);
+                packetSamples = x;
+            }
         try
         {
-            for (int i = 0; i < bounds.Count - 1; i++)
+            // Vídeo ganha quadros-chave nos cortes; PCM pode dividir exatamente entre amostras.
+            // Áudio com perda mantém cortes separados para não arredondar ao pacote do codificador.
+            if (video || (ext is "wav" or "aiff" && packetSamples >= 32))
             {
-                Job.Part(i, bounds.Count - 1);
-                var dst = Path.Combine(dir, $"{b} {i + 1:00}.{ext}");
-                var a = new List<string> { "-ss", bounds[i].ToString("0.###", Inv), "-to", bounds[i + 1].ToString("0.###", Inv), "-i", src, "-map_metadata", "0" };
-                a.AddRange(video ? VideoOpts(ext, audio: HasAudio(src)) : new[] { "-vn" }.Concat(AudioOpts(ext)));
-                a.Add(dst);
-                await Run(a, bounds[i + 1] - bounds[i]);
+                var a = new List<string> { "-i", src, "-map_metadata", "0" };
+                a.AddRange(video ? VideoOpts(ext, audio: HasAudio(src), copyAudio: true, src: src) : new[] { "-vn" }.Concat(AudioOpts(ext, src)));
+                var times = string.Join(",", cuts.Select(t => t.ToString("0.######", Inv)));
+                if (video) a.AddRange(new[] { "-force_key_frames", times });
+                else a.AddRange(new[] { "-af", $"asetnsamples=n={packetSamples}:p=0" });
+                double delta = 0.000001;
+                var fps = Read(src).Video?.Fps.Split('/');
+                if (fps?.Length == 2 && double.TryParse(fps[0], NumberStyles.Float, Inv, out var numerator) &&
+                    double.TryParse(fps[1], NumberStyles.Float, Inv, out var denominator) && numerator > 0)
+                    delta += denominator / numerator / 2;
+                a.AddRange(new[] { "-f", "segment", "-segment_times", times, "-segment_time_delta", delta.ToString("0.#########", Inv), "-reset_timestamps", "1", "-segment_start_number", "1", Path.Combine(dir, b.Replace("%", "%%") + " %02d." + ext) });
+                await Run(a, dur);
+            }
+            else
+            {
+                for (int i = 0; i < bounds.Count - 1; i++)
+                {
+                    Job.Part(i, bounds.Count - 1);
+                    var dst = Path.Combine(dir, $"{b} {i + 1:00}.{ext}");
+                    var a = new List<string> { "-ss", bounds[i].ToString("0.######", Inv), "-to", bounds[i + 1].ToString("0.######", Inv), "-i", src, "-map_metadata", "0", "-vn" };
+                    a.AddRange(AudioOpts(ext, src));
+                    KeepCover(a, src, ext);
+                    a.Add(dst);
+                    await Run(a, bounds[i + 1] - bounds[i]);
+                }
             }
         }
         catch { Paths.TryDelete(dir); throw; }
         return dir;
     }
 
+    static bool SameVideo(Stream? a, Stream? b) => a == null ? b == null : b != null &&
+        (a.Codec, a.W, a.H, a.Fps, a.PixelFormat, a.TimeBase, a.BFrames, a.Rotation, a.Sar) == (b.Codec, b.W, b.H, b.Fps, b.PixelFormat, b.TimeBase, b.BFrames, b.Rotation, b.Sar);
+    static bool SameAudio(Stream? a, Stream? b) => a == null ? b == null : b != null &&
+        (a.Codec, a.Rate, a.Channels, a.Layout, a.Bits, a.SampleFormat) == (b.Codec, b.Rate, b.Channels, b.Layout, b.Bits, b.SampleFormat);
+
+    static string VideoEncoder(string codec) => codec switch
+    {
+        "h264" => "libx264", "hevc" => "libx265", "vp8" => "libvpx", "vp9" => "libvpx-vp9",
+        "av1" => "libaom-av1", "mpeg4" => "mpeg4", "mpeg2video" => "mpeg2video", "mjpeg" => "mjpeg",
+        "wmv2" => "wmv2", _ => "libx264",
+    };
+    static string AudioEncoder(string codec) => codec switch
+    {
+        "mp3" => "libmp3lame", "vorbis" => "libvorbis", "opus" => "libopus", _ => codec,
+    };
+
     public static async Task<string> Concat(string[] files, bool video, string? name = null)
     {
         var tmp = Paths.Temp();
         try
         {
-            var ext = video ? "mp4" : (files.Select(AOut).Distinct().Count() == 1 ? AOut(files[0]) : "mp3");
+            var ext = video ? VOut(files[0]) : AOut(files[0]);
             var dst = Paths.Out(files[0], ext, name: name);
-            double total = files.Sum(Duration);
-            var a = new List<string>();
-            if (video)
+            var infos = files.Select(Read).ToArray();
+            var first = infos[0];
+            double total = infos.Sum(i => i.Duration);
+            var paths = files.ToArray();
+            var targetVideo = first.Video;
+            var targetAudio = infos.Select(i => i.Audios.FirstOrDefault()).FirstOrDefault(a => a != null);
+            bool identical = infos.All(i => (!video || SameVideo(targetVideo, i.Video)) && SameAudio(first.Audios.FirstOrDefault(), i.Audios.FirstOrDefault()));
+            if (!identical)
             {
-                // Iguala tamanho e taxa de quadros: vídeos de origens diferentes não juntam por concat simples.
-                var (w, h) = Size(files[0]);
-                if (w <= 0) (w, h) = (1280, 720);
-                w = w / 2 * 2; h = h / 2 * 2;
+                // Arquivos diferentes: recodifica todos numa passada só. Emendar por cópia um pedaço original com outro
+                // recodificado deixa parâmetros do codificador (SPS/PPS) diferentes no mesmo fluxo, e o player pode
+                // mostrar a segunda parte estragada. Iguala ao primeiro arquivo (tamanho, quadros por segundo, canais).
+                Paths.TryDelete(dst);
+                var vext = video ? (ext is "mp4" or "mov" or "mkv" or "m4v" ? ext : "mp4") : ext;
+                if (vext != ext) dst = Paths.Out(files[0], vext, name: name);
+                var a = new List<string>();
                 var fc = new StringBuilder();
+                int rate = targetAudio?.Rate > 0 ? targetAudio.Rate : 48000;
+                string layout = targetAudio != null ? AudioLayout(targetAudio) : "stereo";
+                if (layout.EndsWith("c")) layout = "stereo";
+                // Limites dos codificadores com perda (mesma regra do AudioFit): MP3/WMA só estéreo, nada acima de 48 kHz.
+                if (video || ext is "mp3" or "wma") { if ((targetAudio?.Channels ?? 2) > 2 && !video) layout = "stereo"; }
+                if ((video || ext is "mp3" or "m4a" or "ogg" or "opus" or "wma") && rate > 48000) rate = 48000;
+                if (ext is "opus") rate = 48000;
+                var display = DisplaySize(targetVideo);
+                int w = display.w / 2 * 2, h = display.h / 2 * 2;
+                if (w <= 0 || h <= 0) (w, h) = (1280, 720);
+                string fps = targetVideo?.Fps is { Length: > 0 } f && f != "0/0" ? f : "30";
                 for (int i = 0; i < files.Length; i++)
                 {
                     a.AddRange(new[] { "-i", files[i] });
-                    fc.Append($"[{i}:v]scale={w}:{h}:force_original_aspect_ratio=decrease,pad={w}:{h}:(ow-iw)/2:(oh-ih)/2,setsar=1,fps=30,format=yuv420p[v{i}];");
-                    if (HasAudio(files[i])) fc.Append($"[{i}:a]aresample=48000,aformat=channel_layouts=stereo[a{i}];");
-                    else fc.Append($"anullsrc=r=48000:cl=stereo,atrim=0:{Duration(files[i]).ToString("0.###", Inv)}[a{i}];");
+                    var d = infos[i].Duration.ToString("0.######", Inv);
+                    if (video)
+                        fc.Append($"[{i}:v:0]scale='trunc(iw*sar/2)*2':ih,setsar=1,scale={w}:{h}:force_original_aspect_ratio=decrease,pad={w}:{h}:(ow-iw)/2:(oh-ih)/2,setsar=1,fps={fps},format=yuv420p[v{i}];");
+                    if (infos[i].Audios.Count > 0)
+                        fc.Append($"[{i}:a:0]aresample={rate},aformat=channel_layouts={layout}[a{i}];");
+                    else
+                        fc.Append($"anullsrc=r={rate}:cl={layout},atrim=0:{d}[a{i}];");
                 }
-                for (int i = 0; i < files.Length; i++) fc.Append($"[v{i}][a{i}]");
-                fc.Append($"concat=n={files.Length}:v=1:a=1[v][a]");
-                a.AddRange(new[] { "-filter_complex", fc.ToString(), "-map", "[v]", "-map", "[a]", "-c:v", "libx264", "-preset", "fast", "-crf", C.Crf.ToString(), "-c:a", "aac", "-b:a", "160k", "-movflags", "+faststart", dst });
+                for (int i = 0; i < files.Length; i++) fc.Append(video ? $"[v{i}][a{i}]" : $"[a{i}]");
+                fc.Append(video ? $"concat=n={files.Length}:v=1:a=1[v][a]" : $"concat=n={files.Length}:v=0:a=1[a]");
+                a.AddRange(new[] { "-filter_complex", fc.ToString() });
+                if (video)
+                    a.AddRange(new[] { "-map", "[v]", "-map", "[a]", "-c:v", "libx264", "-preset", "fast", "-crf", C.Crf.ToString(), "-pix_fmt", "yuv420p", "-c:a", "aac", "-b:a", "192k", "-movflags", "+faststart" });
+                else
+                {
+                    a.AddRange(new[] { "-map", "[a]" });
+                    a.AddRange(AudioOpts(ext, files[0]));
+                    KeepCover(a, files[0], ext);
+                }
+                a.Add(dst);
+                await Guard(dst, Run(a, total));
+                return dst;
             }
-            else
-            {
-                var fc = new StringBuilder();
-                for (int i = 0; i < files.Length; i++) { a.AddRange(new[] { "-i", files[i] }); fc.Append($"[{i}:a]aresample=48000,aformat=channel_layouts=stereo[a{i}];"); }
-                for (int i = 0; i < files.Length; i++) fc.Append($"[a{i}]");
-                fc.Append($"concat=n={files.Length}:v=0:a=1[a]");
-                a.AddRange(new[] { "-filter_complex", fc.ToString(), "-map", "[a]" });
-                a.AddRange(AudioOpts(ext)); a.Add(dst);
-            }
-            await Guard(dst, Run(a, total));
+            var list = Path.Combine(tmp, "juntar.txt");
+            File.WriteAllLines(list, paths.Select(f => "file '" + Path.GetFullPath(f).Replace('\\', '/').Replace("'", "'\\''") + "'"), new UTF8Encoding(false));
+            var concat = new List<string> { "-f", "concat", "-safe", "0", "-i", list, "-i", files[0], "-map_metadata", "1" };
+            if (video) concat.AddRange(new[] { "-map", "0:v:0" });
+            if (targetAudio != null) concat.AddRange(new[] { "-map", "0:a:0" });
+            concat.AddRange(new[] { "-c", "copy" });
+            if (!video) KeepCover(concat, files[0], ext);
+            concat.Add(dst);
+            await Guard(dst, Run(concat, total));
             return dst;
         }
         finally { Paths.TryDelete(tmp); }
     }
 
+    static string AudioLayout(Stream stream) => stream.Layout != "" ? stream.Layout :
+        stream.Channels switch { 1 => "mono", 2 => "stereo", 6 => "5.1", 8 => "7.1", _ => stream.Channels + "c" };
+
     // ---------- Áudio ----------
     public static async Task<string> CompressAudio(string src, P p)
     {
         long target = TargetBytes(src, p);
+        var dur = Duration(src);
         int kbps;
         if (target > 0)
         {
-            var dur = Duration(src);
             if (dur <= 0) throw new Exception("Não consegui ler a duração");
             kbps = (int)(target * 0.97 * 8 / dur / 1000);
             if (kbps < 16) throw new Exception("Esse tamanho é pequeno demais para a duração do áudio");
             kbps = Math.Min(kbps, 320);
         }
         else kbps = p.S("nivel", "media") switch { "leve" => 192, "forte" => 64, _ => 128 };
-        var a = new List<string> { "-vn", "-map_metadata", "0", "-c:a", "libmp3lame", "-b:a", $"{kbps}k" };
-        if (kbps <= 64) a.AddRange(new[] { "-ac", "1" });
-        return await Simple(src, "mp3", "comprimido", a.ToArray());
+        var rates = new[] { 320, 256, 224, 192, 160, 128, 112, 96, 80, 64, 56, 48, 40, 32, 24, 16 };
+        kbps = rates.First(k => k <= kbps);
+        var dst = Paths.Out(src, "mp3", "comprimido");
+        while (true)
+        {
+            var a = new List<string> { "-i", src, "-vn", "-map_metadata", "0", "-c:a", "libmp3lame", "-b:a", $"{kbps}k" };
+            if (kbps <= 64) a.AddRange(new[] { "-ac", "1" });
+            if (kbps < 32) a.AddRange(new[] { "-ar", "22050" });
+            KeepCover(a, src, "mp3"); a.Add(dst);
+            await Guard(dst, Run(a, dur));
+            long size = new FileInfo(dst).Length;
+            if (target <= 0 || size <= target) return dst;
+            // Mede também capa, tags e cabeçalhos: a taxa do som sozinha não garante o tamanho final.
+            double limit = (target - (size - kbps * 1000.0 * dur / 8)) * 8 / dur / 1000;
+            int next = rates.FirstOrDefault(k => k < kbps && k <= limit);
+            if (next == 0)
+            {
+                Paths.TryDelete(dst);
+                throw new Exception("Esse tamanho é pequeno demais para a duração do áudio");
+            }
+            kbps = next;
+        }
     }
 
     /// Normaliza o volume (EBU R128, duas passadas).
@@ -508,7 +740,7 @@ static class Ff
             : $"loudnorm=I={lufs.ToString(Inv)}:TP=-1.5:LRA=11";
         // o loudnorm trabalha em 192 kHz; volta para a taxa original
         var rate = SampleRate(src);
-        af += $",aresample={(rate > 0 ? rate : 48000)}";
+        af += $",aresample={(rate > 0 ? rate : 48000)},asetnsamples=n=4096:p=0";
         if (HasVideo(src))
         {
             var ext = VOut(src);
@@ -519,8 +751,7 @@ static class Ff
         var aext = AOut(src);
         var adst = Paths.Out(src, aext, "normalizado");
         var a = new List<string> { "-i", src, "-vn", "-map_metadata", "0", "-af", af };
-        if (aext is "flac" or "wav" or "aiff") a.AddRange(new[] { "-sample_fmt", "s16" });
-        a.AddRange(AudioOpts(aext)); a.Add(adst);
+        a.AddRange(AudioOpts(aext, src)); KeepCover(a, src, aext); a.Add(adst);
         await Guard(adst, Run(a, dur, 0.4, 0.6));
         return adst;
     }
@@ -534,8 +765,8 @@ static class Ff
         var freq = p.I("freq", 1000);
         var dur = Duration(src);
         var fc = freq <= 0
-            ? $"[0:a]volume=0:enable='{cond}'[a]"
-            : $"[0:a]volume=0:enable='{cond}'[m];sine=f={freq}:sample_rate=48000:d={dur.ToString("0.###", Inv)},volume=2,volume=0:enable='not({cond})'[s];[m][s]amix=inputs=2:duration=first:normalize=0[a]";
+            ? $"[0:a]aeval=exprs='if({cond},0,val(ch))':c=same[a]"
+            : $"[0:a]aeval=exprs='if({cond},0,val(ch))':c=same[m];sine=f={freq}:sample_rate=48000:d={dur.ToString("0.###", Inv)},aeval=exprs='if({cond},2*val(ch),0)'[s];[m][s]amix=inputs=2:duration=first:normalize=0[a]";
         if (HasVideo(src))
         {
             var ext = VOut(src);
@@ -546,7 +777,7 @@ static class Ff
         var aext = AOut(src);
         var adst = Paths.Out(src, aext, "com bipe");
         var a = new List<string> { "-i", src, "-filter_complex", fc, "-map", "[a]", "-map_metadata", "0" };
-        a.AddRange(AudioOpts(aext)); a.Add(adst);
+        a.AddRange(AudioOpts(aext, src)); KeepCover(a, src, aext); a.Add(adst);
         await Guard(adst, Run(a, dur));
         return adst;
     }
@@ -554,14 +785,15 @@ static class Ff
     public static async Task<string> Channels(string src, P p)
     {
         var how = p.S("canais", "mono");
+        bool mono = Read(src).Audios.FirstOrDefault()?.Channels == 1;
         var (af, ac, label) = how switch
         {
             "estereo" => ("aformat=channel_layouts=stereo", "2", "estéreo"),
-            "esquerdo" => ("pan=mono|c0=FL", "1", "só esquerdo"),
-            "direito" => ("pan=mono|c0=FR", "1", "só direito"),
-            "inverter" => ("pan=stereo|c0=FR|c1=FL", "2", "lados trocados"),
-            "dobrar" => ("pan=stereo|c0=FL|c1=FL", "2", "esquerdo nos dois"),
-            _ => ("pan=mono|c0=0.5*FL+0.5*FR", "1", "mono"),
+            "esquerdo" => (mono ? "anull" : "pan=mono|c0=FL", "1", "só esquerdo"),
+            "direito" => (mono ? "anull" : "pan=mono|c0=FR", "1", "só direito"),
+            "inverter" => (mono ? "pan=stereo|c0=c0|c1=c0" : "pan=stereo|c0=FR|c1=FL", "2", "lados trocados"),
+            "dobrar" => (mono ? "pan=stereo|c0=c0|c1=c0" : "pan=stereo|c0=FL|c1=FL", "2", "esquerdo nos dois"),
+            _ => (Read(src).Audios.FirstOrDefault()?.Channels == 2 ? "pan=mono|c0=0.5*FL+0.5*FR" : "anull", "1", "mono"),
         };
         if (HasVideo(src))
         {
@@ -569,7 +801,7 @@ static class Ff
             return await Simple(src, ext, label, "-map", "0:v:0", "-map", "0:a:0", "-c:v", "copy", "-af", af, "-ac", ac, "-c:a", "aac", "-b:a", "160k");
         }
         var aext = AOut(src);
-        return await Simple(src, aext, label, new[] { "-vn", "-map_metadata", "0", "-af", af, "-ac", ac }.Concat(AudioOpts(aext)).ToArray());
+        return await Simple(src, aext, label, new[] { "-vn", "-map_metadata", "0", "-af", af, "-ac", ac }.Concat(AudioOpts(aext, src)).ToArray());
     }
 
     public static async Task<string> SetMeta(string src, P p)
@@ -600,6 +832,12 @@ static class Ff
         return t.TotalHours >= 1 ? $"{(int)t.TotalHours}:{t.Minutes:00}:{t.Seconds:00}" : $"{t.Minutes:00}:{t.Seconds:00}" + (t.Milliseconds > 0 ? $",{t.Milliseconds / 100}" : "");
     }
 
+    public static string PreciseTime(double s)
+    {
+        var ms = (long)Math.Round(Math.Max(0, s) * 1000);
+        return $"{ms / 3600000:00}:{ms / 60000 % 60:00}:{ms / 1000 % 60:00}.{ms % 1000:000}";
+    }
+
     /// Aceita "90", "1:30", "01:02:03,5".
     public static double ParseTime(string s)
     {
@@ -608,7 +846,7 @@ static class Ff
         double total = 0;
         foreach (var part in s.Split(':'))
         {
-            if (!double.TryParse(part, NumberStyles.Float, Inv, out var v)) return double.NaN;
+            if (!double.TryParse(part, NumberStyles.Float, Inv, out var v) || !double.IsFinite(v) || v < 0) return double.NaN;
             total = total * 60 + v;
         }
         return total;
@@ -703,6 +941,8 @@ static class Hw
         if (pf >= 0 && pf + 1 < a.Count && a[pf + 1] == "yuv420p") a.RemoveRange(pf, 2);
         i = a.IndexOf("-c:v");
         a.RemoveRange(i, 2);
+        if (a.Contains("-force_key_frames"))
+            a.InsertRange(a.Count - 1, new[] { enc == "h264_nvenc" ? "-forced-idr" : "-forced_idr", "1" });
         a.InsertRange(i, enc switch
         {
             "h264_nvenc" => new[] { "-c:v", enc, "-preset", "p5", "-tune", "hq", "-rc", "vbr", "-cq", (crf + 1).ToString(), "-b:v", "0", "-pix_fmt", "yuv420p" },

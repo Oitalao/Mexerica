@@ -55,6 +55,7 @@ sealed class FolderWatcher : IDisposable
         fsw = new FileSystemWatcher(w.Folder) { IncludeSubdirectories = w.Subfolders, NotifyFilter = NotifyFilters.FileName | NotifyFilters.DirectoryName | NotifyFilters.Size | NotifyFilters.LastWrite, InternalBufferSize = 64 * 1024 };
         fsw.Created += (_, e) => Enqueue(e.FullPath, false);
         fsw.Renamed += (_, e) => Enqueue(e.FullPath, false);
+        fsw.Changed += (_, e) => Enqueue(e.FullPath, false);
         // Pasta apagada, recriada ou fila de avisos do Windows estourada: o vigia é refeito e confere a pasta inteira.
         fsw.Error += (_, e) =>
         {
@@ -254,7 +255,7 @@ sealed class FolderWatcher : IDisposable
                         var done = await Compress(cur, cur != path);
                         if (done != null) { note = done.Value.note; cur = done.Value.path; }
                     }
-                    if (cur == path) return; // nada mudou
+                    if (cur == path && note == "") return; // nada mudou
                     report(path, cur, note == "" ? null : note);
                 }
                 finally { Job.Current = null; }

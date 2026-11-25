@@ -82,7 +82,7 @@ internal static class OutlookMessage
                     body.Attachments.Add(new MessagePart
                     {
                         Message = inner,
-                        ContentDisposition = new ContentDisposition(ContentDisposition.Attachment) { FileName = fileName },
+                        ContentDisposition = new ContentDisposition(ContentDisposition.Attachment) { FileName = fileName + ".eml" },
                     });
                     break;
             }

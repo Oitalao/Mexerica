@@ -9,6 +9,7 @@ using System.IO;
 using System.Threading;
 using System.Numerics;
 using System.Text;
+using System.Runtime.InteropServices;
 
 namespace Filee.Engines.Models3D;
 
@@ -30,7 +31,7 @@ internal static class ObjFormat
         string objectName = "", groupName = "";
         string? material = null;
         PartBuilder? current = null;
-        Span<int> corners = stackalloc int[256];
+        var corners = new List<int>(256);
         Span<float> numbers = stackalloc float[7];
 
         using var stream = new FileStream(path, FileMode.Open, FileAccess.Read, FileShare.Read, 1 << 20, FileOptions.SequentialScan);
@@ -52,7 +53,10 @@ internal static class ObjFormat
                 line = line[..^1] + " " + next;
                 lineNumber++;
             }
-            var text = line.AsSpan().Trim();
+            var comment = -1;
+            for (var i = 0; i < line.Length; i++)
+                if (line[i] == '#' && (i == 0 || char.IsWhiteSpace(line[i - 1]))) { comment = i; break; }
+            var text = (comment < 0 ? line.AsSpan() : line.AsSpan(0, comment)).Trim();
             if (text.IsEmpty || text[0] == '#')
                 continue;
             var space = text.IndexOfAny(' ', '\t');
@@ -107,17 +111,15 @@ internal static class ObjFormat
                 case "f" or "fo":
                     {
                         current ??= Part(groupName.Length > 0 ? groupName : objectName, material);
-                        var count = 0;
+                        corners.Clear();
                         foreach (var range in rest.SplitAny(' ', '\t'))
                         {
                             var token = rest[range];
                             if (token.IsEmpty)
                                 continue;
-                            if (count == corners.Length)
-                                throw new InvalidDataException($"Line {lineNumber} of the OBJ file has a face with more than {corners.Length} corners.");
-                            corners[count++] = current.Corner(token, positions, colors, uvs, normals, lineNumber);
+                            corners.Add(current.Corner(token, positions, colors, uvs, normals, lineNumber));
                         }
-                        Triangulator.AddPolygon(current.Part, corners[..count]);
+                        Triangulator.AddPolygon(current.Part, CollectionsMarshal.AsSpan(corners));
                         break;
                     }
                 case "o":

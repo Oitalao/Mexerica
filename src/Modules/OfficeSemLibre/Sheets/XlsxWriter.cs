@@ -34,8 +34,9 @@ internal static class XlsxWriter
     {
         var sheets = book.Sheets.Count > 0 ? book.Sheets : [new Worksheet("Sheet1")];
         var names = UniqueNames(sheets.Select(s => s.Name));
+        var nameMap = sheets.Select((s, i) => (s.Name, Exported: names[i])).ToDictionary(s => s.Name, s => s.Exported, StringComparer.OrdinalIgnoreCase);
         var styles = new StyleTable();
-        var sheetXml = sheets.Select((s, i) => SheetXml(s, styles, selected: i == 0)).ToList();
+        var sheetXml = sheets.Select((s, i) => SheetXml(s, styles, selected: i == sheets.FindIndex(sheet => !sheet.Hidden), nameMap)).ToList();
 
         using var zip = ZipFile.Open(path, ZipArchiveMode.Create);
         Add(zip, "[Content_Types].xml",
@@ -52,14 +53,14 @@ internal static class XlsxWriter
             """<Relationship Id="rIdStyles" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/styles" Target="styles.xml"/></Relationships>""");
         Add(zip, "xl/workbook.xml",
             $"""<?xml version="1.0" encoding="UTF-8" standalone="yes"?><workbook xmlns="{Main}" xmlns:r="{RelationshipsNs}"><sheets>""" +
-            string.Concat(names.Select((name, i) => $"""<sheet name="{Escape(name)}" sheetId="{i + 1}" r:id="rId{i + 1}"/>""")) +
+            string.Concat(names.Select((name, i) => $"""<sheet name="{Escape(name)}" sheetId="{i + 1}" r:id="rId{i + 1}"{(sheets[i].Hidden ? " state=\"hidden\"" : "")}/>""")) +
             "</sheets></workbook>");
         Add(zip, "xl/styles.xml", styles.Xml());
         for (var i = 0; i < sheets.Count; i++)
             Add(zip, $"xl/worksheets/sheet{i + 1}.xml", sheetXml[i]);
     }
 
-    private static string SheetXml(Worksheet sheet, StyleTable styles, bool selected)
+    private static string SheetXml(Worksheet sheet, StyleTable styles, bool selected, IReadOnlyDictionary<string, string> names)
     {
         var sb = new StringBuilder("""<?xml version="1.0" encoding="UTF-8" standalone="yes"?>""");
         sb.Append(CultureInfo.InvariantCulture, $"""<worksheet xmlns="{Main}" xmlns:r="{RelationshipsNs}"><sheetViews><sheetView{(selected ? " tabSelected=\"1\"" : "")} workbookViewId="0">""");
@@ -85,7 +86,7 @@ internal static class XlsxWriter
                 sb.Append(" hidden=\"1\"");
             sb.Append('>');
             foreach (var (column, cell) in sheet.Rows.GetValueOrDefault(row) ?? [])
-                Cell(sb, ColumnName(column) + (row + 1).ToString(CultureInfo.InvariantCulture), cell, styles);
+                Cell(sb, ColumnName(column) + (row + 1).ToString(CultureInfo.InvariantCulture), cell.Formula is { } f ? cell with { Formula = FormulaSyntax.RenameSheets(f, names) } : cell, styles);
             sb.Append("</row>");
         }
         sb.Append("</sheetData>");
@@ -126,7 +127,13 @@ internal static class XlsxWriter
         var number = cell.Value ?? (cell.IsNumber && double.TryParse(cell.Text, NumberStyles.Float, CultureInfo.InvariantCulture, out var parsed) ? parsed : null);
         var style = styles.Index(cell.Style, number is null || cell.IsBoolean ? null : cell.NumberFormat);
         var s = style == 0 ? "" : $" s=\"{style}\"";
-        if (cell.IsBoolean && number is { } flag)
+        if (cell.Formula is { } formula)
+        {
+            var type = cell.IsBoolean ? " t=\"b\"" : cell.IsError ? " t=\"e\"" : number is null ? " t=\"str\"" : "";
+            var cached = number is { } n && double.IsFinite(n) ? n.ToString("R", CultureInfo.InvariantCulture) : cell.Text;
+            sb.Append(CultureInfo.InvariantCulture, $"<c r=\"{reference}\"{s}{type}><f>{Escape(formula)}</f><v>{Escape(cached)}</v></c>");
+        }
+        else if (cell.IsBoolean && number is { } flag)
             sb.Append(CultureInfo.InvariantCulture, $"<c r=\"{reference}\"{s} t=\"b\"><v>{(flag != 0 ? 1 : 0)}</v></c>");
         else if (number is { } value && double.IsFinite(value))
             sb.Append(CultureInfo.InvariantCulture, $"<c r=\"{reference}\"{s}><v>{value.ToString("R", CultureInfo.InvariantCulture)}</v></c>");

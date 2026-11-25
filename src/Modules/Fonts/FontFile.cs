@@ -22,16 +22,26 @@ internal static class FontFile
             switch (BinaryPrimitives.ReadUInt32BigEndian(data))
             {
                 case Woff.Signature:
-                    return Woff.Decode(data);
+                    return CheckFont(Woff.Decode(data));
                 case Woff2.Signature:
-                    return Woff2.Decode(data, cancellationToken);
+                    return CheckFont(Woff2.Decode(data, cancellationToken));
             }
         }
         if (SfntFont.IsSfnt(data))
-            return SfntFont.Read(data);
+            return CheckFont(SfntFont.Read(data));
         if (Eot.IsEot(data))
-            return Eot.Decode(data);
+            return CheckFont(Eot.Decode(data));
         throw new InvalidDataException("This file is not a font Filee can read (TTF, OTF, WOFF, WOFF2 or EOT).");
+    }
+
+    private static SfntFont CheckFont(SfntFont font)
+    {
+        if (font["head"] is not { Length: >= 54 } || font["hhea"] is not { Length: >= 36 }
+            || font["maxp"] is not { Length: >= 6 } || font["hmtx"] is not { Length: >= 4 }
+            || font["cmap"] is not { Length: >= 4 } || font.GlyphCount == 0
+            || (font["glyf"] is null || font["loca"] is null) && font["CFF "] is null && font["CFF2"] is null)
+            throw new InvalidDataException("The font is damaged or has no supported glyph outlines.");
+        return font;
     }
 
     /// <summary>

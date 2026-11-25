@@ -21,7 +21,7 @@ internal static class Triangulator
                 part.AddTriangle(corners[0], corners[1], corners[2]);
                 return;
         }
-        if (corners.Length > 64 || !EarClip(part, corners))
+        if (!EarClip(part, corners))
         {
             for (var i = 1; i + 1 < corners.Length; i++)
                 part.AddTriangle(corners[0], corners[i], corners[i + 1]);
@@ -44,7 +44,7 @@ internal static class Triangulator
 
         // Project onto the plane: drop the dominant axis, keeping the polygon counter-clockwise.
         var abs = Vector3.Abs(normal);
-        Span<Vector2> points = stackalloc Vector2[n];
+        Span<Vector2> points = n <= 256 ? stackalloc Vector2[n] : new Vector2[n];
         for (var i = 0; i < n; i++)
         {
             var p = part.Position(corners[i]);
@@ -53,14 +53,15 @@ internal static class Triangulator
                 : (normal.Z >= 0 ? new Vector2(p.X, p.Y) : new Vector2(p.Y, p.X));
         }
 
-        Span<int> remaining = stackalloc int[n];
+        Span<int> remaining = n <= 256 ? stackalloc int[n] : new int[n];
         for (var i = 0; i < n; i++)
             remaining[i] = i;
         var count = n;
-        var guard = n * n;
+        var guard = (long)n * n;
         var start = part.Indices.Count;
         while (count > 3 && guard-- > 0)
         {
+            Mexerica.Job.Check();
             var clipped = false;
             for (var i = 0; i < count; i++)
             {

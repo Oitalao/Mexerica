@@ -31,7 +31,8 @@ static class Updater
         http.DefaultRequestHeaders.Accept.ParseAdd("application/vnd.github+json");
     }
 
-    public static Version Current => typeof(Updater).Assembly.GetName().Version ?? new Version(0, 0);
+    public static Version Current => Normalize(typeof(Updater).Assembly.GetName().Version ?? new Version(0, 0));
+    static Version Normalize(Version v) => new(v.Major, v.Minor, Math.Max(0, v.Build), Math.Max(0, v.Revision));
     public static string CurrentText => Current.ToString(3);
 
     /// Liga a verificação automática: um minuto depois de abrir e depois a cada 6 horas.
@@ -50,7 +51,8 @@ static class Updater
     static async Task<Release?> Latest()
     {
         var json = await http.GetStringAsync($"https://api.github.com/repos/{Repo}/releases/latest");
-        return Parse(JsonDocument.Parse(json).RootElement);
+        using var doc = JsonDocument.Parse(json);
+        return Parse(doc.RootElement);
     }
 
     static Release? Parse(JsonElement r)
@@ -61,7 +63,8 @@ static class Updater
             .FirstOrDefault(a => a.GetProperty("name").GetString()?.EndsWith("-instalador.exe", StringComparison.OrdinalIgnoreCase) == true);
         if (asset.ValueKind == JsonValueKind.Undefined) return null;
         string? sha = asset.TryGetProperty("digest", out var dg) && dg.GetString() is string d && d.StartsWith("sha256:") ? d[7..] : null;
-        return new Release(v, tag, r.TryGetProperty("body", out var b) ? b.GetString() ?? "" : "",
+        if (sha == null || !Regex.IsMatch(sha, "\\A[0-9a-fA-F]{64}\\z")) return null;
+        return new Release(Normalize(v), tag, r.TryGetProperty("body", out var b) ? b.GetString() ?? "" : "",
             asset.GetProperty("browser_download_url").GetString()!, asset.GetProperty("size").GetInt64(), sha);
     }
 
@@ -71,7 +74,12 @@ static class Updater
         try
         {
             var r = await Latest();
-            if (r == null || r.Version <= Current)
+            if (r == null)
+            {
+                if (manual) App.Toast.Show("Não deu para procurar atualização", "Não encontrei um instalador com SHA-256 válido na versão publicada.", error: true);
+                return;
+            }
+            if (r.Version <= Current)
             {
                 if (manual) App.Toast.Show("Mexerica está atualizado", $"Versão {CurrentText}.");
                 return;
@@ -94,9 +102,11 @@ static class Updater
     {
         var job = new Job();
         App.Toast.Track(job, "Baixando atualização…", $"Mexerica {r.Version.ToString(3)}");
+        string? dir = null;
+        bool launched = false;
         try
         {
-            var dir = Paths.Temp();
+            dir = Paths.Temp();
             var exe = Path.Combine(dir, $"Mexerica-{r.Version.ToString(3)}-instalador.exe");
             using (var resp = await http.GetAsync(r.Url, HttpCompletionOption.ResponseHeadersRead, job.Cts.Token))
             {
@@ -122,10 +132,12 @@ static class Updater
             // Guarda as novidades para mostrar quando a versão nova abrir.
             var c = Config.Now.Clone(); c.UpdateNotes = r.Notes; c.UpdateNotesVersion = r.Version.ToString(3); c.Save();
             App.Toast.Show("Instalando a atualização…", "O Mexerica volta sozinho em instantes.", sticky: true);
-            System.Diagnostics.Process.Start(new System.Diagnostics.ProcessStartInfo(exe, "/VERYSILENT /SUPPRESSMSGBOXES /NORESTART /SP-") { UseShellExecute = true });
+            using var installer = System.Diagnostics.Process.Start(new System.Diagnostics.ProcessStartInfo(exe, "/VERYSILENT /SUPPRESSMSGBOXES /NORESTART /SP-") { UseShellExecute = true });
+            launched = installer != null;
         }
         catch (OperationCanceledException) { App.Toast.Show("Atualização cancelada", ""); }
         catch (Exception ex) { Log.Write("atualização: " + ex); App.Toast.Show("Não deu para atualizar", App.Friendly(ex), error: true); }
+        finally { if (!launched && dir != null) Paths.TryDelete(dir); }
     }
 
     /// Primeira vez numa versão nova: mostra o que mudou (guardado antes de atualizar, ou buscado no GitHub).

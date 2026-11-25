@@ -26,7 +26,8 @@ internal static class CsvFormat
     {
         var text = Mexerica.TextEncoding.Decode(File.ReadAllBytes(path));
         var sheet = new Worksheet(Path.GetFileNameWithoutExtension(path));
-        var rows = Parse(text, delimiter ?? DetectDelimiter(text));
+        var separator = delimiter ?? DetectDelimiter(text);
+        var rows = Parse(text, separator);
         var widths = new Dictionary<int, double>();
         for (var r = 0; r < rows.Count; r++)
         {
@@ -35,8 +36,10 @@ internal static class CsvFormat
                 var value = rows[r][c];
                 if (value.Length == 0)
                     continue;
-                sheet.Set(r, c, IsNumber(value)
-                    ? new SheetCell(value, CellStyle.Default, IsNumber: true) { Value = double.Parse(value, NumberStyles.Float, CultureInfo.InvariantCulture) }
+                var numeric = separator != ',' && CultureInfo.CurrentCulture.NumberFormat.NumberDecimalSeparator == ","
+                    ? value.Replace(',', '.') : value;
+                sheet.Set(r, c, IsNumber(numeric)
+                    ? new SheetCell(value, CellStyle.Default, IsNumber: true) { Value = double.Parse(numeric, NumberStyles.Float, CultureInfo.InvariantCulture) }
                     : new SheetCell(value, CellStyle.Default));
                 widths[c] = Math.Max(widths.GetValueOrDefault(c), DisplayWidth(value));
             }
@@ -98,13 +101,10 @@ internal static class CsvFormat
         {
             for (var r = 0; r <= range.Bottom; r++)
             {
-                if (sheet.HiddenRows.Contains(r))
-                    continue;
                 var fields = new List<string>();
                 for (var c = 0; c <= range.Right; c++)
                 {
-                    if (!sheet.HiddenColumns.Contains(c))
-                        fields.Add(Quote(CsvText(sheet.Get(r, c), dec), delimiter));
+                    fields.Add(Quote(CsvText(sheet.Get(r, c), dec), delimiter));
                 }
                 // Excel omits trailing empty fields only for fully empty rows; keep the column count stable.
                 sb.Append(string.Join(delimiter, fields)).Append("\r\n");

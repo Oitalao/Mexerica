@@ -18,8 +18,12 @@ sealed class P : Dictionary<string, string>
     public static readonly P None = new();
     public string S(string k, string def = "") => TryGetValue(k, out var v) && v != null ? v : def;
     public double D(string k, double def = 0) =>
-        TryGetValue(k, out var v) && double.TryParse(v.Replace(',', '.'), NumberStyles.Float, CultureInfo.InvariantCulture, out var d) ? d : def;
-    public int I(string k, int def = 0) => (int)Math.Round(D(k, def));
+        TryGetValue(k, out var v) && v != null && double.TryParse(v.Replace(',', '.'), NumberStyles.Float, CultureInfo.InvariantCulture, out var d) && double.IsFinite(d) ? d : def;
+    public int I(string k, int def = 0)
+    {
+        var d = Math.Round(D(k, def));
+        return d >= int.MinValue && d <= int.MaxValue ? (int)d : def;
+    }
     public bool B(string k) => S(k) is "1" or "true" or "sim";
 }
 
@@ -48,6 +52,13 @@ sealed class Job
 
     public readonly CancellationTokenSource Cts = new();
     public Action<double>? OnProgress;
+    public readonly System.Collections.Concurrent.ConcurrentQueue<string> Warnings = new();
+    public readonly System.Collections.Concurrent.ConcurrentQueue<string> Companions = new();
+    public static void Warn(string message)
+    {
+        Log.Write(message);
+        Current?.Warnings.Enqueue(Tr.T(message));
+    }
 
     // Cada arquivo que roda em paralelo tem sua vaga; a barra mostra a média.
     // A vaga e o trecho do passo atual seguem o fluxo assíncrono de cada arquivo.

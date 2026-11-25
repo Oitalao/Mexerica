@@ -107,6 +107,8 @@ internal static partial class MobiReader
     /// <summary>The decompressed text of the book whose header is at record <paramref name="start"/>.</summary>
     private static byte[] Text(PalmDatabase database, MobiHeader header, int start)
     {
+        if (header.TextRecords < 1 || header.TextRecords >= database.Count - start)
+            throw new InvalidDataException("O cabeçalho do livro está danificado");
         Decompressor decompress = header.Compression switch
         {
             1 => data => data.ToArray(),
@@ -122,6 +124,8 @@ internal static partial class MobiReader
             text.Write(decompress(record[..Math.Max(0, size)]));
         }
         var bytes = text.ToArray();
+        if (header.TextLength > bytes.Length)
+            throw new InvalidDataException("O cabeçalho do livro está danificado");
         return header.TextLength > 0 && header.TextLength < bytes.Length ? bytes[..(int)header.TextLength] : bytes;
     }
 
@@ -165,10 +169,16 @@ internal static partial class MobiReader
         var header = database.Record(0);
         var compression = PalmDatabase.U16(header, 0);
         var records = PalmDatabase.U16(header, 8);
+        var length = PalmDatabase.U32(header, 4);
+        if (header.Length < 16 || records < 1 || records >= database.Count || compression is not (1 or 2))
+            throw new InvalidDataException("O cabeçalho do livro está danificado");
         using var text = new MemoryStream();
-        for (var i = 1; i <= records && i < database.Count; i++)
+        for (var i = 1; i <= records; i++)
             text.Write(compression == 2 ? PalmDocCompression.Decompress(database.Record(i)) : database.Record(i));
-        return text.ToArray();
+        var bytes = text.ToArray();
+        if (length < 0 || length > bytes.Length)
+            throw new InvalidDataException("O cabeçalho do livro está danificado");
+        return bytes[..(int)length];
     }
 
     /// <summary>UTF-8 when valid, else Windows-1252 (the Mobipocket default).</summary>

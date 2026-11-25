@@ -89,6 +89,7 @@ sealed class Toast : Window
         if (!sticky) { job = null; bar.Visibility = cancel.Visibility = Visibility.Collapsed; }
         timer.Stop();
         if (!sticky) { timer.Interval = TimeSpan.FromSeconds(error ? 9 : 5); timer.Start(); }
+        if (Form.Capture != null) { Form.Capture(this); return; }
         if (!IsVisible) Show();
         Place();
     }

@@ -33,9 +33,24 @@ static class App
     static void Main(string[] args)
     {
         Encoding.RegisterProvider(CodePagesEncodingProvider.Instance);
+        if (Environment.GetEnvironmentVariable("MEXERICA_TESTE_APP") is { Length: > 0 } regression)
+        { Environment.ExitCode = AppRegression.Run(regression); return; }
         if (Environment.GetEnvironmentVariable("MEXERICA_TESTE_UI") is string language && language.Length > 0)
         { RenderUi(language); return; }
-        if (args.Length >= 4 && args[0] == "--executar") { Environment.ExitCode = SelfTest(args); return; }
+        if (Environment.GetEnvironmentVariable("MEXERICA_TESTE_EDITOR") is string ed && ed.Length > 0)
+        { VideoEditorTest.Run(ed.Split('|')); return; }
+        if (args.Length >= 1 && args[0] == "--executar")
+        {
+            Catalog.Legacy = true;
+            if (args.Length < 4) { Environment.ExitCode = 2; return; }
+            try { Environment.ExitCode = SelfTest(args); }
+            catch (Exception ex)
+            {
+                Environment.ExitCode = 1; Log.Write(ex.ToString());
+                try { File.WriteAllText(args[3], "ERRO " + args[2] + ": " + Friendly(ex)); } catch { }
+            }
+            return;
+        }
         if (args.Length >= 1 && Cli.Verbs.Contains(args[0].ToLowerInvariant())) { Environment.ExitCode = Cli.Run(args); return; }
         if (args.Length >= 1 && args[0] == "--remover-menu") { ShellMenu.Remove(); return; }
         if (args.Length >= 1 && args[0] == "--sair") { QuitOther(); return; }
@@ -70,11 +85,12 @@ static class App
         probe.RaiseEvent(new RoutedEventArgs(FrameworkElement.LoadedEvent, probe));
         probe.Text = "Cancelar";
         if (probe.Text != Tr.T("Cancelar")) throw new InvalidOperationException("Tradução dinâmica inválida.");
-        var folder = Path.Combine(AppContext.BaseDirectory, "capturas");
+        var folder = Path.Combine(Environment.GetEnvironmentVariable("MEXERICA_TESTE_DADOS") ?? AppContext.BaseDirectory, "capturas");
         Directory.CreateDirectory(folder);
         var settings = new SettingsWindow();
         Render(settings, Path.Combine(folder, $"configuracoes-{language}.png"));
         var sample = Path.Combine(folder, "amostra.jpg");
+        using (var image = new ImageMagick.MagickImage(ImageMagick.MagickColors.SteelBlue, 800, 600)) image.Write(sample);
         var wheelPreview = new WheelWindow(Catalog.For, (_, _) => { });
         wheelPreview.Preview(sample);
         Render(wheelPreview, Path.Combine(folder, $"roda-{language}.png"));
@@ -89,6 +105,36 @@ static class App
         Render(new HistoryWindow(), Path.Combine(folder, $"recentes-{language}.png"));
         Render(new WhatsNewWindow("1.1.0", "- Novidade de exemplo\n- Outra novidade"), Path.Combine(folder, $"novidades-{language}.png"));
         Render(new HelpWindow(), Path.Combine(folder, $"como-usar-{language}.png"));
+        Render(new WelcomeWindow(), Path.Combine(folder, $"boas-vindas-{language}.png"));
+        Window Make(Type type, params object[] values) => (Window)Activator.CreateInstance(type, System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.NonPublic, null, values, null)!;
+        var editor = Make(typeof(ImageEditor), sample, false);
+        Render(editor, Path.Combine(folder, $"editor-imagem-{language}.png"));
+        foreach (var tool in new[] { "Adjust", "Pen", "Arrow", "Box", "Text", "Redact" })
+        {
+            AppRegression.Call(typeof(ImageEditor), editor, "SetTool", Enum.Parse(typeof(ImageEditor).GetNestedType("Tool", System.Reflection.BindingFlags.NonPublic)!, tool));
+            Render(editor, Path.Combine(folder, $"editor-{tool}-{language}.png"));
+        }
+        var pdf = Path.Combine(folder, "amostra.pdf");
+        using (var document = new PdfSharp.Pdf.PdfDocument()) { for (int i = 0; i < 3; i++) document.AddPage(); document.Save(pdf); }
+        var pages = Make(typeof(PdfPagesWindow), pdf);
+        AppRegression.OnUi(async () => { await (Task)AppRegression.Call(typeof(PdfPagesWindow), pages, "Load", pdf)!; return true; });
+        Render(pages, Path.Combine(folder, $"organizar-{language}.png"));
+        var redact = Make(typeof(PdfRedactWindow), pdf);
+        AppRegression.OnUi(async () =>
+        {
+            typeof(PdfRedactWindow).GetField("doc", System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.NonPublic)!.SetValue(redact, await Pdf.Open(pdf));
+            typeof(PdfRedactWindow).GetField("count", System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.NonPublic)!.SetValue(redact, 3);
+            await (Task)AppRegression.Call(typeof(PdfRedactWindow), redact, "Show", 1)!; return true;
+        });
+        Render(redact, Path.Combine(folder, $"tarjar-{language}.png"));
+        Render(Make(typeof(MetaWindow), new[] { sample }, new List<(string, string, string)> { ("EXIF", "Artist", "Autor de teste"), ("GPS", "GPSLatitude", "0") }), Path.Combine(folder, $"metadados-{language}.png"));
+        Render(new FloatWindow(new[] { sample }) { Width = 150 }, Path.Combine(folder, $"flutuar-{language}.png"));
+        Form.Capture = w => Render(w, Path.Combine(folder, $"qr-{language}.png"));
+        QrWindow.Show("amostra.jpg\tContato\t" + System.Text.Json.JsonSerializer.Serialize("BEGIN:VCARD\nFN:Contato de teste\nEND:VCARD"));
+        var toast = new Toast(); Form.Capture = _ => { };
+        toast.Done("Pronto", "amostra.jpg", sample, () => { });
+        Render(toast, Path.Combine(folder, $"aviso-{language}.png"));
+        Form.Capture = null;
         // Janelas de ajuste das ferramentas de PDF e de juntar/renomear.
         var docs = new[] { @"C:\Clientes\Peticao inicial.pdf", @"C:\Clientes\RG.jpg", @"C:\Clientes\Comprovante de residencia.pdf" };
         string shot = "";
@@ -112,11 +158,12 @@ static class App
         var visual = (FrameworkElement)window.Content;
         var width = window.Width;
         if (double.IsNaN(width)) width = 560;
-        visual.Measure(new System.Windows.Size(width, 2000));
-        var height = double.IsNaN(window.Height) ? visual.DesiredSize.Height : window.Height;
-        visual.Arrange(new Rect(0, 0, width, height));
-        visual.UpdateLayout();
+        var maxHeight = Math.Min(double.IsNaN(window.Height) ? 2000 : window.Height, window.MaxHeight);
+        visual.Measure(new System.Windows.Size(width, maxHeight));
         Tr.TranslateTree(visual);
+        visual.Measure(new System.Windows.Size(width, maxHeight));
+        var height = Math.Min(window.MaxHeight, double.IsNaN(window.Height) ? visual.DesiredSize.Height : window.Height);
+        visual.Arrange(new Rect(0, 0, width, height));
         visual.UpdateLayout();
         var bitmap = new RenderTargetBitmap((int)Math.Ceiling(width), (int)Math.Ceiling(height), 96, 96, PixelFormats.Pbgra32);
         if (window is WheelWindow) bitmap.Render(visual);
@@ -126,7 +173,8 @@ static class App
             using (var drawing = canvas.RenderOpen())
             {
                 drawing.DrawRectangle(window.Background, null, new Rect(0, 0, width, height));
-                drawing.DrawRectangle(new VisualBrush(visual), null, new Rect(0, 0, width, height));
+                drawing.DrawRectangle(new VisualBrush(visual) { Stretch = Stretch.None, AlignmentX = AlignmentX.Left, AlignmentY = AlignmentY.Top,
+                    ViewboxUnits = BrushMappingMode.Absolute, Viewbox = new Rect(0, 0, width, height) }, null, new Rect(0, 0, width, height));
             }
             bitmap.Render(canvas);
         }
@@ -362,13 +410,14 @@ static class App
             if (p == null) { Trim(); return; }
         }
         // PDFs com senha: pede a senha e descriptografa para um temp antes de converter.
+        var originals = files;
         string? pwTmp = null;
         try { (files, pwTmp) = await UnlockPdfs(files); }
         catch (OperationCanceledException) { Trim(); return; }
         catch (Exception ex) { Log.Write(ex.ToString()); Toast.Show("Não deu certo", Friendly(ex), error: true); return; }
         string what = files.Length == 1 ? Path.GetFileName(files[0].TrimEnd('\\')) : $"{files.Length} arquivos";
         // Ordem escolhida na janela de ajustes (juntar, carimbar): os arquivos seguem nela, e os motores sabem a ordem.
-        if (!ReferenceEquals(p, P.None) && p.ContainsKey("ordem")) files = Form.Ordered(files, p);
+        if (!ReferenceEquals(p, P.None) && p.ContainsKey("ordem")) { files = Form.Ordered(files, p); originals = Form.Ordered(originals, p); }
         if (!ReferenceEquals(p, P.None)) p["arquivos"] = string.Join("\n", files);
         var started = DateTime.Now.AddSeconds(-2);
         var job = new Job();
@@ -404,13 +453,13 @@ static class App
             _ = Application.Current.Dispatcher.BeginInvoke(Trim, DispatcherPriority.ApplicationIdle);
         }
 
-        if (op.Show == null) History.Add(op.Label, files, outputs);
+        if (op.Show == null) History.Add(op.Label, originals, outputs);
         if (canceled) { Toast.Show("Cancelado", outputs.Count > 0 ? $"{outputs.Count} já estavam prontos" : what, outputs.FirstOrDefault()); return; }
         if (op.Show != null && errors.Count == 0) { Toast.Hide(); op.Show(string.Join("\n", outputs)); return; }
         if (errors.Count == 0)
         {
             if (outputs.Count == 0) { Toast.Show("Nada a fazer", "Os arquivos já estavam assim."); return; }
-            Toast.Done("Pronto", outputs.Count == 1 ? Path.GetFileName(outputs[0].TrimEnd('\\')) : $"{outputs.Count} arquivos criados", outputs[0], UndoFor(outputs, files, started));
+            Toast.Done("Pronto", job.Warnings.TryPeek(out var warning) ? warning : outputs.Count == 1 ? Path.GetFileName(outputs[0].TrimEnd('\\')) : $"{outputs.Count} arquivos criados", outputs[0], UndoFor(outputs.Concat(job.Companions).ToList(), originals, started));
             if (Config.Now.RevealWhenDone) Toast.Reveal(outputs[0]);
         }
         else if (outputs.Count > 0)
@@ -424,7 +473,7 @@ static class App
     static Action? UndoFor(List<string> outputs, string[] inputs, DateTime started)
     {
         var made = new List<string>();
-        foreach (var o in outputs)
+        foreach (var o in outputs.Distinct(StringComparer.OrdinalIgnoreCase))
         {
             var path = o.TrimEnd('\\');
             if (inputs.Any(i => string.Equals(i.TrimEnd('\\'), path, StringComparison.OrdinalIgnoreCase))) return null;
@@ -434,13 +483,6 @@ static class App
             else continue;
             if (created < started) return null;
             made.Add(path);
-            // Ferramentas que entregam várias partes (limite de envio) devolvem a primeira; as irmãs vêm junto.
-            var name = Path.GetFileNameWithoutExtension(path);
-            int at = name.LastIndexOf(" - parte 1 de ", StringComparison.Ordinal);
-            // O que vem depois do total ("(p. 1-3)" do Dividir) muda de parte para parte.
-            if (at > 0 && File.Exists(path))
-                foreach (var sib in Directory.GetFiles(Path.GetDirectoryName(path)!, name[..at] + " - parte * de " + new string(name[(at + 14)..].TakeWhile(char.IsDigit).ToArray()) + "*" + Path.GetExtension(path)))
-                    if (File.GetCreationTime(sib) >= started && !made.Contains(sib, StringComparer.OrdinalIgnoreCase)) made.Add(sib);
         }
         if (made.Count == 0) return null;
         return () =>
@@ -458,7 +500,7 @@ static class App
         };
     }
 
-    /// Se houver PDF com senha entre os arquivos, pede a senha (uma vez) e devolve a lista com cópias
+    /// Se houver PDF com senha, tenta a senha nos pendentes e devolve a lista com cópias
     /// sem senha num temp; os outros arquivos seguem como estão. Cancelar o prompt cancela a operação.
     static async Task<(string[] files, string? tmp)> UnlockPdfs(string[] files)
     {
@@ -469,24 +511,32 @@ static class App
         if (enc.Length == 0) return (files, null);
         string? tmp = null;
         bool retry = false;
-        while (true)
+        var map = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
+        try
         {
-            var pw = Dialogs.PdfPassword(enc, retry);
-            if (pw == null) { if (tmp != null) Paths.TryDelete(tmp); throw new OperationCanceledException(); }
-            tmp ??= Paths.Temp();
-            try
+            while (true)
             {
-                var map = new Dictionary<string, string>();
-                foreach (var f in enc)
+                var pending = enc.Distinct(StringComparer.OrdinalIgnoreCase).Where(f => !map.ContainsKey(f)).ToArray();
+                if (pending.Length == 0) return (files.Select(f => map.TryGetValue(f, out var d) ? d : f).ToArray(), tmp);
+                var pw = Dialogs.PdfPassword(pending, retry);
+                if (pw == null) throw new OperationCanceledException();
+                tmp ??= Paths.Temp();
+                foreach (var f in pending)
                 {
-                    var dst = Path.Combine(tmp, Path.GetFileName(f));
-                    await Qpdf.Decrypt(f, pw, dst);
-                    map[f] = dst;
+                    var dir = Path.Combine(tmp, map.Count.ToString()); Directory.CreateDirectory(dir);
+                    var dst = Path.Combine(dir, Path.GetFileName(f));
+                    try
+                    {
+                        await Qpdf.Decrypt(f, pw, dst);
+                        Paths.RedirectSource(dst, f);
+                        map[f] = dst;
+                    }
+                    catch (WrongPasswordException) { }
                 }
-                return (files.Select(f => map.TryGetValue(f, out var d) ? d : f).ToArray(), tmp);
+                retry = true;
             }
-            catch (WrongPasswordException) { retry = true; }
         }
+        catch { if (tmp != null) Paths.TryDelete(tmp); throw; }
     }
 
     /// Roda op.One em cada arquivo, vários ao mesmo tempo (como o File Converter), cada um na sua vaga da barra.
@@ -573,7 +623,7 @@ static class App
         // Conversores adaptados do Filee e bibliotecas de fora falam inglês técnico. O usuário recebe português; o log guarda o original.
         if (ex.TargetSite?.DeclaringType?.Namespace?.StartsWith("Filee", StringComparison.Ordinal) == true || LooksEnglish(m))
             return "Não consegui converter esse arquivo: ele está danificado ou usa um recurso que o Mexerica ainda não entende";
-        return m;
+        return Tr.T(m);
     }
 
     static readonly System.Text.RegularExpressions.Regex english = new(
@@ -585,7 +635,8 @@ static class App
     // Modo de teste sem tela: --executar <Convert|Tools> <rótulo|*> <relatório.txt> [--p chave=valor ...] arquivos...
     static int SelfTest(string[] a)
     {
-        var mode = Enum.Parse<Mode>(a[1]);
+        if (!Enum.TryParse<Mode>(a[1], true, out var mode) || !Enum.IsDefined(mode))
+        { File.WriteAllText(a[3], "ERRO: modo inválido. Use Convert, Tools ou Actions."); return 1; }
         var p = new P();
         var files = new List<string>();
         for (int i = 4; i < a.Length; i++)
@@ -593,17 +644,24 @@ static class App
             if (a[i] == "--p" && i + 1 < a.Length) { var kv = a[++i].Split('=', 2); p[kv[0]] = kv.Length > 1 ? kv[1] : ""; }
             else files.Add(a[i]);
         }
-        var fs = files.ToArray();
+        var fs = Robust.Resolve(files.ToArray());
+        bool hasParameters = p.Count > 0;
+        if (fs.Length == 0) { File.WriteAllText(a[3], "ERRO: selecione pelo menos um arquivo."); return 1; }
+        if (p.ContainsKey("ordem")) fs = Form.Ordered(fs, p);
+        p["arquivos"] = string.Join("\n", fs);
         var lines = new List<string>();
         var ops = Catalog.For(mode, fs);
         lines.Add("opcoes: " + string.Join(", ", ops.Select(o => o.Label)));
         int fails = 0;
+        if (!ops.Any(o => a[2] == "*" || o.Label == a[2]))
+        { lines.Add($"ERRO {a[2]}: essa operação não está disponível para estes arquivos."); fails++; }
         foreach (var op in ops.Where(o => a[2] == "*" || o.Label == a[2]))
         {
             if (op.Ui != null) { lines.Add($"PULA {op.Label} (só na tela)"); continue; }
-            if (op.Ask != null && p.Count == 0 && a[2] == "*") { lines.Add($"PULA {op.Label} (precisa de ajustes)"); continue; }
+            if (op.Ask != null && !hasParameters && a[2] == "*") { lines.Add($"PULA {op.Label} (precisa de ajustes)"); continue; }
             var t0 = DateTime.Now;
             var job = new Job(); Job.Current = job;
+            Paths.Enter();
             try
             {
                 var res = new List<string>();
@@ -611,10 +669,11 @@ static class App
                 if (op.All != null) { var r = op.All(fs, p).GetAwaiter().GetResult(); if (r != null) res.Add(r); }
                 else if (op.One != null) Each(op, fs, p, job, res, errs).GetAwaiter().GetResult();
                 if (errs.Count > 0) throw new Exception(string.Join(" | ", errs));
+                foreach (var warning in job.Warnings) lines.Add("AVISO " + warning);
                 lines.Add($"OK   {op.Label} ({(DateTime.Now - t0).TotalSeconds:0.0}s): {string.Join(" | ", res)}");
             }
             catch (Exception ex) { fails++; var f = Friendly(ex); var raw = f == ex.Message ? "" : " | " + ex.Message; lines.Add($"ERRO {op.Label}: {f}{raw}"); }
-            finally { Job.Current = null; Paths.ReleaseNames(); }
+            finally { Job.Current = null; Paths.Leave(); }
         }
         File.WriteAllLines(a[3], lines, new UTF8Encoding(false));
         return fails;

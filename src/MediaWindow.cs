@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Globalization;
 using System.IO;
 using System.Linq;
@@ -43,6 +43,12 @@ sealed class MediaWindow : Window
         this.src = src; this.mode = mode;
         video = Ff.HasVideo(src);
         duration = Ff.Duration(src);
+        double frameStep = 1 / 30.0;
+        var fps = Ff.Read(src).Video?.Fps.Split('/');
+        if (fps?.Length == 2 && double.TryParse(fps[0], NumberStyles.Float, CultureInfo.InvariantCulture, out var numerator) &&
+            double.TryParse(fps[1], NumberStyles.Float, CultureInfo.InvariantCulture, out var denominator) &&
+            double.IsFinite(numerator) && double.IsFinite(denominator) && numerator > 0 && denominator > 0)
+            frameStep = denominator / numerator;
         var head = mode switch { MediaMode.Trim => "Cortar trecho", MediaMode.Split => "Dividir em partes", MediaMode.Bleep => "Bipe por cima", _ => "Quadro do vídeo" };
         Title = "Mexerica: " + Tr.T(head.ToLowerInvariant());
         Width = 760; SizeToContent = SizeToContent.Height; ResizeMode = ResizeMode.CanMinimize;
@@ -71,7 +77,7 @@ sealed class MediaWindow : Window
         play = TB("▶", "Tocar ou pausar (Espaço)", Toggle);
         TB("−5 s", "Voltar 5 segundos", () => Nudge(-5));
         TB("−1 s", "Voltar 1 segundo", () => Nudge(-1));
-        if (video) { TB("‹ quadro", "Quadro anterior", () => Nudge(-1 / 30.0)); TB("quadro ›", "Próximo quadro", () => Nudge(1 / 30.0)); }
+        if (video) { TB("‹ quadro", "Quadro anterior", () => Nudge(-frameStep)); TB("quadro ›", "Próximo quadro", () => Nudge(frameStep)); }
         TB("+1 s", "Avançar 1 segundo", () => Nudge(1));
         TB("+5 s", "Avançar 5 segundos", () => Nudge(5));
         st.Children.Add(transport);
@@ -143,7 +149,7 @@ sealed class MediaWindow : Window
     double Now => timeline.Value;
     void UpdateClock() => clock.Text = $"{Ff.Clock(Now)} de {Ff.Clock(duration)}";
 
-    static string T(double s) => Ff.Clock(s);
+    static string T(double s) => Ff.PreciseTime(s);
 
     FrameworkElement ModePanel()
     {
@@ -249,7 +255,7 @@ sealed class MediaWindow : Window
 
     Func<string?> finish = () => null;
 
-    static string Inv(double d) => d.ToString("0.###", CultureInfo.InvariantCulture);
+    static string Inv(double d) => d.ToString("0.#########", CultureInfo.InvariantCulture);
 
     static FrameworkElement Pair(TextBox tb, string button, Action a)
     {

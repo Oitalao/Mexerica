@@ -60,7 +60,7 @@ sealed class PdfPagesWindow : Window
         Ui.Dark(this);
         var top = new StackPanel { Margin = new Thickness(18, 14, 18, 6) };
         top.Children.Add(new TextBlock { Text = "Organizar páginas", FontSize = 17, FontWeight = FontWeights.SemiBold, Foreground = Ui.Orange });
-        top.Children.Add(new TextBlock { Text = Path.GetFileName(src) + ". Arraste para mudar a ordem; clique para selecionar (Ctrl e Shift para várias).", Foreground = Ui.Dim, TextWrapping = TextWrapping.Wrap });
+        top.Children.Add(new TextBlock { Text = Path.GetFileName(src) + Tr.T(". Arraste para mudar a ordem; clique para selecionar (Ctrl e Shift para várias)."), Foreground = Ui.Dim, TextWrapping = TextWrapping.Wrap });
         var tools = new WrapPanel { Margin = new Thickness(0, 10, 0, 0) };
         Button B(string t, Action a) { var b = Ui.Button(t, false); b.Margin = new Thickness(0, 0, 6, 6); b.Click += (_, _) => { a(); Redraw(); }; tools.Children.Add(b); return b; }
         B("Girar ⟳", () => Rotate(90));
@@ -228,7 +228,7 @@ sealed class PdfRedactWindow : Window
     PdfRedactWindow(string src)
     {
         Title = "Mexerica: tarjar PDF";
-        Width = 900; Height = 860; WindowStartupLocation = WindowStartupLocation.CenterScreen;
+        Width = 900; Height = Math.Min(860, SystemParameters.WorkArea.Height * 0.95); WindowStartupLocation = WindowStartupLocation.CenterScreen;
         Ui.Dark(this);
         var top = new StackPanel { Margin = new Thickness(18, 14, 18, 6) };
         top.Children.Add(new TextBlock { Text = "Tarjar", FontSize = 17, FontWeight = FontWeights.SemiBold, Foreground = Ui.Orange });
@@ -301,12 +301,16 @@ sealed class PdfRedactWindow : Window
     async Task Show(int n)
     {
         if (doc == null || n < 1 || n > count) return;
+        layer.IsHitTestVisible = false;
+        if (drawing != null) { drawing = null; layer.ReleaseMouseCapture(); }
         current = n;
         var bmp = await PdfThumbs.Render(doc, (uint)(n - 1), 1100);
+        if (current != n) return;
         page.Source = bmp;
         stage.Width = layer.Width = bmp.PixelWidth; stage.Height = layer.Height = bmp.PixelHeight;
         pageLabel.Text = $"Página {n} de {count}  ·  {marks.Values.Sum(l => l.Count)} tarjas";
         DrawMarks();
+        layer.IsHitTestVisible = true;
     }
 
     void DrawMarks()

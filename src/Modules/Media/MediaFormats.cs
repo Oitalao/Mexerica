@@ -46,6 +46,10 @@ sealed class AudioFormats : Module
             if (format.key is "ac3" or "eac3") args.AddRange(["-b:a", "640k"]);
             if (format.key == "aac") args.AddRange(["-b:a", $"{Config.Now.AacK}k"]);
             args.AddRange(Ff.AudioFit(src, format.key));
+            // O cabeçalho ADTS precisa de PCE para representar 7.1 sem descartar canais.
+            if (format.key == "aac" && Ff.Read(src).Audios.FirstOrDefault()?.Channels > 6)
+                args.AddRange(["-aac_pce", "1"]);
+            if (format.key == "alac") Ff.KeepCover(args, src, "m4a");
             args.Add(dst);
             await Ff.Run(args, Ff.Duration(src));
             return dst;
@@ -80,13 +84,15 @@ sealed class VideoFormats : Module
     // SRT/ASS só aparecem quando o vídeo tem legenda de texto embutida (as de imagem, como as de DVD e Blu-ray, não viram texto).
     public override IEnumerable<Target> TargetsFor(string inExt, string path)
     {
+        bool video = Ff.HasVideo(path);
         bool textSubs;
         try { textSubs = Subtitles(path).Any(s => s.Codec is not ("hdmv_pgs_subtitle" or "dvd_subtitle" or "dvb_subtitle")); }
         catch { textSubs = false; }
         bool audio;
         try { audio = Ff.HasAudio(path); } catch { audio = true; }
         foreach (var t in TargetsFor(inExt))
-            if ((textSubs || t.Ext is not ("srt" or "ass")) && (audio || t.Ext is not ("mp3" or "m4a"))) yield return t;
+            if ((textSubs || t.Ext is not ("srt" or "ass")) && (audio || t.Ext is not ("mp3" or "m4a")) &&
+                (video || t.Ext is "mp3" or "m4a" or "srt" or "ass")) yield return t;
     }
 
     public override async Task<string?> Convert(string src, string outExt, P p)
@@ -104,13 +110,13 @@ sealed class VideoFormats : Module
         {
             case "mp4-hevc":
                 // O Hw atual só troca libx264; HEVC usa libx265 para preservar 10 bits na saída.
-                args.AddRange(["-vf", "scale=trunc(iw/2)*2:trunc(ih/2)*2", "-c:v", "libx265", "-preset", "fast", "-crf", Config.Now.Crf.ToString(), "-pix_fmt", IsTenBit(src) ? "yuv420p10le" : "yuv420p", "-tag:v", "hvc1"]);
+                args.AddRange(["-vf", "scale=max(2\\,trunc(iw/2)*2):max(2\\,trunc(ih/2)*2),pad=max(iw\\,16):max(ih\\,16)", "-c:v", "libx265", "-preset", "fast", "-crf", Config.Now.Crf.ToString(), "-pix_fmt", IsTenBit(src) ? "yuv420p10le" : "yuv420p", "-tag:v", "hvc1"]);
                 break;
             case "mp4-av1":
-                args.AddRange(["-vf", "scale=trunc(iw/2)*2:trunc(ih/2)*2", "-c:v", "libsvtav1", "-preset", "8", "-crf", Config.Now.Crf.ToString(), "-pix_fmt", IsTenBit(src) ? "yuv420p10le" : "yuv420p"]);
+                args.AddRange(["-vf", "scale=max(2\\,trunc(iw/2)*2):max(2\\,trunc(ih/2)*2)", "-c:v", "libsvtav1", "-preset", "8", "-crf", Config.Now.Crf.ToString(), "-pix_fmt", IsTenBit(src) ? "yuv420p10le" : "yuv420p"]);
                 break;
             case "720p":
-                args.AddRange(["-vf", "scale=w='min(iw,1280)':h='min(ih,720)':force_original_aspect_ratio=decrease:force_divisible_by=2", "-c:v", "libx264", "-preset", "fast", "-crf", Config.Now.Crf.ToString(), "-pix_fmt", "yuv420p"]);
+                args.AddRange(["-vf", "scale=w='max(2,min(iw,1280))':h='max(2,min(ih,720))':force_original_aspect_ratio=decrease:force_divisible_by=2", "-c:v", "libx264", "-preset", "fast", "-crf", Config.Now.Crf.ToString(), "-pix_fmt", "yuv420p"]);
                 break;
             case "apng": args.AddRange(["-an", "-plays", "0", "-f", "apng"]); break;
             case "webp": args.AddRange(["-an", "-c:v", "libwebp_anim", "-loop", "0", "-f", "webp"]); break;
@@ -168,9 +174,8 @@ sealed class VideoFormats : Module
 
     static async Task<string> ExtractOneSubtitle(string src, string ext)
     {
-        var subs = Subtitles(src);
+        var subs = Subtitles(src).Where(s => s.Codec is not ("hdmv_pgs_subtitle" or "dvd_subtitle" or "dvb_subtitle")).ToList();
         if (subs.Count == 0) throw new Exception("Esse vídeo não contém legendas embutidas");
-        if (subs[0].Codec is "hdmv_pgs_subtitle" or "dvd_subtitle" or "dvb_subtitle") throw new Exception("Essa legenda é imagem e não pode virar texto");
         var dst = Paths.Out(src, ext);
         try { await Ff.Run(["-i", src, "-map", $"0:{subs[0].Index}", "-c:s", ext == "srt" ? "srt" : "ass", dst], Ff.Duration(src)); return dst; }
         catch { Paths.TryDelete(dst); throw; }

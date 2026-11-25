@@ -6,6 +6,8 @@
 
 <p align="center">Convert and edit files without opening any program: drag the file, press <b>Space</b> and drop it on the option.</p>
 
+<p align="center"><a href="https://oitalao.github.io/Mexerica/en/">oitalao.github.io/Mexerica</a></p>
+
 <p align="center">
   <img src="assets/telas/roda-converter.png" width="260" alt="Convert wheel">
   <img src="assets/telas/roda-ferramentas.png" width="260" alt="Tools wheel">
@@ -62,9 +64,10 @@ The wheel only offers what makes sense for that file: a video without sound does
 - Background and margin for images, collage of several photos, images to PDF, grayscale, QR Code reading
 - AI background removal (local model, isnet-general-use; nothing leaves your computer)
 - Metadata: see everything, edit title, author and other fields, remove the location or everything
-- Video: cut a section, crop the picture, speed, split, take one frame or all of them, extract the audio and subtitles, rotate, change the resolution, remove the sound, join
+- Video editor with a timeline: multiple videos and photos, split, delete sections, reorder by dragging, trim with the edges, speed and volume for each section, undo, and export in 9:16, 1:1, 16:9 or the original format
+- Video: crop the picture, speed, split, take one frame or all of them, extract the audio and subtitles, rotate, change the resolution, remove the sound, join
 - Audio: cut a section, normalize the volume, beep over sections, mono and stereo, speed, split, join
-- PDF: organize pages (reorder, rotate, delete), split (the parts go next to the original, in a folder or in a ZIP), join and redact for real (the hidden text is removed)
+- PDF: organize pages (reorder, rotate, delete), split (the parts go next to the original, in a folder or in a ZIP), join and redact for real (the hidden text is removed and the rest of the page remains searchable)
 - PDF also: join files of different types (Word, spreadsheet, image and PDF) into one PDF, in the order and with the name you choose; OCR that makes a scanned PDF searchable, even with pages sideways or upside down; page numbers and a "Doc. 01" stamp; fit an upload limit (compresses and, if needed, splits into parts); PDF/A; password
 - Rename many files at once from a pattern ("Doc. {n} - {name}"), with a preview and undo
 - Subtitles: shift the timing earlier or later; fonts: sample sheet; archives: extract and test integrity

@@ -1,6 +1,7 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.Globalization;
+using System.Formats.Tar;
 using System.IO;
 using System.IO.Compression;
 using System.Linq;
@@ -69,6 +70,15 @@ static class Office
         var tmp = Paths.Temp();
         try
         {
+            using var profileLock = await LockProfile(mine);
+            if (infilter?.StartsWith("CSV:", StringComparison.Ordinal) == true)
+            {
+                var input = Path.Combine(tmp, "entrada");
+                Directory.CreateDirectory(input);
+                var normalized = Path.Combine(input, Path.GetFileName(src));
+                File.WriteAllText(normalized, TextEncoding.Decode(File.ReadAllBytes(src)), new UTF8Encoding(false));
+                src = normalized;
+            }
             var profile = new Uri(Path.Combine(Paths.Data, mine) + "\\").AbsoluteUri;
             var a = new List<string> { "-env:UserInstallation=" + profile, "--headless", "--norestore", "--nolockcheck", "--nologo", "--nodefault" };
             if (infilter != null) a.Add("--infilter=" + infilter);
@@ -86,6 +96,22 @@ static class Office
         finally { Paths.TryDelete(tmp); profiles.Add(mine); gate.Release(); }
     }
 
+    static async Task<FileStream> LockProfile(string name)
+    {
+        Directory.CreateDirectory(Paths.Data);
+        while (true)
+        {
+            Job.Check();
+            try
+            {
+                // A fila em memória não protege o mesmo perfil de duas chamadas independentes da linha de comando.
+                return new FileStream(Path.Combine(Paths.Data, name + ".lock"), FileMode.OpenOrCreate,
+                    FileAccess.ReadWrite, FileShare.None, 1, FileOptions.DeleteOnClose);
+            }
+            catch (IOException) { await Task.Delay(100, Job.Token); }
+        }
+    }
+
     /// O LibreOffice grava CSV em UTF-8 sem BOM, e o Excel então mostra "PreÃ§o": põe o BOM.
     static void AddBom(string path)
     {
@@ -100,7 +126,8 @@ static class Office
 
     public static string? CsvFilter(string src) =>
         Path.GetExtension(src).Equals(".tsv", StringComparison.OrdinalIgnoreCase) ? "CSV:9,34,76" :
-        Path.GetExtension(src).Equals(".csv", StringComparison.OrdinalIgnoreCase) ? "CSV:44,34,76" : null;
+        Path.GetExtension(src).Equals(".csv", StringComparison.OrdinalIgnoreCase)
+            ? $"CSV:{(int)Filee.Engines.Office.Sheets.CsvFormat.DetectDelimiter(TextEncoding.Decode(File.ReadAllBytes(src)))},34,76" : null;
 }
 
 static class Gs
@@ -115,8 +142,45 @@ static class Gs
         return Directory.GetFiles(root, "gswin64c.exe", SearchOption.AllDirectories).OrderByDescending(f => f).FirstOrDefault();
     }
 
-    public static Task Run(IEnumerable<string> args) =>
-        Proc.Run(Exe ?? throw new Exception("Ghostscript não encontrado"), new[] { "-q", "-dNOPAUSE", "-dBATCH", "-dSAFER" }.Concat(args), 1800);
+    public static async Task Run(IEnumerable<string> args)
+    {
+        var a = args.ToList();
+        string? tmp = null, output = null, pattern = null;
+        try
+        {
+            // O executável do Ghostscript não abre caminhos Unicode. Usa nomes relativos simples e devolve a saída.
+            if (a.Any(s => s.Any(c => c > 127) || s.Length > 240))
+            {
+                tmp = Paths.Temp();
+                for (int i = 0; i < a.Count; i++)
+                {
+                    bool flag = a[i].StartsWith("-sOutputFile=", StringComparison.Ordinal);
+                    if (flag || i > 0 && a[i - 1] == "-o")
+                    {
+                        output = flag ? a[i][13..] : a[i];
+                        pattern = Regex.Match(output, @"%0?\d*d").Value;
+                        var name = "saida" + (pattern.Length > 0 ? "-" + pattern : "") + Path.GetExtension(output);
+                        a[i] = (flag ? "-sOutputFile=" : "") + name;
+                    }
+                    else if (File.Exists(a[i]))
+                    {
+                        var name = $"entrada-{i}" + Path.GetExtension(a[i]);
+                        File.Copy(a[i], Path.Combine(tmp, name));
+                        File.SetAttributes(Path.Combine(tmp, name), FileAttributes.Normal);
+                        a[i] = name;
+                    }
+                }
+            }
+            await Proc.Run(Exe ?? throw new Exception("Ghostscript não encontrado"), new[] { "-q", "-dNOPAUSE", "-dBATCH", "-dSAFER" }.Concat(a), 1800, cwd: tmp);
+            if (tmp != null && output != null)
+                foreach (var file in Directory.GetFiles(tmp, "saida*"))
+                {
+                    var dst = pattern!.Length == 0 ? output : output.Replace(pattern, Path.GetFileNameWithoutExtension(file)[6..]);
+                    File.Move(file, dst);
+                }
+        }
+        finally { if (tmp != null) Paths.TryDelete(tmp); }
+    }
 }
 
 /// Erro de senha errada num PDF: quem pediu a senha pode perguntar de novo.
@@ -157,8 +221,7 @@ static class Pdf
 
     public static async Task<string> ToImages(string pdf, string ext, string namedAfter)
     {
-        var file = await Windows.Storage.StorageFile.GetFileFromPathAsync(pdf);
-        var doc = await Windows.Data.Pdf.PdfDocument.LoadFromFileAsync(file);
+        var doc = await Open(pdf);
         if (doc.PageCount == 1)
         {
             var dst = Paths.Out(namedAfter, ext);
@@ -199,8 +262,28 @@ static class Pdf
         await s.CopyToAsync(fs);
     }
 
-    public static async Task<Windows.Data.Pdf.PdfDocument> Open(string pdf) =>
-        await Windows.Data.Pdf.PdfDocument.LoadFromFileAsync(await Windows.Storage.StorageFile.GetFileFromPathAsync(Path.GetFullPath(pdf)));
+    public static async Task<Windows.Data.Pdf.PdfDocument> Open(string pdf)
+    {
+        if (Qpdf.NeedsPassword(pdf)) throw new Exception("Esse PDF tem senha");
+        try { return await Windows.Data.Pdf.PdfDocument.LoadFromFileAsync(await Windows.Storage.StorageFile.GetFileFromPathAsync(Path.GetFullPath(pdf))); }
+        catch (Exception) when (Qpdf.Ok && !Qpdf.NeedsPassword(pdf))
+        {
+            // O leitor do Windows recusa alguns PDFs cifrados mesmo com senha de abertura vazia.
+            var tmp = Paths.Temp();
+            try
+            {
+                var plain = Path.Combine(tmp, "aberto.pdf");
+                var input = Path.Combine(tmp, "entrada.pdf");
+                File.Copy(pdf, input);
+                File.SetAttributes(input, FileAttributes.Normal);
+                await Qpdf.Decrypt(input, "", plain);
+                // O leitor consulta o fluxo ao renderizar as páginas, depois desta chamada.
+                var memory = new MemoryStream(await File.ReadAllBytesAsync(plain));
+                return await Windows.Data.Pdf.PdfDocument.LoadFromStreamAsync(memory.AsRandomAccessStream());
+            }
+            finally { Paths.TryDelete(tmp); }
+        }
+    }
 
     /// Parágrafos do PDF na ordem de leitura (blocos de texto pela posição na página).
     static List<string> Paragraphs(string src)
@@ -295,20 +378,52 @@ static class Pdf
                 var line = lines.FirstOrDefault(l => Math.Abs(l[0].BoundingBox.Bottom - w.BoundingBox.Bottom) < lineTol);
                 if (line == null) lines.Add(new List<UglyToad.PdfPig.Content.Word> { w }); else line.Add(w);
             }
-            foreach (var line in lines)
+            var tables = new List<List<List<UglyToad.PdfPig.Content.Word>>>();
+            double previous = double.NaN;
+            foreach (var line in lines.OrderByDescending(l => l[0].BoundingBox.Bottom))
             {
-                var ordered = line.OrderBy(w => w.BoundingBox.Left).ToList();
-                double space = ordered.Average(w => w.BoundingBox.Width / Math.Max(1, w.Text.Length)) * 1.8;
-                var cells = new List<string>(); var cur = new StringBuilder(); double lastRight = double.NaN;
-                foreach (var w in ordered)
+                double y = line[0].BoundingBox.Bottom;
+                if (tables.Count == 0 || previous - y > lineTol * 5) tables.Add(new());
+                tables[^1].Add(line);
+                previous = y;
+            }
+            foreach (var table in tables)
+            {
+                var tableRows = new List<List<(string text, double left, double right)>>();
+                foreach (var line in table)
                 {
-                    if (!double.IsNaN(lastRight) && w.BoundingBox.Left - lastRight > space) { cells.Add(cur.ToString()); cur.Clear(); }
-                    if (cur.Length > 0) cur.Append(' ');
-                    cur.Append(w.Text);
-                    lastRight = w.BoundingBox.Right;
+                    var ordered = line.OrderBy(w => w.BoundingBox.Left).ToList();
+                    double space = ordered.Average(w => w.BoundingBox.Width / Math.Max(1, w.Text.Length)) * 1.8;
+                    var cells = new List<(string, double, double)>(); var cur = new StringBuilder(); double lastRight = double.NaN, left = ordered[0].BoundingBox.Left;
+                    foreach (var w in ordered)
+                    {
+                        if (!double.IsNaN(lastRight) && w.BoundingBox.Left - lastRight > space) { cells.Add((cur.ToString(), left, lastRight)); cur.Clear(); left = w.BoundingBox.Left; }
+                        if (cur.Length > 0) cur.Append(' ');
+                        cur.Append(w.Text);
+                        lastRight = w.BoundingBox.Right;
+                    }
+                    cells.Add((cur.ToString(), left, lastRight));
+                    tableRows.Add(cells);
                 }
-                cells.Add(cur.ToString());
-                rows.Add(cells);
+                // Uma grade por tabela: as bordas compartilhadas continuam existindo nas linhas com células vazias.
+                int columns = tableRows.Max(r => r.Count);
+                var full = tableRows.Where(r => r.Count == columns).ToList();
+                var cuts = Enumerable.Range(1, columns - 1).Select(c =>
+                {
+                    var edges = full.Select(r => (r[c - 1].right + r[c].left) / 2).OrderBy(x => x).ToList();
+                    return edges[edges.Count / 2];
+                }).ToArray();
+                foreach (var row in tableRows)
+                {
+                    var aligned = Enumerable.Repeat("", columns).ToList();
+                    foreach (var cell in row)
+                    {
+                        int column = cuts.Count(x => (cell.left + cell.right) / 2 > x);
+                        aligned[column] += (aligned[column].Length > 0 ? " " : "") + cell.text;
+                    }
+                    rows.Add(aligned);
+                }
+                rows.Add(new());
             }
             rows.Add(new List<string>());
         }
@@ -321,7 +436,14 @@ static class Pdf
             var sep = ext == "csv" ? Filee.Engines.Office.Sheets.CsvFormat.RegionalSeparator : ',';
             File.WriteAllLines(csv, rows.Select(r => string.Join(sep, r.Select(c => "\"" + c.Replace("\"", "\"\"") + "\""))), new UTF8Encoding(ext == "csv"));
             if (ext == "csv") { var dst = Paths.Out(src, "csv"); File.Copy(csv, dst); return dst; }
-            return await Office.Convert(csv, ext, Paths.Out(src, ext), "CSV:44,34,76");
+            var book = Filee.Engines.Office.Sheets.CsvFormat.Read(csv);
+            var output = Paths.Out(src, ext);
+            await Task.Run(() =>
+            {
+                if (ext == "ods") Filee.Engines.Office.Sheets.OdsWriter.Write(book, output);
+                else Filee.Engines.Office.Sheets.XlsxWriter.Write(book, output);
+            });
+            return output;
         }
         finally { Paths.TryDelete(tmp); }
     }
@@ -448,7 +570,7 @@ static class Pdf
                     "-dDownsampleColorImages=true", "-dDownsampleGrayImages=true", "-dDownsampleMonoImages=true",
                     $"-dColorImageResolution={dpi}", $"-dGrayImageResolution={dpi}", $"-dMonoImageResolution={Math.Max(dpi * 2, 300)}",
                     "-dColorImageDownsampleThreshold=1.0", "-dGrayImageDownsampleThreshold=1.0",
-                    "-dAutoFilterColorImages=false", "-dAutoFilterGrayImages=false", "-dColorImageFilter=/DCTEncode", "-dGrayImageFilter=/DCTEncode",
+                    "-dAutoFilterColorImages=true", "-dAutoFilterGrayImages=true",
                     "-o", o, "-c", $"<< /ColorImageDict {dict} /GrayImageDict {dict} >> setdistillerparams", "-f", src,
                 });
                 return o;
@@ -456,26 +578,30 @@ static class Pdf
             string result;
             if (target <= 0)
             {
-                var (dpi, qf) = p.S("nivel", "media") switch { "leve" => (200, 0.15), "forte" => (96, 0.76), _ => (150, 0.4) };
+                var (dpi, qf) = p.S("nivel", "media") switch { "leve" => (200, 0.15), "forte" => (120, 0.76), _ => (150, 0.4) };
                 result = await Try(dpi, qf, 0);
             }
             else
             {
-                var steps = new[] { (200, 0.15), (150, 0.3), (120, 0.5), (96, 0.76), (72, 1.0), (50, 1.3) };
-                result = "";
+                var steps = new[] { (200, 0.15), (150, 0.3), (120, 0.5), (120, 0.76) };
+                result = src;
                 for (int i = 0; i < steps.Length; i++)
                 {
                     Job.Progress(i / (double)steps.Length);
-                    result = await Try(steps[i].Item1, steps[i].Item2, i);
+                    var candidate = await Try(steps[i].Item1, steps[i].Item2, i);
+                    if (new FileInfo(candidate).Length < new FileInfo(result).Length) result = candidate;
                     if (new FileInfo(result).Length <= target) break;
                 }
             }
             // Se não ficou menor, avisa em vez de entregar um arquivo maior.
-            if (new FileInfo(result).Length >= new FileInfo(src).Length)
+            if (target <= 0 && new FileInfo(result).Length >= new FileInfo(src).Length)
                 throw new Exception("Esse PDF já está bem comprimido; não deu para reduzir mais");
-            File.Move(result, dst);
+            if (target > 0 && new FileInfo(result).Length > target && !p.B("_limite"))
+                Job.Warn(Tr.T("O PDF não atingiu o tamanho pedido. Foi mantido o menor resultado legível; use Limite para dividir."));
+            File.Copy(result, dst);
             return dst;
         }
+        catch { Paths.TryDelete(dst); throw; }
         finally { Paths.TryDelete(tmp); }
     }
 
@@ -500,6 +626,7 @@ static class Pdf
         var dst = Paths.Out(src, "pdf", "tarjado");
         try
         {
+            if (byPage.Keys.Any(pg => pg < 1 || pg > n)) throw new Exception("Escolha páginas válidas");
             int dpi = 200, k = 0;
             foreach (var (pg, rects) in byPage)
             {
@@ -516,10 +643,20 @@ static class Pdf
                 img.Format = MagickFormat.Pdf;
                 img.Settings.Compression = CompressionMethod.JPEG;
                 img.Quality = 90;
-                img.Write(Path.Combine(tmp, $"p{pg}.pdf"));
+                var raster = Path.Combine(tmp, $"p{pg}.pdf");
+                img.Write(raster);
+                // PDFsharp não oferece remoção regional segura: substitui só a página marcada e refaz o OCR.
+                // Sem o OCR do Windows a tarja continua valendo; só a página fica sem texto pesquisável.
+                try
+                {
+                    var searchable = await PdfExtras.Ocr(raster, P.None);
+                    if (searchable != null) File.Move(searchable, raster, true);
+                }
+                catch (OperationCanceledException) { throw; }
+                catch (Exception ex) { Log.Write($"tarjar, OCR da página {pg}: {ex.Message}"); }
             }
-            // Monta: páginas originais, trocando as tarjadas.
-            var a = new List<string> { "--empty", "--pages" };
+            // Remove também recursos compartilhados que as páginas restantes não usam.
+            var a = new List<string> { "--remove-unreferenced-resources=yes", "--empty", "--pages" };
             int start = 1;
             foreach (var pg in byPage.Keys.OrderBy(x => x))
             {
@@ -547,13 +684,13 @@ static class TextDocs
 
     static string HtmlFromMd(string src)
     {
-        var md = File.ReadAllText(src);
+        var md = TextEncoding.Decode(File.ReadAllBytes(src));
         var pipe = new Markdig.MarkdownPipelineBuilder().UseAdvancedExtensions().Build();
-        return Page(Path.GetFileNameWithoutExtension(src), Markdig.Markdown.ToHtml(md, pipe));
+        return AbsoluteImages(Page(Path.GetFileNameWithoutExtension(src), Markdig.Markdown.ToHtml(md, pipe)), Path.GetDirectoryName(src)!);
     }
 
     static string HtmlFromTxt(string src) =>
-        Page(Path.GetFileNameWithoutExtension(src), string.Join("\n", Regex.Split(File.ReadAllText(src).Replace("\r", ""), @"\n\s*\n")
+        Page(Path.GetFileNameWithoutExtension(src), string.Join("\n", Regex.Split(TextEncoding.Decode(File.ReadAllBytes(src)).Replace("\r", ""), @"\n\s*\n")
             .Where(p => p.Trim().Length > 0).Select(p => "<p>" + WebUtility.HtmlEncode(p.Trim()).Replace("\n", "<br>") + "</p>")));
 
     public static string HtmlToMd(string html)
@@ -583,13 +720,80 @@ static class TextDocs
 
     static void Write(string dst, string text, bool bom) => File.WriteAllText(dst, text, new UTF8Encoding(bom));
 
+    static Uri ImageUri(string directory, string reference)
+    {
+        var baseUri = new Uri(new Uri(Path.GetFullPath(directory) + Path.DirectorySeparatorChar).AbsoluteUri);
+        return new Uri(baseUri, reference.Split('?', '#')[0]);
+    }
+
+    static string AbsoluteImages(string html, string directory)
+    {
+        var document = new AngleSharp.Html.Parser.HtmlParser().ParseDocument(html);
+        foreach (var image in document.QuerySelectorAll("img[src]"))
+        {
+            var value = WebUtility.HtmlDecode(image.GetAttribute("src") ?? "");
+            if (Uri.TryCreate(value, UriKind.Absolute, out _)) continue;
+            image.SetAttribute("src", ImageUri(directory, value).AbsoluteUri);
+        }
+        return document.DocumentElement.OuterHtml;
+    }
+
+    static string WriteMarkdown(string src, string html, string directory)
+    {
+        var dst = Paths.Out(src, "md");
+        string? assets = null;
+        try
+        {
+            var document = new AngleSharp.Html.Parser.HtmlParser().ParseDocument(html);
+            var copied = new Dictionary<string, string>(StringComparer.Ordinal);
+            foreach (var image in document.QuerySelectorAll("img[src]"))
+            {
+                var value = WebUtility.HtmlDecode(image.GetAttribute("src") ?? "");
+                if (copied.TryGetValue(value, out var link)) { image.SetAttribute("src", link); continue; }
+                byte[] bytes; string extension;
+                if (value.StartsWith("data:image/", StringComparison.OrdinalIgnoreCase))
+                {
+                    int comma = value.IndexOf(',');
+                    var header = value[..comma];
+                    extension = header[11..].Split(';')[0] switch { "jpeg" => "jpg", "svg+xml" => "svg", var e => e };
+                    if (extension.Any(c => !char.IsAsciiLetterOrDigit(c))) continue;
+                    bytes = header.EndsWith(";base64", StringComparison.OrdinalIgnoreCase) ? System.Convert.FromBase64String(value[(comma + 1)..]) : Encoding.UTF8.GetBytes(Uri.UnescapeDataString(value[(comma + 1)..]));
+                }
+                else
+                {
+                    string file;
+                    var reference = value.Split('?', '#')[0];
+                    if (Uri.TryCreate(reference, UriKind.Absolute, out var uri))
+                    {
+                        if (!uri.IsFile) continue;
+                        file = ImageUri(directory, reference).LocalPath;
+                    }
+                    else file = ImageUri(directory, reference).LocalPath;
+                    if (!File.Exists(file)) throw new FileNotFoundException(null, file);
+                    extension = Path.GetExtension(file).TrimStart('.');
+                    bytes = File.ReadAllBytes(file);
+                }
+                if (assets == null) { assets = Paths.OutDir(dst, "imagens"); Directory.CreateDirectory(assets); }
+                var name = $"imagem-{copied.Count + 1}.{extension}";
+                File.WriteAllBytes(Path.Combine(assets, name), bytes);
+                link = Uri.EscapeDataString(Path.GetFileName(assets)) + "/" + Uri.EscapeDataString(name);
+                copied[value] = link;
+                image.SetAttribute("src", link);
+            }
+            Write(dst, HtmlToMd(document.DocumentElement.OuterHtml), false);
+            if (assets != null) Job.Current?.Companions.Enqueue(assets);
+            return dst;
+        }
+        catch { Paths.TryDelete(dst); if (assets != null) Paths.TryDelete(assets); throw; }
+    }
+
     /// Converte a partir de um HTML intermediário (de Markdown, texto, EPUB ou HTML).
     static async Task<string> FromHtml(string src, string html, string ext)
     {
         switch (ext)
         {
             case "html": { var d = Paths.Out(src, "html"); Write(d, html, false); return d; }
-            case "md": { var d = Paths.Out(src, "md"); Write(d, HtmlToMd(html), false); return d; }
+            case "md": return WriteMarkdown(src, html, Path.GetDirectoryName(src)!);
             case "txt": { var d = Paths.Out(src, "txt"); Write(d, HtmlToText(html), true); return d; }
         }
         var tmp = Paths.Temp();
@@ -606,7 +810,7 @@ static class TextDocs
     public static Task<string> FromText(string src, string ext) => FromHtml(src, HtmlFromTxt(src), ext);
     public static Task<string> FromHtmlFile(string src, string ext) => ext switch
     {
-        "md" or "txt" => FromHtml(src, File.ReadAllText(src), ext),
+        "md" or "txt" => FromHtml(src, TextEncoding.Decode(File.ReadAllBytes(src)), ext),
         _ => Office.Here(src, ext, "HTML (StarWriter)"),
     };
 
@@ -625,9 +829,7 @@ static class TextDocs
                 foreach (var img in Directory.GetFiles(tmp).Where(f => f != html)) File.Copy(img, Path.Combine(Path.GetDirectoryName(d)!, Path.GetFileName(img)), false);
                 return d;
             }
-            var dst = Paths.Out(src, "md");
-            Write(dst, HtmlToMd(File.ReadAllText(html)), false);
-            return dst;
+            return WriteMarkdown(src, TextEncoding.Decode(File.ReadAllBytes(html)), tmp);
         }
         finally { Paths.TryDelete(tmp); }
     }
@@ -637,7 +839,7 @@ static class TextDocs
     public static string EpubHtml(string src)
     {
         using var z = ZipFile.OpenRead(src);
-        string Read(string name) { var e = z.GetEntry(name) ?? z.Entries.FirstOrDefault(x => x.FullName.Equals(name, StringComparison.OrdinalIgnoreCase)); if (e == null) return ""; using var r = new StreamReader(e.Open()); return r.ReadToEnd(); }
+        string Read(string name) { var e = z.GetEntry(name) ?? z.Entries.FirstOrDefault(x => x.FullName.Equals(name, StringComparison.OrdinalIgnoreCase)); if (e == null) throw new InvalidDataException("O e-book está incompleto: falta um arquivo do conteúdo."); using var r = new StreamReader(e.Open()); return r.ReadToEnd(); }
         var container = XDocument.Parse(Read("META-INF/container.xml"));
         var opfPath = container.Descendants().First(e => e.Name.LocalName == "rootfile").Attribute("full-path")!.Value;
         var opf = XDocument.Parse(Read(opfPath));
@@ -649,28 +851,39 @@ static class TextDocs
         {
             if (!manifest.TryGetValue(itemref.Attribute("idref")!.Value, out var item)) continue;
             var path = Combine(baseDir, item.href);
-            var html = Read(path);
-            var m = Regex.Match(html, @"<body[^>]*>(.*)</body>", RegexOptions.Singleline | RegexOptions.IgnoreCase);
-            var chunk = m.Success ? m.Groups[1].Value : html;
+            var chapter = new AngleSharp.Html.Parser.HtmlParser().ParseDocument(Read(path));
             var dir = path.Contains('/') ? path[..(path.LastIndexOf('/') + 1)] : "";
-            chunk = Regex.Replace(chunk, @"(<img[^>]+(?:src|xlink:href)\s*=\s*"")([^""]+)("")", mm =>
+            foreach (var image in chapter.QuerySelectorAll("img, image"))
             {
-                var ip = Combine(dir, WebUtility.UrlDecode(mm.Groups[2].Value));
+                var reference = image.GetAttribute("src") ?? image.GetAttribute("href") ?? image.GetAttribute("xlink:href");
+                if (reference == null || reference.StartsWith("data:", StringComparison.OrdinalIgnoreCase)) continue;
+                var ip = Combine(dir, reference);
                 var e = z.GetEntry(ip);
-                if (e == null) return mm.Value;
+                if (e == null) continue;
                 using var ms = new MemoryStream(); using (var s = e.Open()) s.CopyTo(ms);
                 var mime = Path.GetExtension(ip).ToLowerInvariant() switch { ".png" => "image/png", ".gif" => "image/gif", ".svg" => "image/svg+xml", ".webp" => "image/webp", _ => "image/jpeg" };
-                return mm.Groups[1].Value + $"data:{mime};base64,{System.Convert.ToBase64String(ms.ToArray())}" + mm.Groups[3].Value;
-            }, RegexOptions.IgnoreCase);
-            chunk = Regex.Replace(chunk, @"<svg\b.*?</svg>", "", RegexOptions.Singleline | RegexOptions.IgnoreCase);
-            body.Append(chunk).Append('\n');
+                var embedded = $"data:{mime};base64,{System.Convert.ToBase64String(ms.ToArray())}";
+                if (image.LocalName == "img") image.SetAttribute("src", embedded);
+                else
+                {
+                    var replacement = chapter.CreateElement("img");
+                    replacement.SetAttribute("src", embedded);
+                    foreach (var key in new[] { "width", "height" })
+                        if (image.GetAttribute(key) is { } size) replacement.SetAttribute(key, size);
+                    image.Parent?.ReplaceChild(replacement, image);
+                }
+            }
+            // Capas de EPUB costumam usar um SVG que só contém a imagem.
+            foreach (var svg in chapter.QuerySelectorAll("svg"))
+                if (svg.QuerySelector("img") is { } image) svg.Parent?.ReplaceChild(image, svg);
+            body.Append(chapter.Body?.InnerHtml ?? "").Append('\n');
         }
         return Page(title, body.ToString());
     }
 
     static string Combine(string dir, string rel)
     {
-        rel = rel.Split('#')[0];
+        rel = Uri.UnescapeDataString(rel.Split('#')[0]);
         var parts = new List<string>((dir + rel).Split('/'));
         for (int i = 0; i < parts.Count; i++)
         {
@@ -685,58 +898,15 @@ static class TextDocs
 
 static class Subtitles
 {
-    static readonly Regex Timing = new(@"^\s*(\d{1,2}:)?\d{2}:\d{2}[.,]\d{3}\s*-->\s*(\d{1,2}:)?\d{2}:\d{2}[.,]\d{3}", RegexOptions.Compiled);
-
-    record Cue(string Time, List<string> Lines);
-
-    static List<Cue> Parse(string src)
-    {
-        var cues = new List<Cue>();
-        Cue? cur = null;
-        foreach (var raw in Filee.Engines.Subtitles.SubtitleEncoding.Decode(File.ReadAllBytes(src)).Split(new[] { "\r\n", "\n", "\r" }, StringSplitOptions.None))
-        {
-            var line = raw.TrimEnd();
-            if (Timing.IsMatch(line)) { cur = new Cue(line.Trim(), new()); cues.Add(cur); }
-            else if (line.Length == 0) cur = null;
-            else if (cur != null) cur.Lines.Add(line);
-        }
-        if (cues.Count == 0) throw new Exception("Não achei nenhuma legenda nesse arquivo");
-        return cues;
-    }
-
-    static string Fix(string t, char sep)
-    {
-        var parts = t.Split("-->");
-        string One(string s)
-        {
-            s = s.Trim().Split(' ')[0].Replace(',', '.').Replace('.', sep);
-            if (s.Count(c => c == ':') == 1) s = "00:" + s;
-            if (s.IndexOf(':') == 1) s = "0" + s;
-            return s;
-        }
-        return $"{One(parts[0])} --> {One(parts[1])}";
-    }
-
     public static string Convert(string src, string ext)
     {
-        var cues = Parse(src);
+        Filee.Engines.Subtitles.SubtitleDocument document;
+        try { document = Filee.Engines.Subtitles.SubtitleReader.Read(Modules.Ext(src), File.ReadAllBytes(src)); }
+        catch (InvalidDataException) { throw new Exception("Não achei nenhuma legenda nesse arquivo"); }
         var dst = Paths.Out(src, ext);
-        var sb = new StringBuilder();
-        if (ext == "vtt")
-        {
-            sb.Append("WEBVTT\n\n");
-            foreach (var c in cues) sb.Append(Fix(c.Time, '.')).Append('\n').Append(string.Join("\n", c.Lines)).Append("\n\n");
-        }
-        else if (ext == "srt")
-        {
-            int n = 1;
-            foreach (var c in cues) sb.Append(n++).Append("\r\n").Append(Fix(c.Time, ',')).Append("\r\n").Append(string.Join("\r\n", c.Lines)).Append("\r\n\r\n");
-        }
-        else
-        {
-            foreach (var c in cues) sb.Append(Regex.Replace(string.Join(" ", c.Lines), "<[^>]+>", "")).Append("\r\n");
-        }
-        File.WriteAllText(dst, sb.ToString(), new UTF8Encoding(ext == "txt"));
+        if (ext == "txt")
+            File.WriteAllText(dst, string.Join("\r\n", document.Cues.Select(c => Filee.Engines.Subtitles.SubtitleMarkup.PlainText(c.Text))) + "\r\n", new UTF8Encoding(true));
+        else File.WriteAllBytes(dst, Filee.Engines.Subtitles.SubtitleWriter.Write(document, ext));
         return dst;
     }
 }
@@ -758,11 +928,15 @@ static class Archives
             using var o = File.Create(Path.Combine(dir, Path.GetFileNameWithoutExtension(src)));
             await i.CopyToAsync(o, Job.Token);
         }
-        else if (Path.GetExtension(src).Equals(".zip", StringComparison.OrdinalIgnoreCase))
+        else if (Path.GetExtension(src).Equals(".zip", StringComparison.OrdinalIgnoreCase) && Paths.FindTool(Path.Combine("7zip", "7z.exe")) == null)
             await Task.Run(() => ZipFile.ExtractToDirectory(src, dir, Encoding.GetEncoding(850), true)); // nomes de zip antigos vêm em CP850
         else
         {
-            try { await Proc.Run(Tar, new[] { "-xf", src, "-C", dir }); }
+            try
+            {
+                if (Paths.FindTool(Path.Combine("7zip", "7z.exe")) != null) await ArchiveModule.Unpack(src, dir);
+                else await Proc.Run(Tar, new[] { "-xf", src, "-C", dir });
+            }
             catch (Exception ex) when (ex.Message.Contains("encrypt", StringComparison.OrdinalIgnoreCase) || ex.Message.Contains("passphrase", StringComparison.OrdinalIgnoreCase))
             { throw new Exception("Esse arquivo compactado tem senha"); }
         }
@@ -800,7 +974,17 @@ static class Archives
             await ExtractTo(src, inner);
             var dst = Paths.Out(src, ext == "tgz" ? "tar.gz" : ext);
             if (ext == "zip") await Task.Run(() => ZipFile.CreateFromDirectory(inner, dst, CompressionLevel.Optimal, false, new UTF8Encoding(false)));
-            else await Proc.Run(Tar, new[] { ext == "tgz" ? "-czf" : "-cf", dst, "-C", inner, "." });
+            else await Task.Run(() =>
+            {
+                using var output = File.Create(dst);
+                using var compressed = ext == "tgz" ? new GZipStream(output, CompressionLevel.Optimal) : null;
+                using var tar = new TarWriter(compressed ?? (Stream)output, TarEntryFormat.Pax);
+                foreach (var file in Directory.EnumerateFileSystemEntries(inner, "*", SearchOption.AllDirectories))
+                {
+                    Job.Check();
+                    tar.WriteEntry(file, Path.GetRelativePath(inner, file).Replace('\\', '/'));
+                }
+            });
             return dst;
         }
         finally { Paths.TryDelete(tmp); }
@@ -812,21 +996,12 @@ static class Archives
         try
         {
             using var z = ZipFile.Open(dst, ZipArchiveMode.Create, new UTF8Encoding(false));
-            var all = new List<(string file, string entry)>();
-            foreach (var it in items)
-            {
-                var p = it.TrimEnd('\\');
-                if (Directory.Exists(p))
-                {
-                    var parent = Path.GetDirectoryName(p)!;
-                    foreach (var f in Directory.EnumerateFiles(p, "*", SearchOption.AllDirectories)) all.Add((f, Path.GetRelativePath(parent, f).Replace('\\', '/')));
-                }
-                else all.Add((p, Path.GetFileName(p)));
-            }
+            var all = ArchiveEntries(items);
             for (int i = 0; i < all.Count; i++)
             {
                 Job.Check(); Job.Progress(i / (double)all.Count);
-                z.CreateEntryFromFile(all[i].file, all[i].entry, CompressionLevel.Optimal);
+                if (Directory.Exists(all[i].file)) z.CreateEntry(all[i].entry.TrimEnd('/') + "/");
+                else z.CreateEntryFromFile(all[i].file, all[i].entry, CompressionLevel.Optimal);
             }
         }
         catch { Paths.TryDelete(dst); throw; }
@@ -836,11 +1011,42 @@ static class Archives
     public static async Task<string> TarGz(string[] items)
     {
         string dst = items.Length == 1 ? Paths.Out(items[0], "tar.gz") : Paths.Out(Path.Combine(Path.GetDirectoryName(items[0].TrimEnd('\\'))!, "Arquivos.x"), "tar.gz");
-        var parent = Path.GetDirectoryName(items[0].TrimEnd('\\'))!;
-        var a = new List<string> { "-czf", dst, "-C", parent };
-        a.AddRange(items.Select(i => Path.GetFileName(i.TrimEnd('\\'))));
-        try { await Proc.Run(Tar, a); } catch { Paths.TryDelete(dst); throw; }
+        try
+        {
+            await Task.Run(() =>
+            {
+                using var output = File.Create(dst);
+                using var gzip = new GZipStream(output, CompressionLevel.Optimal);
+                using var tar = new TarWriter(gzip, TarEntryFormat.Pax);
+                foreach (var (file, entry) in ArchiveEntries(items))
+                {
+                    Job.Check();
+                    tar.WriteEntry(file, entry);
+                }
+            });
+        }
+        catch { Paths.TryDelete(dst); throw; }
         return dst;
+    }
+
+    static List<(string file, string entry)> ArchiveEntries(string[] items)
+    {
+        var roots = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+        var entries = new List<(string, string)>();
+        foreach (var item in items)
+        {
+            var path = Path.GetFullPath(item).TrimEnd('\\', '/');
+            var name = Path.GetFileName(path);
+            var ext = Directory.Exists(path) ? "" : Path.GetExtension(name);
+            var stem = name[..(name.Length - ext.Length)];
+            var unique = name;
+            for (int i = 1; !roots.Add(unique); i++) unique = $"{stem} ({i}){ext}";
+            entries.Add((path, unique));
+            if (Directory.Exists(path))
+                foreach (var child in Directory.EnumerateFileSystemEntries(path, "*", new EnumerationOptions { RecurseSubdirectories = true, AttributesToSkip = FileAttributes.ReparsePoint, IgnoreInaccessible = false }))
+                    entries.Add((child, unique + "/" + Path.GetRelativePath(path, child).Replace('\\', '/')));
+        }
+        return entries;
     }
 }
 

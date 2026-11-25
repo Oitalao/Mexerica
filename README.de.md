@@ -6,6 +6,8 @@
 
 <p align="center">Dateien umwandeln und bearbeiten, ohne ein Programm zu öffnen: Datei ziehen, <b>Leertaste</b> drücken und auf der Option loslassen.</p>
 
+<p align="center"><a href="https://oitalao.github.io/Mexerica/en/">oitalao.github.io/Mexerica</a></p>
+
 <p align="center">
   <img src="assets/telas/roda-converter.png" width="260" alt="Rad Konvertieren">
   <img src="assets/telas/roda-ferramentas.png" width="260" alt="Rad Werkzeuge">
@@ -62,9 +64,10 @@ Das Rad bietet nur an, was für diese Datei sinnvoll ist: ein Video ohne Ton bie
 - Hintergrund und Rand für Bilder, Collage aus mehreren Fotos, Bilder zu PDF, Graustufen, QR-Code lesen
 - Fotohintergrund per KI entfernen (lokales Modell, isnet-general-use; nichts verlässt den Computer)
 - Metadaten: alles ansehen, Titel, Autor und andere Felder bearbeiten, den Standort oder alles löschen
-- Video: einen Abschnitt schneiden, das Bild zuschneiden, Geschwindigkeit, teilen, ein Einzelbild oder alle speichern, Ton und Untertitel herausziehen, drehen, Auflösung ändern, Ton entfernen, zusammenfügen
+- Videoeditor mit Zeitleiste: mehrere Videos und Fotos, teilen, Abschnitte löschen, per Ziehen neu anordnen, an den Rändern kürzen, Geschwindigkeit und Lautstärke für jeden Abschnitt, rückgängig machen und in 9:16, 1:1, 16:9 oder im Originalformat exportieren
+- Video: das Bild zuschneiden, Geschwindigkeit, teilen, ein Einzelbild oder alle speichern, Ton und Untertitel herausziehen, drehen, Auflösung ändern, Ton entfernen, zusammenfügen
 - Audio: einen Abschnitt schneiden, Lautstärke angleichen, Piepton über Abschnitte legen, Mono und Stereo, Geschwindigkeit, teilen, zusammenfügen
-- PDF: Seiten ordnen (umsortieren, drehen, löschen), teilen (die Teile landen neben dem Original, in einem Ordner oder in einem ZIP), zusammenfügen und wirklich schwärzen (der verdeckte Text verschwindet)
+- PDF: Seiten ordnen (umsortieren, drehen, löschen), teilen (die Teile landen neben dem Original, in einem Ordner oder in einem ZIP), zusammenfügen und wirklich schwärzen (der verdeckte Text verschwindet und der Rest der Seite bleibt durchsuchbar)
 - PDF außerdem: Dateien verschiedener Typen (Word, Tabelle, Bild und PDF) zu einem PDF zusammenfügen, in der Reihenfolge und mit dem Namen Ihrer Wahl; OCR, die ein gescanntes PDF durchsuchbar macht, auch mit seitlich oder kopfstehend gescannten Seiten; Seitenzahlen und Stempel "Doc. 01"; in ein Upload-Limit passen (komprimiert und teilt bei Bedarf in Teile); PDF/A; Passwort
 - Viele Dateien auf einmal nach Muster umbenennen ("Doc. {n} - {Name}"), mit Vorschau und Rückgängig
 - Untertitel: Zeit verzögern oder vorziehen; Schriftarten: Musterblatt; Archive: entpacken und auf Fehler prüfen

@@ -45,7 +45,7 @@ internal static class PlyFormat
         var claimed = new HashSet<int>();
         var total = Math.Max(1, elements.Sum(e => e.Count));
         long done = 0;
-        Span<int> corners = stackalloc int[256];
+        var corners = new int[256];
         Span<double> color = stackalloc double[4];
         var cornerValues = new List<double>();
         var cornerUvs = new List<double>();
@@ -98,7 +98,8 @@ internal static class PlyFormat
                         }
                     }
 
-                    var n = Math.Min(cornerValues.Count, corners.Length);
+                    var n = cornerValues.Count;
+                    if (n > corners.Length) Array.Resize(ref corners, n);
                     var wedgeUvs = cornerUvs.Count >= n * 2 && n > 0;
                     for (var i = 0; i < n; i++)
                     {
@@ -112,7 +113,7 @@ internal static class PlyFormat
                         var rgba = hasFaceColor ? new Vector4((float)color[0], (float)color[1], (float)color[2], (float)color[3]) : part.Color((int)index);
                         corners[i] = Split(part, split, claimed, (int)index, uv, rgba, wedgeUvs, hasFaceColor);
                     }
-                    Triangulator.AddPolygon(part, corners[..n]);
+                    Triangulator.AddPolygon(part, corners.AsSpan(0, n));
                 }
             }
             else

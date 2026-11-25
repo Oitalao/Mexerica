@@ -48,26 +48,49 @@ sealed class Config
     public int AacK => AudioQuality switch { "media" => 160, "leve" => 112, _ => 192 };
 
     static readonly string file = Path.Combine(Paths.Data, "config.json");
+    static readonly object saveGate = new();
     public static Config Now { get; private set; } = Load();
 
     static Config Load()
     {
-        try { if (File.Exists(file)) return JsonSerializer.Deserialize<Config>(File.ReadAllText(file)) ?? new(); }
+        try
+        {
+            if (File.Exists(file))
+            {
+                var c = JsonSerializer.Deserialize<Config>(File.ReadAllText(file)) ?? new();
+                c.OutputDir ??= ""; c.Language ??= "pt-BR"; c.Hotkey ??= "ctrl+shift+space";
+                c.VideoQuality ??= "alta"; c.AudioQuality ??= "alta"; c.WheelTheme ??= "escuro";
+                c.SkippedVersion ??= ""; c.LastSeenVersion ??= ""; c.UpdateNotes ??= ""; c.UpdateNotesVersion ??= "";
+                c.WatchFolders = (c.WatchFolders ?? new()).Where(w => w != null && !string.IsNullOrWhiteSpace(w.Folder)).ToList();
+                c.WatchScanned = (c.WatchScanned ?? new()).Where(s => s != null).ToList();
+                c.Presets = (c.Presets ?? new()).Where(p => p != null && !string.IsNullOrWhiteSpace(p.Name)
+                    && p.Group is "Image" or "Video" or "Audio" && !string.IsNullOrWhiteSpace(p.Format)).ToList();
+                foreach (var p in c.Presets) p.Suffix ??= "";
+                c.WheelOrder = (c.WheelOrder ?? new()).Where(p => p.Value != null).ToDictionary(p => p.Key, p => p.Value.Where(s => s != null).ToList());
+                c.WheelHidden = (c.WheelHidden ?? new()).Where(p => p.Value != null).ToDictionary(p => p.Key, p => p.Value.Where(s => s != null).ToList());
+                c.ImageQuality = Math.Clamp(c.ImageQuality, 1, 100); c.PdfDpi = Math.Clamp(c.PdfDpi, 72, 1200);
+                c.WheelOpacity = Math.Clamp(c.WheelOpacity, 0, 100);
+                return c;
+            }
+        }
         catch (Exception ex) { Log.Write("config: " + ex.Message); }
         return new();
     }
 
     public void Save()
     {
-        try
+        lock (saveGate)
         {
-            Directory.CreateDirectory(Paths.Data);
-            var tmp = file + ".tmp";
-            File.WriteAllText(tmp, JsonSerializer.Serialize(this, new JsonSerializerOptions { WriteIndented = true }));
-            File.Move(tmp, file, true);
+            try
+            {
+                Directory.CreateDirectory(Paths.Data);
+                var tmp = file + ".tmp";
+                File.WriteAllText(tmp, JsonSerializer.Serialize(this, new JsonSerializerOptions { WriteIndented = true }));
+                File.Move(tmp, file, true);
+            }
+            catch (Exception ex) { Log.Write("config: " + ex.Message); }
+            Now = this;
         }
-        catch (Exception ex) { Log.Write("config: " + ex.Message); }
-        Now = this;
     }
 
     public Config Clone() => JsonSerializer.Deserialize<Config>(JsonSerializer.Serialize(this))!;

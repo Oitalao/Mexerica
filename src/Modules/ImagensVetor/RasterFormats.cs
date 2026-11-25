@@ -1,4 +1,5 @@
 using System;
+using System.Buffers.Binary;
 using System.Collections.Generic;
 using System.IO;
 using System.IO.Compression;
@@ -33,13 +34,13 @@ sealed class RasterFormats : Module
     public override IEnumerable<Target> TargetsFor(string inExt, string path)
     {
         bool animated = false;
-        if (inExt is "gif" or "webp" or "apng" or "png")
+        if (inExt is "gif" or "webp" or "apng" or "png" or "tif" or "tiff")
         {
             try
             {
                 using var frames = new ImageMagick.MagickImageCollection();
                 frames.Ping(path);
-                animated = frames.Count > 1;
+                animated = frames.Count > 1 || Images.AnimatedPng(path);
             }
             catch { }
         }
@@ -58,10 +59,12 @@ sealed class RasterFormats : Module
 
     static string Gray(string src)
     {
-        using var image = Read(src);
-        image.ColorSpace = ColorSpace.Gray;
-        var dst = Paths.Out(src, "png", "cinza");
-        Images.Save(image, dst, "png");
+        var inputExt = Images.FrameExt(src);
+        var ext = inputExt is "gif" or "webp" or "tiff" or "apng" ? inputExt : "png";
+        using var frames = LoadFrames(src, ext);
+        foreach (var image in frames) image.ColorSpace = ColorSpace.Gray;
+        var dst = Paths.Out(src, ext, "cinza");
+        Images.SaveFrames(frames, dst, ext);
         return dst;
     }
 
@@ -76,8 +79,23 @@ sealed class RasterFormats : Module
             {
                 using var zipped = File.OpenRead(src);
                 using var gz = new GZipStream(zipped, CompressionMode.Decompress);
-                using var output = File.Create(dst);
-                gz.CopyTo(output);
+                if (ext == "svg")
+                {
+                    using var output = File.Create(dst);
+                    gz.CopyTo(output);
+                }
+                else
+                {
+                    var tmp = Paths.Temp();
+                    try
+                    {
+                        var svg = Path.Combine(tmp, "input.svg");
+                        using (var output = File.Create(svg)) gz.CopyTo(output);
+                        var converted = Run(svg, ext);
+                        File.Move(converted, dst);
+                    }
+                    finally { Paths.TryDelete(tmp); }
+                }
             }
             else if (ext == "svgz")
             {
@@ -86,13 +104,10 @@ sealed class RasterFormats : Module
                 using var source = File.OpenRead(src);
                 source.CopyTo(gz);
             }
-            else if (ext == "apng" || (input == "apng" && ext == "gif"))
+            else if (Images.MultiFrame(ext))
             {
-                var ff = Ff.Exe ?? throw new Exception("ffmpeg não encontrado");
-                var args = ext == "apng"
-                    ? new[] { "-hide_banner", "-nostdin", "-y", "-i", src, "-plays", "0", "-f", "apng", dst }
-                    : new[] { "-hide_banner", "-nostdin", "-y", "-i", src, dst };
-                Proc.Run(ff, args).GetAwaiter().GetResult();
+                using var frames = LoadFrames(src, ext);
+                Images.SaveFrames(frames, dst, ext);
             }
             else
             {
@@ -113,7 +128,8 @@ sealed class RasterFormats : Module
                         "pcx" => MagickFormat.Pcx,
                         _ => throw new Exception("Formato de saída não suportado"),
                     };
-                    image.Write(dst);
+                    if (dst.Length < 260) image.Write(dst);
+                    else { using var output = File.Create(dst); image.Write(output); }
                 }
             }
             if (!File.Exists(dst) || new FileInfo(dst).Length == 0) throw new Exception("O arquivo de saída ficou vazio");
@@ -127,9 +143,10 @@ sealed class RasterFormats : Module
         }
     }
 
-    static MagickImage Read(string src)
+    public static MagickImage Read(string src)
     {
         var ext = Modules.Ext(src);
+        if (ext == "xcf") return ReadXcf(src);
         if (ext == "jxr" || ext == "wdp" || ext == "hdp")
         {
             using var stream = File.OpenRead(src);
@@ -162,6 +179,7 @@ sealed class RasterFormats : Module
         {
             using var dicom = Dicom.TryRead(src);
             if (dicom != null && dicom.Count > 0) return (MagickImage)dicom[0].Clone();
+            return new MagickImage(src);
         }
         if (ext == "svgz")
         {
@@ -173,14 +191,96 @@ sealed class RasterFormats : Module
         }
         if (ext == "emf" || ext == "wmf")
         {
-            using var vector = System.Drawing.Image.FromFile(src);
+            using var input = File.OpenRead(src);
+            using var vector = System.Drawing.Image.FromStream(input);
             using var bitmap = new System.Drawing.Bitmap(vector.Width, vector.Height);
             using (var graphics = System.Drawing.Graphics.FromImage(bitmap)) graphics.DrawImage(vector, 0, 0, bitmap.Width, bitmap.Height);
             using var bytes = new MemoryStream();
             bitmap.Save(bytes, System.Drawing.Imaging.ImageFormat.Png);
             return new MagickImage(bytes.ToArray());
         }
-        return Images.Load(src);
+        MagickImage image;
+        try { image = Images.LoadPlain(src); }
+        catch (MagickException) when (ext == "x3f" && Meta.Exe != null)
+        {
+            var temp = Paths.Temp();
+            try
+            {
+                var preview = Path.Combine(temp, "imagem.jpg");
+                var args = Path.Combine(temp, "args.txt");
+                File.WriteAllLines(args, new[] { "-charset", "filename=UTF8", "-b", "-JpgFromRaw", "-W!", preview, src }, new System.Text.UTF8Encoding(false));
+                Proc.Run(Meta.Exe!, new[] { "-@", args }).GetAwaiter().GetResult();
+                if (!File.Exists(preview)) throw new Exception("Não consegui abrir este X3F: o formato RAW não é compatível e não há imagem JPEG incorporada.");
+                image = Images.Load(preview);
+                Job.Warn("Para este X3F, usei a imagem JPEG que a câmera guardou no arquivo. Ela pode ter menos qualidade que o RAW.");
+            }
+            finally { Paths.TryDelete(temp); }
+        }
+        image.ResetPage();
+        return image;
+    }
+
+    static MagickImageCollection LoadFrames(string src, string ext)
+    {
+        if (Modules.Ext(src) is "xcf" or "x3f") return new MagickImageCollection { Read(src) };
+        var frames = Images.LoadFrames(src, ext);
+        if (Modules.Ext(src) is not ("gif" or "webp" or "tif" or "tiff" or "png" or "apng" or "dcm"))
+            foreach (var frame in frames) frame.ResetPage();
+        return frames;
+    }
+
+    static MagickImage ReadXcf(string src)
+    {
+        using var layers = new MagickImageCollection();
+        using var input = File.OpenRead(src);
+        layers.Read(input);
+        input.Position = 0;
+        var header = new byte[14];
+        input.ReadExactly(header);
+        uint Number()
+        {
+            Span<byte> bytes = stackalloc byte[4];
+            input.ReadExactly(bytes);
+            return BinaryPrimitives.ReadUInt32BigEndian(bytes);
+        }
+        var width = Number();
+        var height = Number();
+        Number(); // Tipo de cor do documento.
+        int version = header[9] == 'v' ? int.Parse(System.Text.Encoding.ASCII.GetString(header, 10, 3)) : 0;
+        if (version >= 4) Number(); // Precisão dos canais.
+        while (true)
+        {
+            var property = Number();
+            var length = Number();
+            if (property == 0) break;
+            if (length > input.Length - input.Position) throw new InvalidDataException();
+            input.Seek(length, SeekOrigin.Current);
+        }
+        var types = new uint[layers.Count];
+        for (int i = 0; i < types.Length; i++)
+        {
+            ulong offset = version >= 4 ? ((ulong)Number() << 32) | Number() : Number();
+            var next = input.Position;
+            if (offset == 0 || offset > (ulong)Math.Max(0, input.Length - 12)) throw new InvalidDataException();
+            input.Position = (long)offset + 8;
+            types[types.Length - i - 1] = Number(); // O leitor entrega as camadas de baixo para cima.
+            input.Position = next;
+        }
+        var canvas = new MagickImage(MagickColors.None, width, height);
+        try
+        {
+            for (int i = 0; i < layers.Count; i++)
+            {
+                Job.Check();
+                var layer = layers[i];
+                // Em RGBA/GRAYA/indexado com alfa, o leitor guarda a opacidade separada dos pixels.
+                if ((types[i] & 1) != 0)
+                    layer.Evaluate(Channels.Alpha, EvaluateOperator.Multiply, (layer.BackgroundColor?.A ?? 255) / 255.0);
+                canvas.Composite(layer, layer.Page.X, layer.Page.Y, layer.Compose);
+            }
+            return canvas;
+        }
+        catch { canvas.Dispose(); throw; }
     }
 
     static void WriteIcns(MagickImage image, string dst)

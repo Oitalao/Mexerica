@@ -6,6 +6,8 @@
 
 <p align="center">Convertissez et modifiez des fichiers sans ouvrir aucun programme : faites glisser le fichier, appuyez sur <b>Espace</b> et déposez-le sur l'option.</p>
 
+<p align="center"><a href="https://oitalao.github.io/Mexerica/en/">oitalao.github.io/Mexerica</a></p>
+
 <p align="center">
   <img src="assets/telas/roda-converter.png" width="260" alt="Roue Convertir">
   <img src="assets/telas/roda-ferramentas.png" width="260" alt="Roue Outils">
@@ -62,9 +64,10 @@ La roue ne propose que ce qui a du sens pour ce fichier : une vidéo sans son ne
 - Fond et marge pour les images, collage de plusieurs photos, images vers PDF, niveaux de gris, lecture de QR Code
 - Suppression du fond d'une photo par IA (modèle local, isnet-general-use ; rien ne quitte votre ordinateur)
 - Métadonnées : tout voir, modifier le titre, l'auteur et d'autres champs, effacer la localisation ou tout
-- Vidéo : couper un passage, recadrer l'image, vitesse, découper, extraire une image ou toutes, extraire l'audio et les sous-titres, pivoter, changer la résolution, enlever le son, assembler
+- Éditeur vidéo avec une timeline : plusieurs vidéos et photos, découper, supprimer des passages, réorganiser par glisser-déposer, raccourcir avec les bords, régler la vitesse et le volume de chaque passage, annuler et exporter en 9:16, 1:1, 16:9 ou au format d’origine
+- Vidéo : recadrer l'image, vitesse, découper, extraire une image ou toutes, extraire l'audio et les sous-titres, pivoter, changer la résolution, enlever le son, assembler
 - Audio : couper un passage, normaliser le volume, bip sur des passages, mono et stéréo, vitesse, découper, assembler
-- PDF : organiser les pages (réordonner, pivoter, supprimer), découper (les parties vont à côté de l’original, dans un dossier ou dans un ZIP), assembler et caviarder pour de vrai (le texte caché disparaît)
+- PDF : organiser les pages (réordonner, pivoter, supprimer), découper (les parties vont à côté de l’original, dans un dossier ou dans un ZIP), assembler et caviarder pour de vrai (le texte caché disparaît et le reste de la page reste consultable)
 - PDF aussi : assembler des fichiers de types différents (Word, tableur, image et PDF) en un seul PDF, dans l'ordre et sous le nom de votre choix ; OCR qui rend un PDF scanné consultable, même avec des pages de travers ou à l'envers ; numéroter les pages et tamponner « Doc. 01 » ; tenir dans une limite d'envoi (compresse et, si besoin, découpe en parties) ; PDF/A ; mot de passe
 - Renommer plusieurs fichiers d'un coup selon un modèle (« Doc. {n} - {nom} »), avec aperçu et annulation
 - Sous-titres : retarder ou avancer le minutage ; polices : planche d'exemple ; archives : extraire et tester l'intégrité

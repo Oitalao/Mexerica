@@ -81,15 +81,21 @@ static class LibreOfficeSetup
                 if (total > 0) job.OnProgress?.Invoke((double)got / total);
             }
         }
+        VerifyPackage(dst);
+        return dst;
+    }
+
+    internal static void VerifyPackage(string dst)
+    {
         // Só instala se for mesmo da The Document Foundation (assinatura digital do arquivo).
         try
         {
-            var cert = X509Certificate.CreateFromSignedFile(dst);
+            if (!Native.TrustedSignature(dst)) throw new Exception("O arquivo baixado não tem a assinatura do LibreOffice. Nada foi instalado.");
+            using var cert = X509Certificate.CreateFromSignedFile(dst);
             if (!cert.Subject.Contains("Document Foundation", StringComparison.OrdinalIgnoreCase))
                 throw new Exception("O arquivo baixado não é do LibreOffice oficial. Nada foi instalado.");
         }
         catch (System.Security.Cryptography.CryptographicException) { throw new Exception("O arquivo baixado não tem a assinatura do LibreOffice. Nada foi instalado."); }
-        return dst;
     }
 
     /// Instala sem perguntas além da permissão do Windows, sem trocar o programa que abre .docx/.xlsx

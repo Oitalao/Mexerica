@@ -14,24 +14,12 @@ sealed class GeoModule : Module
         .Select(e => new Target(e, e == "csv" ? "coordenadas" : "mapa", e.ToUpperInvariant()));
     public override IEnumerable<Target> TargetsFor(string inExt, string path)
     {
-        if (inExt == "json")
+        if (inExt is "json" or "csv")
         {
             try
             {
-                using var reader = new StreamReader(path);
-                var head = new char[2048];
-                var count = reader.Read(head, 0, head.Length);
-                if (!new string(head, 0, count).Contains("\"type\"", StringComparison.OrdinalIgnoreCase)) return [];
-            }
-            catch { return []; }
-        }
-        if (inExt == "csv")
-        {
-            try
-            {
-                using var reader = new StreamReader(path);
-                var header = reader.ReadLine() ?? "";
-                if (!new[] { "wkt", "geom", "shape", "longitude", "lon", "lng", "long" }.Any(h => header.Contains(h, StringComparison.OrdinalIgnoreCase))) return [];
+                var dataset = inExt == "json" ? GeoJsonFormat.Read(path, default) : GeoCsvFormat.Read(path, default);
+                if (dataset.Features.Count == 0) return [];
             }
             catch { return []; }
         }
